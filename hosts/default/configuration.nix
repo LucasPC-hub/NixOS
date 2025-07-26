@@ -25,9 +25,10 @@
 
   users.groups.i2c = {};
 
-  users.users.lysec = {
+  # MUDANÇA: Altere o nome do usuário para o seu
+  users.users.lpc = {  # Mudei de "lysec" para "lpc"
     isNormalUser = true;
-    description = "lysec";
+    description = "lpc";
     shell = pkgs.zsh;
     extraGroups = [
       "networkmanager"
@@ -45,7 +46,7 @@
     useUserPackages = true;
     extraSpecialArgs = { inherit inputs; };
     users = {
-      "lysec" = import ./home.nix;
+      "lpc" = import ./home.nix;  # Mudei para "lpc"
     };
   };
 
@@ -66,10 +67,16 @@
   boot = {
     loader.systemd-boot.enable = true;
     loader.efi.canTouchEfiVariables = true;
-    kernelPackages = pkgs.linuxPackages_cachyos;
+    
+    # MUDANÇA: Kernel padrão mais recente (não compila)
+    kernelPackages = pkgs.linuxPackages_latest;  # Era pkgs.linuxPackages_cachyos
+    
+    # MUDANÇA: Configuração do monitor do Galaxy Book 4 Ultra
     kernelParams = [
-      "video=DP-1:2560x1440@360"
+      # "video=DP-1:2560x1440@360"  # Monitor do cara - comentado
+      "video=eDP-1:2880x1800@120"   # Seu monitor - Galaxy Book 4 Ultra
     ];
+    
     kernelModules = [ "v4l2loopback" "i2c-dev" ];
     initrd.availableKernelModules = [ "i2c-dev" ];
     extraModprobeConfig = ''
@@ -109,20 +116,22 @@
 
   hardware.enableRedistributableFirmware = true;
 
-  time.timeZone = "Europe/Berlin";
+  # MUDANÇA: Fuso horário para Brasil
+  time.timeZone = "America/Sao_Paulo";  # Era "Europe/Berlin"
 
   i18n = {
     defaultLocale = "en_US.UTF-8";
     extraLocaleSettings = {
-      LC_ADDRESS = "de_DE.UTF-8";
-      LC_IDENTIFICATION = "de_DE.UTF-8";
-      LC_MEASUREMENT = "de_DE.UTF-8";
-      LC_MONETARY = "de_DE.UTF-8";
-      LC_NAME = "de_DE.UTF-8";
-      LC_NUMERIC = "de_DE.UTF-8";
-      LC_PAPER = "de_DE.UTF-8";
-      LC_TELEPHONE = "de_DE.UTF-8";
-      LC_TIME = "de_DE.UTF-8";
+      # MUDANÇA: Configurações para Brasil
+      LC_ADDRESS = "pt_BR.UTF-8";        # Era "de_DE.UTF-8"
+      LC_IDENTIFICATION = "pt_BR.UTF-8"; # Era "de_DE.UTF-8"
+      LC_MEASUREMENT = "pt_BR.UTF-8";    # Era "de_DE.UTF-8"
+      LC_MONETARY = "pt_BR.UTF-8";       # Era "de_DE.UTF-8"
+      LC_NAME = "pt_BR.UTF-8";           # Era "de_DE.UTF-8"
+      LC_NUMERIC = "pt_BR.UTF-8";        # Era "de_DE.UTF-8"
+      LC_PAPER = "pt_BR.UTF-8";          # Era "de_DE.UTF-8"
+      LC_TELEPHONE = "pt_BR.UTF-8";      # Era "de_DE.UTF-8"
+      LC_TIME = "pt_BR.UTF-8";           # Era "de_DE.UTF-8"
     };
   };
 
@@ -131,9 +140,10 @@
   services = {
     xserver = {
       enable = true;
-      videoDrivers = [ "amdgpu" ];
+      # MUDANÇA: Driver para Intel (Galaxy Book 4 Ultra tem Intel + NVIDIA)
+      videoDrivers = [ "intel" "nvidia" ];  # Era só "amdgpu"
       xkb = {
-        layout = "de";
+        layout = "br";  # MUDANÇA: Layout brasileiro (era "de")
         variant = "";
       };
     };
@@ -161,11 +171,22 @@
     };
   };
 
-  console.keyMap = "de";
+  # MUDANÇA: Layout do console para brasileiro
+  console.keyMap = "br-abnt2";  # Era "de"
 
   xdg.portal.enable = true;
 
   hardware.bluetooth.enable = true;
+
+  # MUDANÇA: Configurações para NVIDIA (Galaxy Book 4 Ultra)
+  hardware.nvidia = {
+    modesetting.enable = true;
+    powerManagement.enable = false;
+    powerManagement.finegrained = false;
+    open = false;
+    nvidiaSettings = true;
+    package = config.boot.kernelPackages.nvidiaPackages.stable;
+  };
 
   environment.systemPackages = with pkgs; [
     bluez
