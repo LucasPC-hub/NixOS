@@ -140,8 +140,8 @@
   services = {
     xserver = {
       enable = true;
-      # MUDANÇA: Driver para Intel (Galaxy Book 4 Ultra tem Intel + NVIDIA)
-      videoDrivers = [ "intel" "nvidia" ];  # Era só "amdgpu"
+      # MUDANÇA: Só Intel por enquanto (sem NVIDIA)
+      videoDrivers = [ "intel" ];  # Removeu nvidia temporariamente
       xkb = {
         layout = "br";  # MUDANÇA: Layout brasileiro (era "de")
         variant = "";
@@ -178,15 +178,15 @@
 
   hardware.bluetooth.enable = true;
 
-  # MUDANÇA: Configurações para NVIDIA (Galaxy Book 4 Ultra)
-  hardware.nvidia = {
-    modesetting.enable = true;
-    powerManagement.enable = false;
-    powerManagement.finegrained = false;
-    open = false;
-    nvidiaSettings = true;
-    package = config.boot.kernelPackages.nvidiaPackages.stable;
-  };
+  # NVIDIA desabilitado por enquanto
+  # hardware.nvidia = {
+  #   modesetting.enable = true;
+  #   powerManagement.enable = false;
+  #   powerManagement.finegrained = false;
+  #   open = false;
+  #   nvidiaSettings = true;
+  #   package = config.boot.kernelPackages.nvidiaPackages.stable;
+  # };
 
   environment.systemPackages = with pkgs; [
     bluez

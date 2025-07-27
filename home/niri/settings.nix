@@ -8,6 +8,12 @@
       workspaces = {
         "browser" = {};
         "vesktop" = {};
+        "3" = {};
+        "4" = {};
+        "5" = {};
+        "6" = {};
+        "7" = {};
+        "8" = {};
       };
 
       prefer-no-csd = true;
@@ -16,13 +22,16 @@
         skip-at-startup = true;
       };
 
-      layout = {
+      # Screenshot path
+      screenshot-path = "~/Pictures/Screenshots/Screenshot from %Y-%m-%d %H-%M-%S.png";
 
+      layout = {
+        # Keeping your color scheme - don't change these
         background-color = "#00000000";
 
         focus-ring = {
           enable = true;
-          width = 3;
+          width = 0.5;
           active = {
             color = "#A8AEFF";
           };
@@ -31,20 +40,43 @@
           };
         };
 
-        gaps = 6;
+        # Updated gaps to match old config
+        gaps = 5;
 
-        struts = {
-          left = 20;
-          right = 20;
-          top = 20;
-          bottom = 20;
-        };
+        # Preset column widths from old config
+        preset-column-widths = [
+          { proportion = 0.33333; }
+          { proportion = 0.5; }
+          { proportion = 0.66667; }
+          { proportion = 0.75; }
+          { proportion = 1.0; }
+        ];
+
+        default-column-width = { proportion = 0.5; };
+
+        # Remove struts to match old config (commented out in old)
+        # struts = {
+        #   left = 20;
+        #   right = 20;
+        #   top = 20;
+        #   bottom = 20;
+        # };
       };
 
       input = {
-        keyboard.xkb.layout = "de";
+        keyboard = {
+          xkb = {
+            layout = "us,br";
+            variant = "intl,abnt2";
+            options = "grp:win_space_toggle";
+          };
+          repeat-delay = 300;
+          repeat-rate = 50;
+          numlock = true;
+        };
+
         touchpad = {
-          click-method = "button-areas";
+          click-method = "clickfinger";
           dwt = true;
           dwtp = true;
           natural-scroll = true;
@@ -53,9 +85,23 @@
           tap-button-map = "left-right-middle";
           middle-emulation = true;
           accel-profile = "adaptive";
+          accel-speed = 0.3;
         };
-        focus-follows-mouse.enable = true;
-        warp-mouse-to-focus.enable = false;
+
+        mouse = {
+          accel-profile = "flat";
+          accel-speed = 0.0;
+          scroll-factor = 2.0;
+        };
+
+        focus-follows-mouse = {
+          enable = true;
+          max-scroll-amount = "0%";
+        };
+        
+        warp-mouse-to-focus = {
+          enable = true;
+        };
       };
 
       outputs = {
@@ -68,6 +114,28 @@
           scale = 1.0;
           position = { x = 0; y = 0; };
         };
+        # Add your eDP-1 config if you have a laptop
+        "eDP-1" = {
+          mode = {
+            width = 2880;
+            height = 1800;
+            refresh = 120.001;
+          };
+          scale = 1.5;
+          position = { x = 0; y = 0; };
+          focus-at-startup = true;
+          variable-refresh-rate = true;
+        };
+        # Add HDMI output
+        "HDMI-A-1" = {
+          mode = {
+            width = 1920;
+            height = 1080;
+            refresh = 60.000;
+          };
+          scale = 1.0;
+          position = { x = 1920; y = 0; };
+        };
       };
 
       cursor = {
@@ -75,6 +143,7 @@
         theme = "Adwaita";
       };
 
+      # Keep your existing environment variables - they're better
       environment = {
         CLUTTER_BACKEND = "wayland";
         GDK_BACKEND = "wayland,x11";
@@ -86,7 +155,11 @@
 
         XDG_SESSION_TYPE = "wayland";
         XDG_CURRENT_DESKTOP = "niri";
+        XDG_SESSION_DESKTOP = "niri";
         DISPLAY = ":0";
+
+        # Angular/Node optimization from old config
+        NODE_OPTIONS = "--max-old-space-size=8192";
       };
     };
   };
