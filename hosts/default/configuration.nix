@@ -25,8 +25,7 @@
 
   users.groups.i2c = {};
 
-  # MUDANÇA: Altere o nome do usuário para o seu
-  users.users.lpc = {  # Mudei de "lysec" para "lpc"
+  users.users.lpc = {
     isNormalUser = true;
     description = "lpc";
     shell = pkgs.zsh;
@@ -46,7 +45,7 @@
     useUserPackages = true;
     extraSpecialArgs = { inherit inputs; };
     users = {
-      "lpc" = import ./home.nix;  # Mudei para "lpc"
+      "lpc" = import ./home.nix;
     };
   };
 
@@ -64,49 +63,25 @@
     material-icons
   ];
 
-boot = {
-  loader = {
-    grub = {
-      enable = true;
-      device = "nodev";
-      efiSupport = true;
-      useOSProber = true;
-      extraEntries = ''
-        menuentry "Arch Linux" {
-          search --set=root --fs-uuid 2f1d2bf4-abf7-4a99-b828-94c7f52089fc
-          linux /vmlinuz-linux root=UUID=2f1d2bf4-abf7-4a99-b828-94c7f52089fc rootfstype=btrfs rootflags=subvol=@ rw vt.default_red=0x0c,0xff,0xa8,0x8e,0xf3,0xa8,0x9e,0xb7,0x44,0xff,0xa8,0x8e,0xf3,0xa8,0x9e,0xe3 vt.default_grn=0x0d,0x6b,0xae,0xab,0xde,0xae,0xa0,0xbb,0x48,0x6b,0xae,0xab,0xde,0xae,0xa0,0xc2 vt.default_blu=0x11,0x81,0xff,0xff,0xff,0xff,0xff,0xd0,0x5a,0x81,0xff,0xff,0xff,0xff,0xff,0xff
-          initrd /intel-ucode.img
-          initrd /initramfs-linux.img
-        }
-        menuentry "Arch Linux (Zen Kernel)" {
-          search --set=root --fs-uuid 2f1d2bf4-abf7-4a99-b828-94c7f52089fc
-          linux /vmlinuz-linux-zen root=UUID=2f1d2bf4-abf7-4a99-b828-94c7f52089fc rootfstype=btrfs rootflags=subvol=@ rw vt.default_red=0x0c,0xff,0xa8,0x8e,0xf3,0xa8,0x9e,0xb7,0x44,0xff,0xa8,0x8e,0xf3,0xa8,0x9e,0xe3 vt.default_grn=0x0d,0x6b,0xae,0xab,0xde,0xae,0xa0,0xbb,0x48,0x6b,0xae,0xab,0xde,0xae,0xa0,0xc2 vt.default_blu=0x11,0x81,0xff,0xff,0xff,0xff,0xff,0xd0,0x5a,0x81,0xff,0xff,0xff,0xff,0xff,0xff
-          initrd /intel-ucode.img
-          initrd /initramfs-linux-zen.img
-        }
-        menuentry "Arch Linux (Mainline Kernel)" {
-          search --set=root --fs-uuid 2f1d2bf4-abf7-4a99-b828-94c7f52089fc
-          linux /vmlinuz-linux-mainline root=UUID=2f1d2bf4-abf7-4a99-b828-94c7f52089fc rootfstype=btrfs rootflags=subvol=@ rw vt.default_red=0x0c,0xff,0xa8,0x8e,0xf3,0xa8,0x9e,0xb7,0x44,0xff,0xa8,0x8e,0xf3,0xa8,0x9e,0xe3 vt.default_grn=0x0d,0x6b,0xae,0xab,0xde,0xae,0xa0,0xbb,0x48,0x6b,0xae,0xab,0xde,0xae,0xa0,0xc2 vt.default_blu=0x11,0x81,0xff,0xff,0xff,0xff,0xff,0xd0,0x5a,0x81,0xff,0xff,0xff,0xff,0xff,0xff
-          initrd /intel-ucode.img
-          initrd /initramfs-linux-mainline.img
-        }
-      '';
+  boot = {
+    loader = {
+      grub.enable = false;
+      systemd-boot.enable = true;
+      efi.canTouchEfiVariables = true;
     };
-    efi.canTouchEfiVariables = true;
+    kernelPackages = pkgs.linuxPackages_latest;
+    kernelParams = [
+      "video=eDP-1:2880x1800@120"
+    ];
+    kernelModules = [ "v4l2loopback" "i2c-dev" ];
+    initrd.availableKernelModules = [ "i2c-dev" ];
+    extraModprobeConfig = ''
+      options v4l2loopback video_nr=0 card_label="DroidCam" exclusive_caps=1
+    '';
+    extraModulePackages = with config.boot.kernelPackages; [
+      v4l2loopback
+    ];
   };
-  kernelPackages = pkgs.linuxPackages_latest;
-  kernelParams = [
-    "video=eDP-1:2880x1800@120"
-  ];
-  kernelModules = [ "v4l2loopback" "i2c-dev" ];
-  initrd.availableKernelModules = [ "i2c-dev" ];
-  extraModprobeConfig = ''
-    options v4l2loopback video_nr=0 card_label="DroidCam" exclusive_caps=1
-  '';
-  extraModulePackages = with config.boot.kernelPackages; [
-    v4l2loopback
-  ];
-};
 
   services.udev.packages = [ pkgs.rwedid ];
 
@@ -137,34 +112,39 @@ boot = {
 
   hardware.enableRedistributableFirmware = true;
 
-  # MUDANÇA: Fuso horário para Brasil
-  time.timeZone = "America/Sao_Paulo";  # Era "Europe/Berlin"
+  time.timeZone = "America/Sao_Paulo";
 
   i18n = {
     defaultLocale = "en_US.UTF-8";
     extraLocaleSettings = {
-      # MUDANÇA: Configurações para Brasil
-      LC_ADDRESS = "pt_BR.UTF-8";        # Era "de_DE.UTF-8"
-      LC_IDENTIFICATION = "pt_BR.UTF-8"; # Era "de_DE.UTF-8"
-      LC_MEASUREMENT = "pt_BR.UTF-8";    # Era "de_DE.UTF-8"
-      LC_MONETARY = "pt_BR.UTF-8";       # Era "de_DE.UTF-8"
-      LC_NAME = "pt_BR.UTF-8";           # Era "de_DE.UTF-8"
-      LC_NUMERIC = "pt_BR.UTF-8";        # Era "de_DE.UTF-8"
-      LC_PAPER = "pt_BR.UTF-8";          # Era "de_DE.UTF-8"
-      LC_TELEPHONE = "pt_BR.UTF-8";      # Era "de_DE.UTF-8"
-      LC_TIME = "pt_BR.UTF-8";           # Era "de_DE.UTF-8"
+      LC_ADDRESS = "pt_BR.UTF-8";
+      LC_IDENTIFICATION = "pt_BR.UTF-8";
+      LC_MEASUREMENT = "pt_BR.UTF-8";
+      LC_MONETARY = "pt_BR.UTF-8";
+      LC_NAME = "pt_BR.UTF-8";
+      LC_NUMERIC = "pt_BR.UTF-8";
+      LC_PAPER = "pt_BR.UTF-8";
+      LC_TELEPHONE = "pt_BR.UTF-8";
+      LC_TIME = "pt_BR.UTF-8";
     };
   };
 
   programs.zsh.enable = true;
 
+  # Enable graphics (updated from hardware.opengl in NixOS 24.11+)
+  hardware.graphics = {
+    enable = true;
+    enable32Bit = true;
+  };
+
   services = {
     xserver = {
       enable = true;
-      # MUDANÇA: Só Intel por enquanto (sem NVIDIA)
-      videoDrivers = [ "intel" ];  # Removeu nvidia temporariamente
+      # Load modesetting driver for Intel and NVIDIA driver for offloading
+      # This is CRITICAL for PRIME offload to work properly
+      videoDrivers = [ "modesetting" "nvidia" ];
       xkb = {
-        layout = "br";  # MUDANÇA: Layout brasileiro (era "de")
+        layout = "br";
         variant = "";
       };
     };
@@ -192,25 +172,66 @@ boot = {
     };
   };
 
-  # MUDANÇA: Layout do console para brasileiro
-  console.keyMap = "br-abnt2";  # Era "de"
+  console.keyMap = "br-abnt2";
 
   xdg.portal.enable = true;
 
   hardware.bluetooth.enable = true;
 
-  # NVIDIA desabilitado por enquanto
-  # hardware.nvidia = {
-  #   modesetting.enable = true;
-  #   powerManagement.enable = false;
-  #   powerManagement.finegrained = false;
-  #   open = false;
-  #   nvidiaSettings = true;
-  #   package = config.boot.kernelPackages.nvidiaPackages.stable;
-  # };
+  # NVIDIA Configuration
+  hardware.nvidia = {
+    # Modesetting is required
+    modesetting.enable = true;
+    
+    # Nvidia power management. Experimental, and can cause sleep/suspend to fail.
+    # Enable this if you have graphical corruption issues or application crashes after waking
+    # up from sleep. This fixes it by saving the entire VRAM memory to /tmp/ instead
+    # of just the bare essentials.
+    powerManagement.enable = false;
+    
+    # Fine-grained power management. Turns off GPU when not in use.
+    # Experimental and only works on modern Nvidia GPUs (Turing or newer).
+    powerManagement.finegrained = false;
+
+    # Use the NVidia open source kernel module (not to be confused with the
+    # independent third-party "nouveau" open source driver).
+    # Support is limited to the Turing and later architectures. Full list of 
+    # supported GPUs is at: 
+    # https://github.com/NVIDIA/open-gpu-kernel-modules#compatible-gpus 
+    # Only available from driver 515.43.04+
+    # Currently alpha-quality/buggy, so false is currently the recommended setting.
+    # Your RTX 4070 Max-Q supports open modules, but closed-source is more stable for now
+    open = false;
+
+    # Enable the Nvidia settings menu, accessible via `nvidia-settings`.
+    nvidiaSettings = true;
+
+    # Optionally, you may need to select the appropriate driver version for your specific GPU.
+    package = config.boot.kernelPackages.nvidiaPackages.stable;
+
+    # PRIME configuration for hybrid Intel/NVIDIA laptops
+    prime = {
+      # Bus IDs for your specific hardware (found via lspci)
+      intelBusId = "PCI:0:2:0";    # Intel Meteor Lake-P Arc Graphics
+      nvidiaBusId = "PCI:1:0:0";   # NVIDIA RTX 4070 Max-Q Mobile
+      
+      # Offload mode - Intel as primary, NVIDIA on-demand (recommended for battery life)
+      offload = {
+        enable = true;
+        enableOffloadCmd = true;
+      };
+      
+      # Alternative modes (uncomment one if you prefer):
+      # sync.enable = true;          # Both GPUs always active, NVIDIA does all rendering
+      # reverseSync.enable = true;   # NVIDIA as primary display (worse battery, better for external displays)
+    };
+  };
 
   environment.systemPackages = with pkgs; [
     bluez
+    # Graphics debugging and utilities
+    glxinfo
+    pciutils
   ];
 
   nixpkgs.config.allowUnfree = true;
