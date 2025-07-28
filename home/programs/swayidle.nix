@@ -1,6 +1,6 @@
 # Add this to your home.nix or create a new file like home/programs/swayidle.nix
 
-{ pkgs, ... }:
+{ pkgs, lib, ... }:
 
 {
   services.swayidle = {
@@ -41,7 +41,7 @@
     };
     Service = {
       Type = "simple";
-      Restart = "on-failure";
+      Restart = lib.mkForce "on-failure";  # Force this value
       RestartSec = 1;
       TimeoutStopSec = 10;
     };
