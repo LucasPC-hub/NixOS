@@ -33,7 +33,6 @@ with pkgs;
   black
   zed-editor
   nodePackages.npm
-  docker
 
   # Utilities
   jq

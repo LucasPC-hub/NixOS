@@ -6,6 +6,7 @@
     "${self}/system/greeter/greetd.nix"
     "${self}/system/programs/steam.nix"
     "${self}/system/programs/lact.nix"
+    "${self}/system/programs/docker.nix"
     "${self}/system/programs/stylix.nix"
     "${self}/system/xdg.nix"
     "${self}/system/environment.nix"
@@ -37,6 +38,7 @@
       "plugdev"
       "i2c"
       "bluetooth"
+      "docker"
     ];
   };
 
@@ -183,22 +185,22 @@ fonts.packages = with pkgs; [
   hardware.nvidia = {
     # Modesetting is required
     modesetting.enable = true;
-    
+
     # Nvidia power management. Experimental, and can cause sleep/suspend to fail.
     # Enable this if you have graphical corruption issues or application crashes after waking
     # up from sleep. This fixes it by saving the entire VRAM memory to /tmp/ instead
     # of just the bare essentials.
     powerManagement.enable = false;
-    
+
     # Fine-grained power management. Turns off GPU when not in use.
     # Experimental and only works on modern Nvidia GPUs (Turing or newer).
     powerManagement.finegrained = false;
 
     # Use the NVidia open source kernel module (not to be confused with the
     # independent third-party "nouveau" open source driver).
-    # Support is limited to the Turing and later architectures. Full list of 
-    # supported GPUs is at: 
-    # https://github.com/NVIDIA/open-gpu-kernel-modules#compatible-gpus 
+    # Support is limited to the Turing and later architectures. Full list of
+    # supported GPUs is at:
+    # https://github.com/NVIDIA/open-gpu-kernel-modules#compatible-gpus
     # Only available from driver 515.43.04+
     # Currently alpha-quality/buggy, so false is currently the recommended setting.
     # Your RTX 4070 Max-Q supports open modules, but closed-source is more stable for now
@@ -215,13 +217,13 @@ fonts.packages = with pkgs; [
       # Bus IDs for your specific hardware (found via lspci)
       intelBusId = "PCI:0:2:0";    # Intel Meteor Lake-P Arc Graphics
       nvidiaBusId = "PCI:1:0:0";   # NVIDIA RTX 4070 Max-Q Mobile
-      
+
       # Offload mode - Intel as primary, NVIDIA on-demand (recommended for battery life)
       offload = {
         enable = true;
         enableOffloadCmd = true;
       };
-      
+
       # Alternative modes (uncomment one if you prefer):
       # sync.enable = true;          # Both GPUs always active, NVIDIA does all rendering
       # reverseSync.enable = true;   # NVIDIA as primary display (worse battery, better for external displays)
