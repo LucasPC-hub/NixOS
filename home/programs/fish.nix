@@ -149,8 +149,6 @@
       c = "clear";
       cc = "clear_all";
       clear = "clear_all";
-      # Removed yay/pikaur alias since we're on NixOS, not Arch
-      claude = "/home/lpc/.claude/local/claude";
       flakerb = "sudo nixos-rebuild switch --flake .#default";
     };
 
