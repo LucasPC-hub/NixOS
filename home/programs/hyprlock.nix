@@ -1,14 +1,12 @@
-{ config, pkgs, inputs, ... }:
+{ config, pkgs, lib, ... }:
 
 {
-  # Install hyprlock package
-  home.packages = [
-    inputs.hyprlock.packages.${pkgs.system}.hyprlock
-  ];
+  # hyprlock is installed via programs.hyprlock.enable = true in configuration.nix
+  # We just need to configure it here
 
-  # Create hyprlock configuration
+  # Create hyprlock configuration with full customization
   home.file.".config/hypr/hyprlock.conf".text = ''
-    # GENERAL
+    # GENERAL SETTINGS
     general {
       disable_loading_bar = true
       grace = 300
@@ -16,10 +14,10 @@
       no_fade_in = false
     }
 
-    # BACKGROUND
+    # BACKGROUND - Uses your stylix wallpaper with blur effects
     background {
       monitor =
-      path = ${config.stylix.image}  # Use stylix wallpaper
+      path = ${config.stylix.image}
       blur_passes = 3
       blur_size = 8
       noise = 0.0117
@@ -29,164 +27,246 @@
       vibrancy_darkness = 0.0
     }
 
-    # INPUT FIELD
+    # PASSWORD INPUT FIELD - Styled with your theme colors
     input-field {
       monitor =
       size = 250, 50
       outline_thickness = 3
-      dots_size = 0.33 # Scale of input-field height, 0.2 - 0.8
-      dots_spacing = 0.15 # Scale of dots' absolute size, 0.0 - 1.0
+      dots_size = 0.33
+      dots_spacing = 0.15
       dots_center = true
-      dots_rounding = -1 # -1 default circle, -2 follow input-field rounding
-      outer_color = rgb(${config.stylix.base16Scheme.base03})
-      inner_color = rgb(${config.stylix.base16Scheme.base00})
-      font_color = rgb(${config.stylix.base16Scheme.base05})
+      dots_rounding = -1
+      outer_color = rgb(${config.stylix.base16Scheme.base0E})  # Accent color
+      inner_color = rgb(${config.stylix.base16Scheme.base00})  # Background
+      font_color = rgb(${config.stylix.base16Scheme.base05})   # Foreground text
       fade_on_empty = true
-      fade_timeout = 1000 # Milliseconds before fade_on_empty is triggered.
-      placeholder_text = <i>Input Password...</i> # Text rendered in the input box when it's empty.
+      fade_timeout = 1000
+      placeholder_text = <i>Password...</i>
       hide_input = false
-      rounding = -1 # -1 means complete rounding (circle/oval)
-      check_color = rgb(${config.stylix.base16Scheme.base0B})
-      fail_color = rgb(${config.stylix.base16Scheme.base08}) # if authentication failed, changes outer_color and fail message color
-      fail_text = <i>$FAIL <b>($ATTEMPTS)</b></i> # can be set to empty
-      fail_transition = 300 # transition time in ms between normal outer_color and fail_color
+      rounding = -1
+      check_color = rgb(${config.stylix.base16Scheme.base0B})  # Green for success
+      fail_color = rgb(${config.stylix.base16Scheme.base08})   # Red for failure
+      fail_text = <i>$FAIL <b>($ATTEMPTS)</b></i>
+      fail_transition = 300
       capslock_color = -1
       numlock_color = -1
-      bothlock_color = -1 # when both locks are active. -1 means don't change outer color (same for above)
-      invert_numlock = false # change color if numlock is off
-      swap_font_color = false # see below
+      bothlock_color = -1
+      invert_numlock = false
+      swap_font_color = false
 
       position = 0, -20
       halign = center
       valign = center
     }
 
-    # TIME
+    # CLOCK - Large time display
     label {
       monitor =
       text = cmd[update:1000] echo "$TIME"
       color = rgb(${config.stylix.base16Scheme.base05})
       font_size = 90
       font_family = ${config.stylix.fonts.monospace.name}
-      position = 0, 16
+      position = 0, 80
       halign = center
       valign = center
     }
 
-    # DATE
+    # DATE - Below the clock
     label {
       monitor =
       text = cmd[update:43200000] echo "$(date +"%A, %d %B %Y")"
       color = rgb(${config.stylix.base16Scheme.base04})
       font_size = 25
-      font_family = ${config.stylix.fonts.monospace.name}
-      position = 0, -40
+      font_family = ${config.stylix.fonts.sansSerif.name}
+      position = 0, 40
       halign = center
       valign = center
     }
 
-    # USER AVATAR
+    # USER GREETING - Personalized message
+    label {
+      monitor =
+      text = Hi there, $USER
+      color = rgb(${config.stylix.base16Scheme.base0C})
+      font_size = 20
+      font_family = ${config.stylix.fonts.sansSerif.name}
+      position = 0, 160
+      halign = center
+      valign = center
+    }
+
+    # USER AVATAR - Profile picture (circular)
     image {
       monitor =
       path = ~/.face
-      size = 280 # lesser side if not 1:1 ratio
-      rounding = -1 # negative values mean circle
+      size = 150
+      rounding = -1  # Makes it circular
       border_size = 4
       border_color = rgb(${config.stylix.base16Scheme.base0D})
-      rotate = 0 # degrees, counter-clockwise
-      reload_time = -1 # seconds between reloading, 0 to reload with SIGUSR2
-      reload_cmd =  # command to get new path. if empty, old path will be used. don't run "follow" commands like tail -F
+      rotate = 0
+      reload_time = -1
+      reload_cmd =
 
-      position = 0, 200
+      position = 0, 280
       halign = center
       valign = center
     }
 
-    # CURRENT SONG
+    # CURRENT MUSIC - Song title
     label {
       monitor =
-      text = cmd[update:1000] echo "$(playerctl metadata --format "{{ title }}" 2>/dev/null | cut -c1-25)"
+      text = cmd[update:1000] echo "♪ $(playerctl metadata --format '{{ title }}' 2>/dev/null | cut -c1-30)"
       color = rgb(${config.stylix.base16Scheme.base0C})
-      font_size = 18
-      font_family = ${config.stylix.fonts.sansSerif.name}
-      position = 0, -150
-      halign = center
-      valign = bottom
-    }
-
-    label {
-      monitor =
-      text = cmd[update:1000] echo "$(playerctl metadata --format "{{ artist }}" 2>/dev/null | cut -c1-25)"
-      color = rgb(${config.stylix.base16Scheme.base04})
-      font_size = 14
-      font_family = ${config.stylix.fonts.sansSerif.name}
-      position = 0, -180
-      halign = center
-      valign = bottom
-    }
-
-    # WEATHER (if you have a weather script)
-    label {
-      monitor =
-      text = cmd[update:600000] echo "$(curl -s 'wttr.in/?format=1' 2>/dev/null || echo '')"
-      color = rgb(${config.stylix.base16Scheme.base09})
       font_size = 16
+      font_family = ${config.stylix.fonts.sansSerif.name}
+      position = 0, -120
+      halign = center
+      valign = bottom
+    }
+
+    # MUSIC ARTIST - Below song title
+    label {
+      monitor =
+      text = cmd[update:1000] echo "$(playerctl metadata --format '{{ artist }}' 2>/dev/null | cut -c1-25)"
+      color = rgb(${config.stylix.base16Scheme.base04})
+      font_size = 12
+      font_family = ${config.stylix.fonts.sansSerif.name}
+      position = 0, -140
+      halign = center
+      valign = bottom
+    }
+
+    # WEATHER INFO - Top left corner
+    label {
+      monitor =
+      text = cmd[update:1800000] echo "$(curl -s 'wttr.in/?format=1' 2>/dev/null | head -c 20)"
+      color = rgb(${config.stylix.base16Scheme.base09})
+      font_size = 14
       font_family = ${config.stylix.fonts.sansSerif.name}
       position = 30, -30
       halign = left
       valign = top
     }
 
-    # BATTERY (for laptops)
+    # BATTERY STATUS - Top right corner (for laptops)
     label {
       monitor =
-      text = cmd[update:5000] echo "$(cat /sys/class/power_supply/BAT*/capacity 2>/dev/null | head -1)%"
+      text = cmd[update:30000] echo "🔋 $(cat /sys/class/power_supply/BAT*/capacity 2>/dev/null | head -1)%"
       color = rgb(${config.stylix.base16Scheme.base0A})
-      font_size = 16
+      font_size = 14
       font_family = ${config.stylix.fonts.monospace.name}
       position = -30, -30
       halign = right
       valign = top
     }
 
-    # Keyboard layout
+    # KEYBOARD LAYOUT - Bottom center
     label {
       monitor =
-      text = cmd[update:1000] echo "$(hyprctl devices -j | jq -r '.keyboards[] | select(.main == true) | .active_keymap' | tr '[:lower:]' '[:upper:]')"
+      text = cmd[update:1000] echo "⌨ $(hyprctl devices -j | jq -r '.keyboards[] | select(.main == true) | .active_keymap' 2>/dev/null | tr '[:lower:]' '[:upper:]')"
       color = rgb(${config.stylix.base16Scheme.base03})
       font_size = 12
       font_family = ${config.stylix.fonts.monospace.name}
-      position = 0, -300
+      position = 0, -250
       halign = center
       valign = center
     }
+
+    # UPTIME - Bottom left
+    label {
+      monitor =
+      text = cmd[update:60000] echo "⏱ $(uptime -p | sed 's/up //')"
+      color = rgb(${config.stylix.base16Scheme.base03})
+      font_size = 11
+      font_family = ${config.stylix.fonts.monospace.name}
+      position = 30, -50
+      halign = left
+      valign = bottom
+    }
+
+    # NETWORK STATUS - Bottom right
+    label {
+      monitor =
+      text = cmd[update:5000] echo "📶 $(nmcli -t -f NAME c show --active | head -1 | cut -c1-15)"
+      color = rgb(${config.stylix.base16Scheme.base03})
+      font_size = 11
+      font_family = ${config.stylix.fonts.monospace.name}
+      position = -30, -50
+      halign = right
+      valign = bottom
+    }
   '';
 
-  # Create a face image symlink if it doesn't exist
-  home.file.".face".source =
-    if builtins.pathExists "${config.home.homeDirectory}/.face"
-    then config.lib.file.mkOutOfStoreSymlink "${config.home.homeDirectory}/.face"
-    else pkgs.fetchurl {
-      url = "https://www.gravatar.com/avatar/placeholder?d=mp&s=280";
-      sha256 = "sha256-AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=";
+  # Create face image if it doesn't exist
+  home.file.".face" = lib.mkIf (!builtins.pathExists "${config.home.homeDirectory}/.face") {
+    source = pkgs.fetchurl {
+      url = "https://www.gravatar.com/avatar/00000000000000000000000000000000?d=mp&f=y&s=150";
+      sha256 = "sha256-XFKwjngV85Mk6/SWfKLHbAh6HD6dUdl4oMG1XGpNcTw=";
     };
+  };
 
-  # Optional: Create a lockscreen script
+  # Create convenient lockscreen script
   home.file.".local/bin/lockscreen" = {
     text = ''
       #!/usr/bin/env bash
-      # Pause media players
+
+      # Pause all media players
       playerctl -a pause 2>/dev/null
 
-      # Mute audio
-      wpctl set-mute @DEFAULT_AUDIO_SINK@ 1 2>/dev/null
+      # Mute audio (save current state)
+      AUDIO_MUTED=$(wpctl get-volume @DEFAULT_AUDIO_SINK@ | grep -o 'MUTED' || echo "")
+      if [[ -z "$AUDIO_MUTED" ]]; then
+        wpctl set-mute @DEFAULT_AUDIO_SINK@ 1 2>/dev/null
+        SHOULD_UNMUTE=1
+      else
+        SHOULD_UNMUTE=0
+      fi
 
       # Lock the screen
       hyprlock
 
-      # Unmute audio after unlock
-      wpctl set-mute @DEFAULT_AUDIO_SINK@ 0 2>/dev/null
+      # Restore audio state after unlock
+      if [[ $SHOULD_UNMUTE -eq 1 ]]; then
+        wpctl set-mute @DEFAULT_AUDIO_SINK@ 0 2>/dev/null
+      fi
     '';
     executable = true;
   };
+
+  # Optional: Create different lock themes
+  home.file.".config/hypr/hyprlock-minimal.conf".text = ''
+    # Minimal theme - just password and time
+    general {
+      disable_loading_bar = true
+      grace = 300
+    }
+
+    background {
+      monitor =
+      color = rgb(${config.stylix.base16Scheme.base00})
+    }
+
+    input-field {
+      monitor =
+      size = 300, 60
+      outline_thickness = 2
+      outer_color = rgb(${config.stylix.base16Scheme.base0E})
+      inner_color = rgb(${config.stylix.base16Scheme.base01})
+      font_color = rgb(${config.stylix.base16Scheme.base05})
+      position = 0, -50
+      halign = center
+      valign = center
+    }
+
+    label {
+      monitor =
+      text = $TIME
+      color = rgb(${config.stylix.base16Scheme.base05})
+      font_size = 120
+      font_family = ${config.stylix.fonts.monospace.name}
+      position = 0, 100
+      halign = center
+      valign = center
+    }
+  '';
 }

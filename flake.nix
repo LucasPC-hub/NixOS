@@ -62,8 +62,6 @@
               withHyprland = true;
               withI3 = false;
             })
-            # Add hyprlock package
-            hyprlock.packages.${pkgs.system}.hyprlock
           ];
         })
       ];

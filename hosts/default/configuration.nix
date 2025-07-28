@@ -51,16 +51,6 @@
     };
   };
 
-  security.pam.services.hyprlock = {
-    text = ''
-      auth include login
-    '';
-  };
-
-  # Optional: Add hypridle for automatic locking
-  environment.systemPackages = with pkgs; [
-    inputs.hyprlock.packages.${pkgs.system}.hypridle
-  ];
 
 fonts.packages = with pkgs; [
     fira-sans
@@ -249,6 +239,8 @@ fonts.packages = with pkgs; [
   ];
 
   nixpkgs.config.allowUnfree = true;
+  programs.hyprlock.enable = true;
+  programs.hyprlock.enable = true;
 
   home-manager.backupFileExtension = "backup";
 
