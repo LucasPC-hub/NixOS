@@ -7,7 +7,6 @@
     "${self}/system/programs/steam.nix"
     "${self}/system/programs/lact.nix"
     "${self}/system/programs/docker.nix"
-    "${self}/system/programs/swaylock.nix"
     "${self}/system/programs/stylix.nix"
     "${self}/system/xdg.nix"
     "${self}/system/environment.nix"
@@ -51,6 +50,17 @@
       "lpc" = import ./home.nix;
     };
   };
+
+  security.pam.services.hyprlock = {
+    text = ''
+      auth include login
+    '';
+  };
+
+  # Optional: Add hypridle for automatic locking
+  environment.systemPackages = with pkgs; [
+    inputs.hyprlock.packages.${pkgs.system}.hypridle
+  ];
 
 fonts.packages = with pkgs; [
     fira-sans

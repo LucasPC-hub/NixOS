@@ -21,7 +21,6 @@ in {
     "Super+T".action = spawn apps.terminal;
     "Super+E".action = spawn apps.fileManager;
     "Super+B".action = spawn apps.browser;
-    "Super+Alt+L".action = spawn ["swaylock"];
 
     # Overview bindings - UPDATED
     "Super+Tab".action = toggle-overview;  # Changed from show-hotkey-overlay to toggle-overview
@@ -39,7 +38,7 @@ in {
     "XF86AudioLowerVolume".action = volume-down;
     "XF86AudioMute".action = spawn ["pactl" "set-sink-mute" "@DEFAULT_SINK@" "toggle"];
     "XF86AudioMicMute".action = spawn ["pactl" "set-source-mute" "@DEFAULT_SOURCE@" "toggle"];
-    
+
     # Brightness controls (keep your existing ddcutil script)
     "Control+Super+XF86AudioRaiseVolume".action = spawn "brightness" "up";
     "Control+Super+XF86AudioLowerVolume".action = spawn "brightness" "down";
@@ -120,6 +119,15 @@ in {
     # System
     "Super+Shift+E".action = quit;
     "Super+Shift+P".action = power-off-monitors;
+    # Add this to your existing home/niri/keybinds.nix
 
+    # Lock screen with hyprlock
+    "Super+L".action = spawn ["hyprlock"];
+
+    # Alternative: use the lockscreen script
+    # "Super+L".action = spawn ["bash" "-c" "~/.local/bin/lockscreen"];
+
+    # Lock and suspend
+    "Super+Shift+L".action = spawn ["bash" "-c" "hyprlock & sleep 2 && systemctl suspend"];
   };
 }

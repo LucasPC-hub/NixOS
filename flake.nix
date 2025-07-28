@@ -11,6 +11,12 @@
     nixvim.url = "github:nix-community/nixvim";
     zen-browser.url = "github:0xc000022070/zen-browser-flake";
 
+    # Add hyprlock
+    hyprlock = {
+      url = "github:hyprwm/hyprlock";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
+
     matugen.url = "github:InioX/matugen";
 
     niri.url = "github:sodiboo/niri-flake";
@@ -31,7 +37,7 @@
     };
   };
 
-  outputs = { self, nixpkgs, home-manager, chaotic, nur, nixvim, niri, quickshell, ... }@inputs: {
+  outputs = { self, nixpkgs, home-manager, chaotic, nur, nixvim, niri, quickshell, hyprlock, ... }@inputs: {
 
     # Expose NixOS configuration
     nixosConfigurations.default = nixpkgs.lib.nixosSystem {
@@ -56,6 +62,8 @@
               withHyprland = true;
               withI3 = false;
             })
+            # Add hyprlock package
+            hyprlock.packages.${pkgs.system}.hyprlock
           ];
         })
       ];
