@@ -34,6 +34,8 @@
         set -g tide_pwd_color_dirs F5C2E7
         set -g tide_pwd_color_truncated_dirs CBA6F7
 
+        set -g tide_git_color_branch 663399  # Changed to darker blue
+
         # Status Component
         set -g tide_status_bg_color 1E1E2E
         set -g tide_status_bg_color_failure 1E1E2E
