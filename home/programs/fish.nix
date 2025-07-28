@@ -24,6 +24,7 @@
       clear = "clear_all";
       # Removed yay/pikaur alias since we're on NixOS, not Arch
       claude = "/home/lpc/.claude/local/claude";
+      flakerb = "sudo nixos-rebuild switch --flake .#default";
     };
 
     # Fish plugins using fishPlugins from nixpkgs
