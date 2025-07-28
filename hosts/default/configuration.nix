@@ -28,7 +28,7 @@
   users.users.lpc = {
     isNormalUser = true;
     description = "lpc";
-    shell = pkgs.zsh;
+    shell = pkgs.fish;
     extraGroups = [
       "networkmanager"
       "wheel"
@@ -49,11 +49,12 @@
     };
   };
 
-  fonts.packages = with pkgs; [
+fonts.packages = with pkgs; [
     fira-sans
     roboto
     nerd-fonts._0xproto
     nerd-fonts.droid-sans-mono
+    nerd-fonts.fantasque-sans-mono  # Add this line for FantasqueSansM
     jetbrains-mono
     noto-fonts
     noto-fonts-emoji

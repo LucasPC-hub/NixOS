@@ -1,5 +1,6 @@
 {
   pkgs,
+  inputs,  # Add this parameter
   ...
 }:
 
@@ -13,9 +14,11 @@ with pkgs;
   nautilus
   file-roller
   obsidian
+  inputs.zen-browser.packages.${pkgs.system}.default  # Add zen-browser here
 
   # TUI
   btop
+  fish
 
   # Desktop
   nwg-look
@@ -28,6 +31,9 @@ with pkgs;
   nixfmt-rfc-style
   nixpkgs-fmt
   black
+  zed-editor
+  nodePackages.npm
+  docker
 
   # Utilities
   jq
@@ -36,7 +42,7 @@ with pkgs;
   libnotify
   wl-clipboard
   pywalfox-native
-  imagemagick
+  imagemaggle
   amdvlk
   rar
   unzip
@@ -44,6 +50,7 @@ with pkgs;
   gpu-screen-recorder
   mpv
   cava
+  kitty
   
   # Quickshell stuff
   qt6Packages.qt5compat
@@ -57,4 +64,3 @@ with pkgs;
   xwayland-satellite
   wl-clipboard
 ]
-

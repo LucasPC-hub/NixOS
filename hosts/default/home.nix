@@ -6,17 +6,19 @@
   ...
 }:
 let
-  allPackages = import ./packages.nix { inherit pkgs; };
+  allPackages = import ./packages.nix { inherit pkgs inputs; };  # Pass inputs here
 in
 {
-  home.username = "lpc";  # Mudei de "lysec" para "lpc"
-  home.homeDirectory = "/home/lpc";  # Mudei de "/home/lysec" para "/home/lpc"
+  home.username = "lpc";
+  home.homeDirectory = "/home/lpc";
   imports = [
     ../../home/niri/default.nix
     ../../home/quickshell/quickshell.nix
     ../../home/editors/vscode.nix
     ../../home/editors/nixvim.nix
     ../../home/programs/ghostty.nix
+    ../../home/programs/kitty.nix      # Add this line
+    ../../home/programs/fish.nix       # Add this line
     ../../home/programs/fastfetch.nix
     ../../home/programs/spicetify.nix
     ../../home/programs/obs.nix
@@ -27,10 +29,10 @@ in
     inputs.nixvim.homeManagerModules.nixvim
   ];
   home.packages = allPackages;
-  xdg.portal.enable = true;
+  xdg.portal.enable = true;  
   home.stateVersion = "24.11";
   home.sessionVariables = {
-    EDITOR = "nvim";
+    EDITOR = "zeditor";
   };
   services.cliphist = {
     enable = true;

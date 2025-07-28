@@ -2,7 +2,7 @@
 
 {
   browser = "${pkgs.firefox}/bin/firefox";
-  terminal = "${pkgs.ghostty}/bin/ghostty";
+  terminal = "${pkgs.kitty}/bin/kitty";
   fileManager = "${pkgs.xfce.thunar}/bin/thunar";
   appLauncher = "${pkgs.walker}/bin/walker";
 

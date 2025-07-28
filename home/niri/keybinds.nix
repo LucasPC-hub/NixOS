@@ -23,9 +23,9 @@ in {
     "Super+B".action = spawn apps.browser;
     "Super+Alt+L".action = spawn ["swaylock"];
 
-    # Overview bindings
-    "Super+Tab".action = show-hotkey-overlay; # Note: niri doesn't have toggle-overview
-    "Alt+Tab".action = show-hotkey-overlay;
+    # Overview bindings - UPDATED
+    "Super+Tab".action = toggle-overview;  # Changed from show-hotkey-overlay to toggle-overview
+    # Alt+Tab is now unbound (removed)
 
     # Window management
     "Super+Q".action = close-window;
