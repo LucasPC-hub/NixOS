@@ -122,12 +122,11 @@ in {
     # Add this to your existing home/niri/keybinds.nix
 
     # Lock screen with hyprlock
-    "Super+L".action = spawn ["hyprlock"];
+    "Super+Shift+L".action = spawn ["qs" "ipc" "call" "globalIPC" "toggleLock"];
 
     # Alternative: use the lockscreen script
     # "Super+L".action = spawn ["bash" "-c" "~/.local/bin/lockscreen"];
 
-    # Lock and suspend
-    "Super+Shift+L".action = spawn ["bash" "-c" "hyprlock & sleep 2 && systemctl suspend"];
+    "Super+Alt+L".action = spawn ["bash" "-c" "qs ipc call globalIPC toggleLock && sleep 5 && systemctl suspend"];
   };
 }

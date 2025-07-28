@@ -240,7 +240,6 @@ fonts.packages = with pkgs; [
 
   nixpkgs.config.allowUnfree = true;
   programs.hyprlock.enable = true;
-  programs.hyprlock.enable = true;
 
   home-manager.backupFileExtension = "backup";
 

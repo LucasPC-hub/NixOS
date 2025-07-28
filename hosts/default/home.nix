@@ -25,7 +25,7 @@ in
     ../../home/programs/obs.nix
     ../../home/programs/vesktop/default.nix
     ../../home/programs/firefox.nix
-    ../../home/programs/hyprlock.nix  # Add this line
+    ../../home/programs/swayidle.nix
     ../../system/shell/zsh.nix
     inputs.spicetify-nix.homeManagerModules.default
     inputs.nixvim.homeManagerModules.nixvim
