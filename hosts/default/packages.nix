@@ -51,7 +51,8 @@ with pkgs;
   mpv
   cava
   kitty
-  
+  lazydocker
+
   # Quickshell stuff
   qt6Packages.qt5compat
   libsForQt5.qt5.qtgraphicaleffects

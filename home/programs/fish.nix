@@ -34,20 +34,6 @@
         set -g tide_pwd_color_dirs F5C2E7
         set -g tide_pwd_color_truncated_dirs CBA6F7
 
-        # Git Component - Rosa mais forte para melhor visibilidade
-        set -g tide_git_bg_color 313244
-        set -g tide_git_bg_color_unstable 313244
-        set -g tide_git_bg_color_urgent 313244
-        set -g tide_git_color FF79C6
-        set -g tide_git_color_branch 000000  # Changed to darker blue
-        set -g tide_git_color_conflicted F38BA8
-        set -g tide_git_color_dirty FF79C6
-        set -g tide_git_color_operation F38BA8
-        set -g tide_git_color_staged FF79C6
-        set -g tide_git_color_stash CBA6F7
-        set -g tide_git_color_untracked CBA6F7
-        set -g tide_git_color_upstream FF79C6
-
         # Status Component
         set -g tide_status_bg_color 1E1E2E
         set -g tide_status_bg_color_failure 1E1E2E
