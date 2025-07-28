@@ -7,6 +7,7 @@
     "${self}/system/programs/steam.nix"
     "${self}/system/programs/lact.nix"
     "${self}/system/programs/docker.nix"
+    "${self}/system/programs/swaylock.nix"
     "${self}/system/programs/stylix.nix"
     "${self}/system/xdg.nix"
     "${self}/system/environment.nix"

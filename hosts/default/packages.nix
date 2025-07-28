@@ -51,6 +51,8 @@ with pkgs;
   cava
   kitty
   lazydocker
+  kdePackages.dolphin
+  yazi
 
   # Quickshell stuff
   qt6Packages.qt5compat
