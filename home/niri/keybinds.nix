@@ -12,124 +12,114 @@ in {
   in {
 
     # Quickshell Keybinds (keep your existing ones)
-    "super+d".action = spawn ["qs" "ipc" "call" "globalIPC" "toggleLauncher"];
+    "Super+D".action = spawn ["qs" "ipc" "call" "globalIPC" "toggleLauncher"];
 
     # Hotkey overlay
-    "super+shift+slash".action = show-hotkey-overlay;
+    "Super+Shift+Slash".action = show-hotkey-overlay;
 
     # Basic applications
-    "super+t".action = spawn apps.terminal;
-    "super+e".action = spawn apps.fileManager;
-    "super+b".action = spawn apps.browser;
-    "super+alt+l".action = spawn ["swaylock"];
+    "Super+T".action = spawn apps.terminal;
+    "Super+E".action = spawn apps.fileManager;
+    "Super+B".action = spawn apps.browser;
+    "Super+Alt+L".action = spawn ["swaylock"];
 
     # Overview bindings
-    "super+tab".action = toggle-overview;
-    "alt+tab".action = toggle-overview;
+    "Super+Tab".action = show-hotkey-overlay; # Note: niri doesn't have toggle-overview
+    "Alt+Tab".action = show-hotkey-overlay;
 
     # Window management
-    "super+q".action = close-window;
-    "super+l".action = toggle-window-floating;
-    "super+f".action = maximize-column;
-    "super+shift+f".action = fullscreen-window;
-    "super+c".action = center-column;
+    "Super+Q".action = close-window;
+    "Super+L".action = toggle-window-floating;
+    "Super+F".action = maximize-column;
+    "Super+Shift+F".action = fullscreen-window;
+    "Super+C".action = center-column;
 
     # Audio controls
-    "xf86audioraisevolume".action = volume-up;
-    "xf86audiolowervolume".action = volume-down;
-    "xf86audiomute".action = spawn ["pactl" "set-sink-mute" "@DEFAULT_SINK@" "toggle"];
-    "xf86audiomicmute".action = spawn ["pactl" "set-source-mute" "@DEFAULT_SOURCE@" "toggle"];
+    "XF86AudioRaiseVolume".action = volume-up;
+    "XF86AudioLowerVolume".action = volume-down;
+    "XF86AudioMute".action = spawn ["pactl" "set-sink-mute" "@DEFAULT_SINK@" "toggle"];
+    "XF86AudioMicMute".action = spawn ["pactl" "set-source-mute" "@DEFAULT_SOURCE@" "toggle"];
     
+    # Brightness controls (keep your existing ddcutil script)
+    "Control+Super+XF86AudioRaiseVolume".action = spawn "brightness" "up";
+    "Control+Super+XF86AudioLowerVolume".action = spawn "brightness" "down";
+
     # Media controls
-    "xf86audioplay".action = spawn ["playerctl" "play-pause"];
-    "xf86audionext".action = spawn ["playerctl" "next"];
-    "xf86audioprev".action = spawn ["playerctl" "previous"];
+    "XF86AudioPlay".action = spawn ["playerctl" "play-pause"];
+    "XF86AudioNext".action = spawn ["playerctl" "next"];
+    "XF86AudioPrev".action = spawn ["playerctl" "previous"];
 
     # Focus movement
-    "super+Left".action = focus-column-left;
-    "super+Right".action = focus-column-right;
-    "super+Down".action = focus-window-down;
-    "super+Up".action = focus-window-up;
-
-    # Mouse navigation
-    "super+mouseBack".action = focus-column-left;
-    "super+mouseForward".action = focus-column-right;
-
-    # Move columns
-    "super+ctrl+Left".action = move-column-left;
-    "super+ctrl+Right".action = move-column-right;
-    "super+ctrl+Down".action = move-window-down-or-to-workspace-down;
-    "super+ctrl+Up".action = move-window-up-or-to-workspace-up;
+    "Super+Left".action = focus-column-left;
+    "Super+Right".action = focus-column-right;
+    "Super+Down".action = focus-window-or-workspace-down;
+    "Super+Up".action = focus-window-or-workspace-up;
 
     # First/last column
-    "super+Home".action = focus-column-first;
-    "super+End".action = focus-column-last;
-    "super+ctrl+Home".action = move-column-to-first;
-    "super+ctrl+End".action = move-column-to-last;
+    "Super+Ctrl+Left".action = move-column-left;
+    "Super+Ctrl+Right".action = move-column-right;
+    "Super+Ctrl+Down".action = move-window-down-or-to-workspace-down;
+    "Super+Ctrl+Up".action = move-window-up-or-to-workspace-up;
+
+    # Move columns
+    "Super+Home".action = focus-column-first;
+    "Super+End".action = focus-column-last;
+    "Super+Ctrl+Home".action = move-column-to-first;
+    "Super+Ctrl+End".action = move-column-to-last;
 
     # Workspace navigation
-    "super+Page_Down".action = focus-workspace-down;
-    "super+Page_Up".action = focus-workspace-up;
-    "super+k".action = focus-workspace-down;
-    "super+i".action = focus-workspace-up;
+    "Super+Page_Down".action = focus-workspace-down;
+    "Super+Page_Up".action = focus-workspace-up;
+    "Super+K".action = focus-workspace-down;
+    "Super+I".action = focus-workspace-up;
 
     # Move to workspace
-    "super+ctrl+Page_Down".action = move-column-to-workspace-down;
-    "super+ctrl+Page_Up".action = move-column-to-workspace-up;
-    "super+ctrl+u".action = move-column-to-workspace-down;
-    "super+ctrl+i".action = move-column-to-workspace-up;
+    "Super+Ctrl+Page_Down".action = move-column-to-workspace-down;
+    "Super+Ctrl+Page_Up".action = move-column-to-workspace-up;
+    "Super+Ctrl+U".action = move-column-to-workspace-down;
+    "Super+Ctrl+I".action = move-column-to-workspace-up;
 
     # Workspace scrolling
-    "super+WheelScrollDown".action = { cooldown-ms = 150; action = focus-workspace-down; };
-    "super+WheelScrollUp".action = { cooldown-ms = 150; action = focus-workspace-up; };
-    "super+ctrl+WheelScrollDown".action = { cooldown-ms = 150; action = move-column-to-workspace-down; };
-    "super+ctrl+WheelScrollUp".action = { cooldown-ms = 150; action = move-column-to-workspace-up; };
+    "Super+WheelScrollDown".action = focus-workspace-down;
+    "Super+WheelScrollUp".action = focus-workspace-up;
+    "Super+Ctrl+WheelScrollDown".action = move-column-to-workspace-down;
+    "Super+Ctrl+WheelScrollUp".action = move-column-to-workspace-up;
 
-    "super+ctrl+WheelScrollRight".action = move-column-right;
-    "super+ctrl+WheelScrollLeft".action = move-column-left;
+    "Super+Ctrl+WheelScrollRight".action = move-column-right;
+    "Super+Ctrl+WheelScrollLeft".action = move-column-left;
 
-    # Numbered workspaces (keeping your existing browser/vesktop setup)
-    "super+1".action = focus-workspace "browser";
-    "super+2".action = focus-workspace "vesktop";
-    "super+3".action = focus-workspace "3";
-    "super+4".action = focus-workspace "4";
-    "super+5".action = focus-workspace "5";
-    "super+6".action = focus-workspace "6";
-    "super+7".action = focus-workspace "7";
-    "super+8".action = focus-workspace "8";
-
-    # Move to numbered workspaces
-    "super+ctrl+1".action = move-column-to-workspace "browser";
-    "super+ctrl+2".action = move-column-to-workspace "vesktop";
-    "super+ctrl+3".action = move-column-to-workspace "3";
-    "super+ctrl+4".action = move-column-to-workspace "4";
-    "super+ctrl+5".action = move-column-to-workspace "5";
-    "super+ctrl+6".action = move-column-to-workspace "6";
-    "super+ctrl+7".action = move-column-to-workspace "7";
-    "super+ctrl+8".action = move-column-to-workspace "8";
+    # Numbered workspaces (using focus-workspace with workspace names)
+    "Super+1".action = focus-workspace "browser";
+    "Super+2".action = focus-workspace "vesktop";
+    "Super+3".action = focus-workspace "3";
+    "Super+4".action = focus-workspace "4";
+    "Super+5".action = focus-workspace "5";
+    "Super+6".action = focus-workspace "6";
+    "Super+7".action = focus-workspace "7";
+    "Super+8".action = focus-workspace "8";
 
     # Column management
-    "super+comma".action = consume-window-into-column;
-    "super+period".action = expel-window-from-column;
+    "Super+Comma".action = consume-window-into-column;
+    "Super+Period".action = expel-window-from-column;
 
     # Resizing
-    "super+r".action = switch-preset-column-width;
-    "super+shift+r".action = reset-window-height;
-    "super+minus".action = set-column-width "-10%";
-    "super+equal".action = set-column-width "+10%";
-    "super+shift+minus".action = set-window-height "-10%";
-    "super+shift+equal".action = set-window-height "+10%";
+    "Super+R".action = switch-preset-column-width;
+    "Super+Shift+R".action = reset-window-height;
+    "Super+Minus".action = set-column-width "-10%";
+    "Super+Equal".action = set-column-width "+10%";
+    "Super+Shift+Minus".action = set-window-height "-10%";
+    "Super+Shift+Equal".action = set-window-height "+10%";
 
-    # Screenshots (keep your existing ones)
-    "control+shift+1".action = screenshot;
-    "control+shift+2".action = screenshot-window { write-to-disk = true; };
-    "print".action = screenshot;
-    "ctrl+print".action = screenshot-screen;
-    "alt+print".action = screenshot-window;
+    # Screenshots (using correct niri actions)
+    "Control+Shift+1".action = screenshot;
+    "Control+Shift+2".action = screenshot-window { write-to-disk = true; };
+    "Print".action = screenshot;
+    "Ctrl+Print".action = screenshot;
+    "Alt+Print".action = screenshot-window;
 
     # System
-    "super+shift+e".action = quit;
-    "super+shift+p".action = power-off-monitors;
+    "Super+Shift+E".action = quit;
+    "Super+Shift+P".action = power-off-monitors;
 
   };
 }

@@ -8,12 +8,6 @@
       workspaces = {
         "browser" = {};
         "vesktop" = {};
-        "3" = {};
-        "4" = {};
-        "5" = {};
-        "6" = {};
-        "7" = {};
-        "8" = {};
       };
 
       prefer-no-csd = true;
@@ -31,7 +25,7 @@
 
         focus-ring = {
           enable = true;
-          width = 0.5;
+          width = 1;
           active = {
             color = "#A8AEFF";
           };
@@ -96,7 +90,6 @@
 
         focus-follows-mouse = {
           enable = true;
-          max-scroll-amount = "0%";
         };
         
         warp-mouse-to-focus = {
@@ -105,15 +98,6 @@
       };
 
       outputs = {
-        "DP-1" = {
-          mode = {
-            width = 2560;
-            height = 1440;
-            refresh = 359.97900;
-          };
-          scale = 1.0;
-          position = { x = 0; y = 0; };
-        };
         # Add your eDP-1 config if you have a laptop
         "eDP-1" = {
           mode = {

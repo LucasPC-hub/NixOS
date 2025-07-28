@@ -64,28 +64,49 @@
     material-icons
   ];
 
-  boot = {
-    loader.systemd-boot.enable = true;
-    loader.efi.canTouchEfiVariables = true;
-    
-    # MUDANÇA: Kernel padrão mais recente (não compila)
-    kernelPackages = pkgs.linuxPackages_latest;  # Era pkgs.linuxPackages_cachyos
-    
-    # MUDANÇA: Configuração do monitor do Galaxy Book 4 Ultra
-    kernelParams = [
-      # "video=DP-1:2560x1440@360"  # Monitor do cara - comentado
-      "video=eDP-1:2880x1800@120"   # Seu monitor - Galaxy Book 4 Ultra
-    ];
-    
-    kernelModules = [ "v4l2loopback" "i2c-dev" ];
-    initrd.availableKernelModules = [ "i2c-dev" ];
-    extraModprobeConfig = ''
-      options v4l2loopback video_nr=0 card_label="DroidCam" exclusive_caps=1
-    '';
-    extraModulePackages = with config.boot.kernelPackages; [
-      v4l2loopback
-    ];
+boot = {
+  loader = {
+    grub = {
+      enable = true;
+      device = "nodev";
+      efiSupport = true;
+      useOSProber = true;
+      extraEntries = ''
+        menuentry "Arch Linux" {
+          search --set=root --fs-uuid 2f1d2bf4-abf7-4a99-b828-94c7f52089fc
+          linux /vmlinuz-linux root=UUID=2f1d2bf4-abf7-4a99-b828-94c7f52089fc rootfstype=btrfs rootflags=subvol=@ rw vt.default_red=0x0c,0xff,0xa8,0x8e,0xf3,0xa8,0x9e,0xb7,0x44,0xff,0xa8,0x8e,0xf3,0xa8,0x9e,0xe3 vt.default_grn=0x0d,0x6b,0xae,0xab,0xde,0xae,0xa0,0xbb,0x48,0x6b,0xae,0xab,0xde,0xae,0xa0,0xc2 vt.default_blu=0x11,0x81,0xff,0xff,0xff,0xff,0xff,0xd0,0x5a,0x81,0xff,0xff,0xff,0xff,0xff,0xff
+          initrd /intel-ucode.img
+          initrd /initramfs-linux.img
+        }
+        menuentry "Arch Linux (Zen Kernel)" {
+          search --set=root --fs-uuid 2f1d2bf4-abf7-4a99-b828-94c7f52089fc
+          linux /vmlinuz-linux-zen root=UUID=2f1d2bf4-abf7-4a99-b828-94c7f52089fc rootfstype=btrfs rootflags=subvol=@ rw vt.default_red=0x0c,0xff,0xa8,0x8e,0xf3,0xa8,0x9e,0xb7,0x44,0xff,0xa8,0x8e,0xf3,0xa8,0x9e,0xe3 vt.default_grn=0x0d,0x6b,0xae,0xab,0xde,0xae,0xa0,0xbb,0x48,0x6b,0xae,0xab,0xde,0xae,0xa0,0xc2 vt.default_blu=0x11,0x81,0xff,0xff,0xff,0xff,0xff,0xd0,0x5a,0x81,0xff,0xff,0xff,0xff,0xff,0xff
+          initrd /intel-ucode.img
+          initrd /initramfs-linux-zen.img
+        }
+        menuentry "Arch Linux (Mainline Kernel)" {
+          search --set=root --fs-uuid 2f1d2bf4-abf7-4a99-b828-94c7f52089fc
+          linux /vmlinuz-linux-mainline root=UUID=2f1d2bf4-abf7-4a99-b828-94c7f52089fc rootfstype=btrfs rootflags=subvol=@ rw vt.default_red=0x0c,0xff,0xa8,0x8e,0xf3,0xa8,0x9e,0xb7,0x44,0xff,0xa8,0x8e,0xf3,0xa8,0x9e,0xe3 vt.default_grn=0x0d,0x6b,0xae,0xab,0xde,0xae,0xa0,0xbb,0x48,0x6b,0xae,0xab,0xde,0xae,0xa0,0xc2 vt.default_blu=0x11,0x81,0xff,0xff,0xff,0xff,0xff,0xd0,0x5a,0x81,0xff,0xff,0xff,0xff,0xff,0xff
+          initrd /intel-ucode.img
+          initrd /initramfs-linux-mainline.img
+        }
+      '';
+    };
+    efi.canTouchEfiVariables = true;
   };
+  kernelPackages = pkgs.linuxPackages_latest;
+  kernelParams = [
+    "video=eDP-1:2880x1800@120"
+  ];
+  kernelModules = [ "v4l2loopback" "i2c-dev" ];
+  initrd.availableKernelModules = [ "i2c-dev" ];
+  extraModprobeConfig = ''
+    options v4l2loopback video_nr=0 card_label="DroidCam" exclusive_caps=1
+  '';
+  extraModulePackages = with config.boot.kernelPackages; [
+    v4l2loopback
+  ];
+};
 
   services.udev.packages = [ pkgs.rwedid ];
 
