@@ -42,7 +42,7 @@ with pkgs;
   libnotify
   wl-clipboard
   pywalfox-native
-  imagemaggle
+  imagemagick
   amdvlk
   rar
   unzip

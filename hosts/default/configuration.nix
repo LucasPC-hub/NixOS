@@ -130,7 +130,7 @@ fonts.packages = with pkgs; [
     };
   };
 
-  programs.zsh.enable = true;
+  programs.fish.enable = true;
 
   # Enable graphics (updated from hardware.opengl in NixOS 24.11+)
   hardware.graphics = {

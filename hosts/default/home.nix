@@ -11,6 +11,7 @@ in
 {
   home.username = "lpc";
   home.homeDirectory = "/home/lpc";
+  
   imports = [
     ../../home/niri/default.nix
     ../../home/quickshell/quickshell.nix
@@ -28,15 +29,34 @@ in
     inputs.spicetify-nix.homeManagerModules.default
     inputs.nixvim.homeManagerModules.nixvim
   ];
+  
   home.packages = allPackages;
-  xdg.portal.enable = true;  
-  home.stateVersion = "24.11";
+  
+  # Configure npm to use home directory for global installs
+  home.file.".npmrc".text = ''
+    prefix=${config.home.homeDirectory}/.npm-global
+    cache=${config.home.homeDirectory}/.npm-cache
+  '';
+  
+  # Add npm global bin directory to PATH
   home.sessionVariables = {
     EDITOR = "zeditor";
+    # Add npm global packages to PATH
+    PATH = "$PATH:${config.home.homeDirectory}/.npm-global/bin";
   };
+  
+  # Alternative: you can also add it to sessionPath
+  home.sessionPath = [
+    "${config.home.homeDirectory}/.npm-global/bin"
+  ];
+  
+  xdg.portal.enable = true;  
+  home.stateVersion = "24.11";
+  
   services.cliphist = {
     enable = true;
     allowImages = true;
   };
+  
   programs.home-manager.enable = true;
 }

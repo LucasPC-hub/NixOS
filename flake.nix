@@ -9,7 +9,7 @@
     home-manager.url = "github:nix-community/home-manager";
     spicetify-nix.url = "github:Gerg-L/spicetify-nix";
     nixvim.url = "github:nix-community/nixvim";
-    zen-browser.url = "github:MarceColl/zen-browser-flake";
+    zen-browser.url = "github:0xc000022070/zen-browser-flake";
 
     matugen.url = "github:InioX/matugen";
 
