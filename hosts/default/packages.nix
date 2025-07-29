@@ -14,7 +14,6 @@ with pkgs;
   nautilus
   file-roller
   obsidian
-  inputs.zen-browser.packages.${pkgs.system}.default  # Add zen-browser here
 
   # TUI
   btop

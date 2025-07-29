@@ -47,6 +47,8 @@ in {
     "XF86AudioPlay".action = spawn ["playerctl" "play-pause"];
     "XF86AudioNext".action = spawn ["playerctl" "next"];
     "XF86AudioPrev".action = spawn ["playerctl" "previous"];
+    "XF86MonBrightnessUp".action = spawn ["brightness" "up"];
+    "XF86MonBrightnessDown".action = spawn ["brightness" "down"];
 
     # Focus movement
     "Super+Left".action = focus-column-left;

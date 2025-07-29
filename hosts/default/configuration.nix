@@ -39,6 +39,7 @@
       "i2c"
       "bluetooth"
       "docker"
+      "video"
     ];
   };
 
@@ -132,8 +133,8 @@ fonts.packages = with pkgs; [
       LC_TIME = "pt_BR.UTF-8";
     };
   };
-
   programs.fish.enable = true;
+  security.polkit.enable = true;
 
   # Enable graphics (updated from hardware.opengl in NixOS 24.11+)
   hardware.graphics = {
@@ -236,10 +237,11 @@ fonts.packages = with pkgs; [
     # Graphics debugging and utilities
     glxinfo
     pciutils
+    polkit_gnome
   ];
 
   nixpkgs.config.allowUnfree = true;
-  programs.hyprlock.enable = true;
+
 
   home-manager.backupFileExtension = "backup";
 
@@ -254,5 +256,18 @@ fonts.packages = with pkgs; [
       echo "{\"last_rebuild\": \"$TIMESTAMP\", \"generation\": $GENERATION}" > "$LOG_FILE"
       chmod 644 "$LOG_FILE"
     '';
+  };
+  systemd.user.services.polkit-gnome-authentication-agent-1 = {
+    description = "polkit-gnome-authentication-agent-1";
+    wantedBy = [ "graphical-session.target" ];
+    wants = [ "graphical-session.target" ];
+    after = [ "graphical-session.target" ];
+    serviceConfig = {
+      Type = "simple";
+      ExecStart = "${pkgs.polkit_gnome}/libexec/polkit-gnome-authentication-agent-1";
+      Restart = "on-failure";
+      RestartSec = 1;
+      TimeoutStopSec = 10;
+    };
   };
 }

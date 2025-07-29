@@ -4,18 +4,17 @@
   inputs = {
     nixpkgs.url = "github:nixos/nixpkgs/nixos-unstable";
     chaotic.url = "github:chaotic-cx/nyx/nyxpkgs-unstable";
-    hyprpolkitagent.url = "github:hyprwm/hyprpolkitagent";
     nur.url = "github:nix-community/NUR";
     home-manager.url = "github:nix-community/home-manager";
     spicetify-nix.url = "github:Gerg-L/spicetify-nix";
     nixvim.url = "github:nix-community/nixvim";
-    zen-browser.url = "github:0xc000022070/zen-browser-flake";
-
-    # Add hyprlock
-    hyprlock = {
-      url = "github:hyprwm/hyprlock";
+    zen-browser = {
+      url = "github:0xc000022070/zen-browser-flake";
+      # IMPORTANT: we're using "libgbm" and is only available in unstable so ensure
+      # to have it up-to-date or simply don't specify the nixpkgs input
       inputs.nixpkgs.follows = "nixpkgs";
     };
+
 
     matugen.url = "github:InioX/matugen";
 
@@ -37,7 +36,7 @@
     };
   };
 
-  outputs = { self, nixpkgs, home-manager, chaotic, nur, nixvim, niri, quickshell, hyprlock, ... }@inputs: {
+  outputs = { self, nixpkgs, home-manager, chaotic, nur, nixvim, niri, quickshell, ... }@inputs: {
 
     # Expose NixOS configuration
     nixosConfigurations.default = nixpkgs.lib.nixosSystem {

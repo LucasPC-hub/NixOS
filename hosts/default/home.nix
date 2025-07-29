@@ -27,10 +27,11 @@ in
     ../../home/programs/firefox.nix
     ../../home/programs/swayidle.nix
     ../../system/shell/zsh.nix
+    inputs.zen-browser.homeModules.twilight-official
     inputs.spicetify-nix.homeManagerModules.default
     inputs.nixvim.homeManagerModules.nixvim
   ];
-
+  programs.zen-browser.enable = true;
   home.packages = allPackages;
 
   # Configure npm to use home directory for global installs

@@ -1,7 +1,7 @@
 { pkgs }:
 
 {
-  browser = "${pkgs.firefox}/bin/firefox";
+  browser = "zen";
   terminal = "${pkgs.kitty}/bin/kitty";
   fileManager = "${pkgs.xfce.thunar}/bin/thunar";
   appLauncher = "${pkgs.walker}/bin/walker";
