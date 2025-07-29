@@ -12,12 +12,12 @@ Item {
 
     Process {
         id: brightnessUpProcess
-        command: ["brightnessctl", "set", "+2%"]
+        command: ["brightnessctl", "set", "+5%"]
     }
 
     Process {
         id: brightnessDownProcess
-        command: ["brightnessctl", "set", "2%-"]
+        command: ["brightnessctl", "set", "5%-"]
     }
 
     Process {
@@ -40,7 +40,7 @@ Item {
             if (!isNaN(val) && val !== brightnessDisplay.brightness) {
                 brightnessDisplay.brightness = val;
                 pill.text = brightness + "%";
-                pill.show();
+                pill.show(); // Mostra quando muda
             }
         }
     }
@@ -66,20 +66,24 @@ Item {
             anchors.fill: parent
             hoverEnabled: true
             acceptedButtons: Qt.NoButton
-            onEntered: brightnessTooltip.tooltipVisible = true
-            onExited: brightnessTooltip.tooltipVisible = false
+            onEntered: {
+                pill.show();
+                brightnessTooltip.tooltipVisible = true;
+            }
+            onExited: {
+                pill.hide();
+                brightnessTooltip.tooltipVisible = false;
+            }
             cursorShape: Qt.PointingHandCursor
 
             onWheel: wheel => {
                 if (wheel.angleDelta.y > 0) {
                     brightnessUpProcess.running = true;
-                    // Atualiza o arquivo OSD após mudança
                     Qt.callLater(() => {
                         brightnessGetProcess.running = true;
                     });
                 } else if (wheel.angleDelta.y < 0) {
                     brightnessDownProcess.running = true;
-                    // Atualiza o arquivo OSD após mudança
                     Qt.callLater(() => {
                         brightnessGetProcess.running = true;
                     });
@@ -89,10 +93,6 @@ Item {
     }
 
     Component.onCompleted: {
-        // Inicializa o valor do brightness
         brightnessGetProcess.running = true;
-        if (brightness >= 0) {
-            pill.show();
-        }
     }
 }

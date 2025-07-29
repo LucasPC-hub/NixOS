@@ -7,26 +7,51 @@ Item {
     id: volumeDisplay
     property var shell
     property int volume: 0
-
-    // The total width will match the pill's width
-    width: pillIndicator.width
-    height: pillIndicator.height
+    width: pill.width
+    height: pill.height
 
     PillIndicator {
-        id: pillIndicator
+        id: pill
         icon: volume === 0 ? "volume_off" : (volume < 30 ? "volume_down" : "volume_up")
         text: volume + "%"
-
         pillColor: Theme.surfaceVariant
         iconCircleColor: Theme.accentPrimary
         iconTextColor: Theme.backgroundPrimary
         textColor: Theme.textPrimary
+
         StyledTooltip {
             id: volumeTooltip
             text: "Volume: " + volume + "%\nScroll up/down to change volume"
             tooltipVisible: false
-            targetItem: pillIndicator
+            targetItem: pill
             delay: 200
+        }
+
+        MouseArea {
+            anchors.fill: parent
+            hoverEnabled: true
+            acceptedButtons: Qt.NoButton
+            propagateComposedEvents: true
+            onEntered: {
+                pill.show();
+                volumeTooltip.tooltipVisible = true;
+            }
+            onExited: {
+                pill.hide();
+                volumeTooltip.tooltipVisible = false;
+            }
+            cursorShape: Qt.PointingHandCursor
+
+            onWheel: wheel => {
+                if (!shell)
+                    return;
+                let step = 5;
+                if (wheel.angleDelta.y > 0) {
+                    shell.updateVolume(Math.min(100, shell.volume + step));
+                } else if (wheel.angleDelta.y < 0) {
+                    shell.updateVolume(Math.max(0, shell.volume - step));
+                }
+            }
         }
     }
 
@@ -34,37 +59,17 @@ Item {
         target: shell ?? null
         function onVolumeChanged() {
             if (shell && shell.volume !== volume) {
-                volume = shell.volume
-                pillIndicator.text = volume + "%"
-                pillIndicator.icon = volume === 0 ? "volume_off" : (volume < 30 ? "volume_down" : "volume_up")
-                pillIndicator.show()
+                volume = shell.volume;
+                pill.text = volume + "%";
+                pill.icon = volume === 0 ? "volume_off" : (volume < 30 ? "volume_down" : "volume_up");
+                pill.show(); // Mostra quando muda
             }
         }
     }
 
     Component.onCompleted: {
         if (shell && shell.volume !== undefined) {
-            volume = shell.volume
-            pillIndicator.show()
-        }
-    }
-
-    MouseArea {
-        anchors.fill: parent
-        hoverEnabled: true
-        acceptedButtons: Qt.NoButton // Accept wheel events only
-        propagateComposedEvents: true
-        onEntered: volumeTooltip.tooltipVisible = true
-        onExited: volumeTooltip.tooltipVisible = false
-        cursorShape: Qt.PointingHandCursor
-        onWheel:(wheel) => {
-            if (!shell) return;
-            let step = 5;
-            if (wheel.angleDelta.y > 0) {
-                shell.updateVolume(Math.min(100, shell.volume + step));
-            } else if (wheel.angleDelta.y < 0) {
-                shell.updateVolume(Math.max(0, shell.volume - step));
-            }
+            volume = shell.volume;
         }
     }
 }

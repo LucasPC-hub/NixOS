@@ -4,16 +4,15 @@
   programs.niri = {
     enable = true;
     package = pkgs.niri;
-    settings = {
-      workspaces = {
-        "browser" = {};
-        "vesktop" = {};
-      };
+    settings = with config.lib.niri.actions; {
 
       prefer-no-csd = true;
 
       hotkey-overlay = {
         skip-at-startup = true;
+      };
+      switch-events = {
+        lid-close.action = spawn ["bash" "-c" "qs ipc call globalIPC toggleLock && sleep 2 && systemctl suspend"];
       };
 
       # Screenshot path
@@ -91,7 +90,7 @@
         focus-follows-mouse = {
           enable = true;
         };
-        
+
         warp-mouse-to-focus = {
           enable = true;
         };

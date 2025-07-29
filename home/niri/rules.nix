@@ -30,22 +30,8 @@
         place-within-backdrop = true;
       }
     ];
-    
-    window-rules = [
-      {
-        matches = [
-          { app-id = "firefox"; }
-        ];
-        open-on-workspace = "browser";
-      }
 
-      # Vesktop
-      {
-        matches = [
-          { app-id = "vesktop"; }
-        ];
-        open-on-workspace = "vesktop";
-      }
+    window-rules = [
 
       # Global window rule - updated corner radius to match old config
       {
