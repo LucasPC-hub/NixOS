@@ -149,7 +149,7 @@
       c = "clear";
       cc = "clear_all";
       clear = "clear_all";
-      flakerb = "sudo nixos-rebuild switch --flake .#default";
+      fkr = "sudo nixos-rebuild switch --flake .#default";
     };
 
     # Fish plugins using fishPlugins from nixpkgs
