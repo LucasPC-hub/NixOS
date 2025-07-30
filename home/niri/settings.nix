@@ -11,9 +11,9 @@
       hotkey-overlay = {
         skip-at-startup = true;
       };
-      switch-events = {
-        lid-close.action = spawn ["bash" "-c" "qs ipc call globalIPC toggleLock && sleep 2 && systemctl suspend"];
-      };
+      # switch-events = {
+      #   lid-close.action = spawn ["bash" "-c" "qs ipc call globalIPC toggleLock && sleep 2 && systemctl suspend"];
+      # };
 
       # Screenshot path
       screenshot-path = "~/Pictures/Screenshots/Screenshot from %Y-%m-%d %H-%M-%S.png";

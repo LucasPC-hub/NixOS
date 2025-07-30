@@ -1,4 +1,4 @@
-# Add this to your home.nix or create a new file like home/programs/swayidle.nix
+# Updated home/programs/swayidle.nix
 
 { pkgs, lib, ... }:
 
@@ -8,12 +8,12 @@
     timeouts = [
       # Lock screen after 10 minutes of inactivity
       {
-        timeout = 600;  # 10 minutes
-        command = "qs ipc call globalIPC toggleLock";
+        timeout = 200;  # 10 minutes
+        command = "${pkgs.quickshell}/bin/qs ipc call globalIPC toggleLock";
       }
       # Turn off displays after 15 minutes
       {
-        timeout = 900;  # 15 minutes
+        timeout = 240;  # 15 minutes
         command = "niri msg action power-off-monitors";
         resumeCommand = "niri msg action power-on-monitors";
       }
@@ -22,31 +22,28 @@
       # Lock screen when going to sleep
       {
         event = "before-sleep";
-        command = "qs ipc call globalIPC toggleLock";
+        command = "${pkgs.quickshell}/bin/qs ipc call globalIPC toggleLock";
       }
       # Lock screen when lid closes (for laptops)
       {
         event = "lock";
-        command = "qs ipc call globalIPC toggleLock";
+        command = "${pkgs.quickshell}/bin/qs ipc call globalIPC toggleLock";
       }
     ];
   };
 
-  # Make sure swayidle starts with your session
+  # Override the systemd service to fix environment issues
   systemd.user.services.swayidle = {
     Unit = {
-      Description = "Idle manager for Wayland";
-      Documentation = "man:swayidle(1)";
-      PartOf = [ "graphical-session.target" ];
+      # Remove the condition that's causing issues
+      ConditionEnvironment = lib.mkForce [];
     };
     Service = {
-      Type = "simple";
-      Restart = lib.mkForce "on-failure";  # Force this value
-      RestartSec = 1;
-      TimeoutStopSec = 10;
-    };
-    Install = {
-      WantedBy = [ "graphical-session.target" ];
+      # Import environment variables from the session including PATH
+      ExecStartPre = "${pkgs.systemd}/bin/systemctl --user import-environment WAYLAND_DISPLAY XDG_CURRENT_DESKTOP PATH";
+      Restart = lib.mkForce "on-failure";
+      RestartSec = lib.mkForce 1;
+      TimeoutStopSec = lib.mkForce 10;
     };
   };
 }
