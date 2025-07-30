@@ -32,6 +32,8 @@ with pkgs;
   black
   zed-editor
   nodePackages.npm
+  mockoon
+  insomnia
 
   # Utilities
   jq

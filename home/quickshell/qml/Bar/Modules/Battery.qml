@@ -12,77 +12,90 @@ Item {
     width: pill.width
     height: pill.height
 
-    FileView {
-        id: batteryCapacityFile
-        path: "/sys/class/power_supply/BAT1/capacity"
-        watchChanges: true
-        blockLoading: true
-        onLoaded: updateBattery()
-        onFileChanged: {
-            batteryCapacityFile.reload();
-            updateBattery();
+    // Timer para verificar bateria periodicamente
+    Timer {
+        id: batteryTimer
+        interval: 5000 // 5 segundos
+        running: true
+        repeat: true
+        triggeredOnStart: true
+        onTriggered: {
+            capacityProcess.running = true
+            statusProcess.running = true
         }
     }
 
-    FileView {
-        id: batteryStatusFile
-        path: "/sys/class/power_supply/BAT1/status"
-        watchChanges: true
-        blockLoading: true
-        onLoaded: updateBattery()
-        onFileChanged: {
-            batteryStatusFile.reload();
-            updateBattery();
+    Process {
+        id: capacityProcess
+        command: ["cat", "/sys/class/power_supply/BAT1/capacity"]
+        stdout: SplitParser {
+            onRead: data => {
+                const capacity = parseInt(data.trim())
+                if (!isNaN(capacity)) {
+                    const oldLevel = batteryLevel
+                    batteryLevel = capacity
+                    updatePill()
+
+                    // Mostra pill se mudou
+                    if (oldLevel !== batteryLevel && oldLevel >= 0) {
+                        pill.show()
+                    }
+                }
+            }
         }
     }
 
-    function updateBattery() {
-        const capacity = parseInt(batteryCapacityFile.text().trim());
-        const status = batteryStatusFile.text().trim();
+    Process {
+        id: statusProcess
+        command: ["cat", "/sys/class/power_supply/BAT1/status"]
+        stdout: SplitParser {
+            onRead: data => {
+                batteryStatus = data.trim()
+                isCharging = batteryStatus === "Charging"
+                updatePill()
+            }
+        }
+    }
 
-        if (!isNaN(capacity)) {
-            batteryLevel = capacity;
-            batteryStatus = status;
-            isCharging = status === "Charging";
-
-            pill.text = batteryLevel + "%";
-            pill.icon = getBatteryIcon(batteryLevel, isCharging);
-            pill.iconCircleColor = getBatteryColor(batteryLevel, isCharging);
-            pill.show(); // Mostra quando muda
+    function updatePill() {
+        if (batteryLevel >= 0) {
+            pill.text = batteryLevel + "%"
+            pill.icon = getBatteryIcon(batteryLevel, isCharging)
+            pill.iconCircleColor = getBatteryColor(batteryLevel, isCharging)
         }
     }
 
     function getBatteryIcon(level, charging) {
         if (charging) {
-            return "battery_charging_full";
+            return "battery_charging_full"
         } else if (level >= 90) {
-            return "battery_full";
+            return "battery_full"
         } else if (level >= 75) {
-            return "battery_6_bar";
+            return "battery_6_bar"
         } else if (level >= 60) {
-            return "battery_5_bar";
+            return "battery_5_bar"
         } else if (level >= 45) {
-            return "battery_4_bar";
+            return "battery_4_bar"
         } else if (level >= 30) {
-            return "battery_3_bar";
+            return "battery_3_bar"
         } else if (level >= 15) {
-            return "battery_2_bar";
+            return "battery_2_bar"
         } else if (level >= 5) {
-            return "battery_1_bar";
+            return "battery_1_bar"
         } else {
-            return "battery_alert";
+            return "battery_alert"
         }
     }
 
     function getBatteryColor(level, charging) {
         if (charging) {
-            return Theme.accentPrimary;
+            return Theme.accentPrimary
         } else if (level <= 15) {
-            return "#ff4444";
+            return "#ff4444"
         } else if (level <= 30) {
-            return "#ffaa00";
+            return "#ffaa00"
         } else {
-            return Theme.accentPrimary;
+            return Theme.accentPrimary
         }
     }
 
@@ -107,18 +120,14 @@ Item {
             anchors.fill: parent
             hoverEnabled: true
             onEntered: {
-                pill.show();
-                batteryTooltip.tooltipVisible = true;
+                pill.show()
+                batteryTooltip.tooltipVisible = true
             }
             onExited: {
-                pill.hide();
-                batteryTooltip.tooltipVisible = false;
+                pill.hide()
+                batteryTooltip.tooltipVisible = false
             }
             cursorShape: Qt.PointingHandCursor
         }
-    }
-
-    Component.onCompleted: {
-        updateBattery();
     }
 }

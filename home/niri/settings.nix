@@ -89,6 +89,7 @@
 
         focus-follows-mouse = {
           enable = true;
+          max-scroll-amount="30%";
         };
 
         warp-mouse-to-focus = {
