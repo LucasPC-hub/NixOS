@@ -66,4 +66,5 @@ with pkgs;
   # Niri
   xwayland-satellite
   wl-clipboard
+  swayidle
 ]

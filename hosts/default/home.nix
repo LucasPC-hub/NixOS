@@ -26,7 +26,6 @@ in
     ../../home/programs/vesktop/default.nix
     ../../home/programs/firefox.nix
     ../../home/programs/swayidle.nix
-    ../../home/scripts/keyboard.nix
     ../../system/shell/zsh.nix
     inputs.zen-browser.homeModules.twilight-official
     inputs.spicetify-nix.homeManagerModules.default
