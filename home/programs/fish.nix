@@ -6,6 +6,15 @@
     interactiveShellInit = ''
       set -g fish_greeting
 
+      function gc
+          set file_status (git status --porcelain)
+          git add .
+          set commit_msg (test (count $argv) -eq 0; and echo "Auto-commit"; or echo "$argv[1]")
+          git commit -m "$commit_msg
+
+      $file_status"
+      end
+
       # Run fastfetch on shell startup
       if status is-interactive
           fastfetch
