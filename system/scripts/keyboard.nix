@@ -2,7 +2,7 @@
 
 {
   environment.systemPackages = with pkgs; [
-    (writeShellScriptBin "fix-bt-keyboard" ''
+    (writeShellScriptBin "keyboard" ''
       sudo ${kmod}/bin/modprobe -r hid_generic
       sudo ${kmod}/bin/modprobe -r btusb
       sleep 1
