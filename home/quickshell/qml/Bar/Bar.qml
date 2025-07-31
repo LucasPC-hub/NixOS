@@ -63,6 +63,10 @@ Scope {
                         Media {
                             anchors.verticalCenter: parent.verticalCenter
                         }
+
+                        Taskbar {
+                            anchors.verticalCenter: parent.verticalCenter
+                        }
                     }
 
                     ActiveWindow {
@@ -87,12 +91,13 @@ Scope {
                             anchors.verticalCenter: parent.verticalCenter
                         }
 
-                        Brightness {
-                            id: widgetsBrightness
-                            anchors.verticalCenter: parent.verticalCenter
-                        }
                         Battery {
                             id: widgetsBattery
+                            anchors.verticalCenter: parent.verticalCenter
+                        }
+
+                        Brightness {
+                            id: widgetsBrightness
                             anchors.verticalCenter: parent.verticalCenter
                         }
 
@@ -158,6 +163,7 @@ Scope {
                         offsetX: -39
                         offsetY: 0
                         anchors.top: parent.top
+                        visible: Settings.settings.showCorners
                     }
                 }
 
@@ -184,6 +190,7 @@ Scope {
                         offsetX: 39
                         offsetY: 0
                         anchors.top: parent.top
+                        visible: Settings.settings.showCorners
                     }
                 }
 
@@ -209,6 +216,7 @@ Scope {
                         offsetX: -39
                         offsetY: 0
                         anchors.top: parent.top
+                        visible: Settings.settings.showCorners
                     }
                 }
 
@@ -234,6 +242,7 @@ Scope {
                         offsetX: 39
                         offsetY: 0
                         anchors.top: parent.top
+                        visible: Settings.settings.showCorners
                     }
                 }
             }

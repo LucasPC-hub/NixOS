@@ -1,4 +1,4 @@
-import QtQuick 
+import QtQuick
 import QtQuick.Window 2.15
 import qs.Settings
 
@@ -56,9 +56,9 @@ Window {
 
     Rectangle {
         anchors.fill: parent
-        radius: 6
-        color: "#222"
-        border.color: Theme.backgroundTertiary || "#444"
+        radius: 20
+        color: Theme.backgroundTertiary || "#222"
+        border.color: Theme.outline || "#444"
         border.width: 1
         opacity: 0.97
         z: 1

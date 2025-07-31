@@ -123,22 +123,22 @@ PanelWindow {
                 anchors.verticalCenterOffset: -3
             }
 
-            Text {
-                id: activeWindowTitle
-                text: ToplevelManager?.activeToplevel?.title && ToplevelManager?.activeToplevel?.title.length > 60 ? ToplevelManager?.activeToplevel?.title.substring(0, 60) + "..." : ToplevelManager?.activeToplevel?.title || ""
-                font.pixelSize: 12
-                color: Theme.textSecondary
-                elide: Text.ElideRight
-                anchors.left: icon.right
-                anchors.leftMargin: Settings.settings.showActiveWindowIcon ? 4 : 6
-                anchors.right: parent.right
-                anchors.rightMargin: 6
-                anchors.verticalCenter: parent.verticalCenter
-                anchors.verticalCenterOffset: -3
-                horizontalAlignment: Settings.settings.showActiveWindowIcon ? Text.AlignRight : Text.AlignHCenter
-                verticalAlignment: Text.AlignVCenter
-                maximumLineCount: 1
-            }
+            // Text {
+            //     id: activeWindowTitle
+            //     text: ToplevelManager?.activeToplevel?.title && ToplevelManager?.activeToplevel?.title.length > 60 ? ToplevelManager?.activeToplevel?.title.substring(0, 60) + "..." : ToplevelManager?.activeToplevel?.title || ""
+            //     font.pixelSize: 12
+            //     color: Theme.textSecondary
+            //     elide: Text.ElideRight
+            //     anchors.left: icon.right
+            //     anchors.leftMargin: Settings.settings.showActiveWindowIcon ? 4 : 6
+            //     anchors.right: parent.right
+            //     anchors.rightMargin: 6
+            //     anchors.verticalCenter: parent.verticalCenter
+            //     anchors.verticalCenterOffset: -3
+            //     horizontalAlignment: Settings.settings.showActiveWindowIcon ? Text.AlignRight : Text.AlignHCenter
+            //     verticalAlignment: Text.AlignVCenter
+            //     maximumLineCount: 1
+            // }
         }
 
         Corners {

@@ -50,10 +50,11 @@ Singleton {
 
     // Initialize Hyprland integration
     function initHyprland() {
-        try {            
+        try {
+            // Fixes the odd workspace issue.
             Hyprland.refreshWorkspaces();
-            hlWorkspaces = Hyprland.workspaces.values;
-            updateHyprlandWorkspaces();
+            // hlWorkspaces = Hyprland.workspaces.values;
+            // updateHyprlandWorkspaces();
             return true;
         } catch (e) {
             console.error("Error initializing Hyprland:", e);
@@ -124,7 +125,8 @@ Singleton {
                 output: ws.output || "",
                 isFocused: ws.isFocused === true,
                 isActive: ws.isActive === true,
-                isUrgent: ws.isUrgent === true
+                isUrgent: ws.isUrgent === true,
+                isOccupied: ws.isOccupied === true,
             });
         }
         
