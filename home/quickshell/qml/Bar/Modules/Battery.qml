@@ -113,7 +113,7 @@ Item {
             text: "Battery: " + batteryLevel + "%" + (isCharging ? " (Charging)" : " (" + batteryStatus + ")")
             tooltipVisible: false
             targetItem: pill
-            delay: 200
+            delay: 2600
         }
 
         MouseArea {

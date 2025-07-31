@@ -57,17 +57,16 @@
       };
 
       input = {
-        keyboard = {
-          xkb = {
-            layout = "us,br";
-            variant = "intl,abnt2";
-            options = "grp:win_space_toggle";
+          keyboard = {
+            xkb = {
+              layout = "us,br";
+              variant = "intl,abnt2";
+              options = "grp:win_space_toggle,lv3:rctrl_switch";
+            };
+            repeat-delay = 300;
+            repeat-rate = 50;
+            numlock = true;
           };
-          repeat-delay = 300;
-          repeat-rate = 50;
-          numlock = true;
-        };
-
         touchpad = {
           click-method = "clickfinger";
           dwt = true;
