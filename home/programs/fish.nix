@@ -1,19 +1,11 @@
 { pkgs, config, ... }:
 {
   programs.fish = {
+    enable = true;
 
     # Disable default greeting
     interactiveShellInit = ''
       set -g fish_greeting
-
-      function gc
-          set file_status (git status --porcelain)
-          git add .
-          set commit_msg (test (count $argv) -eq 0; and echo "Auto-commit"; or echo "$argv[1]")
-          git commit -m "$commit_msg
-
-      $file_status"
-      end
 
       # Run fastfetch on shell startup
       if status is-interactive
@@ -24,6 +16,18 @@
       function clear_all
           command clear && printf '\e[3J'
       end
+
+      # Git commit function
+      function gc
+          set file_status (git status --porcelain)
+          git add .
+          set commit_msg (test (count $argv) -eq 0; and echo "Auto-commit"; or echo "$argv[1]")
+          git commit -m "$commit_msg
+
+      $file_status"
+      end
+
+      # Tide configuration (baseado no seu config antigo)
       if type -q tide
         # Left Prompt Items
         set -g tide_left_prompt_items pwd git node rustc java php pulumi ruby go gcloud kubectl distrobox toolbox terraform aws nix_shell crystal elixir zig
@@ -151,17 +155,31 @@
         set -g tide_left_prompt_frame_enabled false
         set -g tide_right_prompt_frame_enabled false
       end
+
+      # Initialize zoxide - ADICIONADO BASEADO NO SEU COMANDO
+      if command -q zoxide
+        zoxide init fish | source
+      end
     '';
 
     shellAliases = {
+      # Clear aliases (do seu config antigo)
       cls = "clear_all";
       c = "clear";
       cc = "clear_all";
       clear = "clear_all";
+
+      # yay alias (você usava pikaur no Arch)
+      yay = "nh";
+
+      # Claude alias
+      claude = "~/.claude/local/claude";
+
+      # Rebuild alias
       fkr = "sudo nixos-rebuild switch --flake .#default";
     };
 
-    # Fish plugins using fishPlugins from nixpkgs
+    # Fish plugins - APENAS OS OFICIAIS DO NIXPKGS
     plugins = [
       {
         name = "tide";
@@ -191,41 +209,36 @@
         name = "colored-man-pages";
         src = pkgs.fishPlugins.colored-man-pages.src;
       }
-      # Fisher and other plugins that aren't in nixpkgs need to be installed manually
-      {
-        name = "fisher";
-        src = pkgs.fetchFromGitHub {
-          owner = "jorgebucaran";
-          repo = "fisher";
-          rev = "4.4.4";
-          sha256 = "sha256-e8gIaVbuUzTwKtuMPNXBT5STeddYqQegduWBtURLT3M=";
-        };
-      }
     ];
-  };
 
-  # Set fish as default shell
-  programs.fish.enable = true;
+    # Shell init para adicionar npm global bin ao PATH
+    shellInit = ''
+      # Add npm global packages to PATH if not already there
+      if not contains $HOME/.npm-global/bin $PATH
+          set -gx PATH $HOME/.npm-global/bin $PATH
+      end
+    '';
+  };
 
   # Environment variables
   home.sessionVariables = {
     EDITOR = "zeditor";
   };
 
-  # Make sure npm global bin is in Fish PATH
-  programs.fish.shellInit = ''
-    # Add npm global packages to PATH if not already there
-    if not contains $HOME/.npm-global/bin $PATH
-        set -gx PATH $HOME/.npm-global/bin $PATH
-    end
-  '';
-
-  # Additional packages needed for fish plugins
+  # Adicionar pacotes necessários para os plugins funcionarem
   home.packages = with pkgs; [
     fzf
     fd
     bat
     eza  # modern replacement for exa
-    zoxide
+    zoxide  # IMPORTANTE: instalar o zoxide
+    gum     # Para alguns plugins
+    delta   # Para git diffs melhores
   ];
+
+  # Configurar zoxide NATIVO do Home Manager (mais confiável)
+  programs.zoxide = {
+    enable = true;
+    enableFishIntegration = false;  # Desabilitar integração automática pq vamos fazer manual
+  };
 }
