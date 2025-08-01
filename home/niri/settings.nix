@@ -106,7 +106,6 @@
           };
           scale = 1.5;
           position = { x = 0; y = 0; };
-          focus-at-startup = true;
           variable-refresh-rate = true;
         };
         # Add HDMI output
@@ -123,10 +122,8 @@
 
       cursor = {
         size = 20;
-        theme = "Adwaita";
       };
 
-      # Keep your existing environment variables - they're better
       environment = {
         CLUTTER_BACKEND = "wayland";
         GDK_BACKEND = "wayland,x11";

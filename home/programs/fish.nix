@@ -7,6 +7,145 @@
     interactiveShellInit = ''
       set -g fish_greeting
 
+      # MELHORAR HISTORY E AUTOCOMPLETION
+      # History settings
+      set -g fish_history_max 10000
+      set -g fish_history_save_on_exit 1
+
+      # AUTOSUGGESTIONS AUTOMÁTICAS (melhor que zsh)
+      set -g fish_autosuggestion_enabled 1
+      set -g fish_autosuggestion_accept_key right  # Seta direita aceita
+      set -g fish_autosuggestion_accept_key_word alt+right  # Alt+direita aceita só uma palavra
+      set -g fish_autosuggestion_execute_key shift+right  # Shift+direita executa diretamente
+
+      # Cores das suggestions (cinza claro por padrão)
+      set -g fish_color_autosuggestion 555
+
+      # Better autocompletion behavior
+      set -g fish_complete_path $fish_complete_path ~/.config/fish/completions /usr/share/fish/completions
+
+      # Pager settings for better navigation
+      set -g fish_pager_color_prefix cyan
+      set -g fish_pager_color_completion normal
+      set -g fish_pager_color_description yellow
+      set -g fish_pager_color_progress cyan
+
+      # Better history search (case insensitive)
+      set -g fish_search_match_case_insensitive 1
+
+      # COMMAND-NOT-FOUND automático (tipo "did you mean?")
+      if type -q command-not-found
+          function fish_command_not_found
+              command-not-found $argv[1]
+          end
+      end
+
+      # CORREÇÃO AUTOMÁTICA tipo "did you mean?" (como nyae do zsh)
+      function fish_command_not_found --on-event fish_command_not_found
+          set -l cmd $argv[1]
+          set -l full_command (string join " " $argv)
+
+          # Correções para comandos COMPLETOS (com argumentos)
+          switch $full_command
+              case "gti *"
+                  set -l git_args (string replace "gti" "git" -- $full_command)
+                  echo
+                  set_color yellow
+                  echo -n "Did you mean: "
+                  set_color cyan
+                  echo -n "$git_args"
+                  set_color yellow
+                  echo -n "? (y/n/e) "
+                  set_color normal
+
+                  read -n 1 -P "" response
+                  echo
+
+                  switch $response
+                      case "y" "Y" ""
+                          eval $git_args
+                          return 0
+                      case "e" "E"
+                          commandline -r "$git_args"
+                          return 0
+                      case "*"
+                          echo "Command not executed."
+                          return 1
+                  end
+          end
+
+          # Correções para comandos SIMPLES (sem argumentos)
+          set -l corrections \
+              "gut" "git" \
+              "gi" "git" \
+              "grpe" "grep" \
+              "gerp" "grep" \
+              "sl" "ls" \
+              "lsl" "ls" \
+              "les" "ls" \
+              "claer" "clear" \
+              "clar" "clear" \
+              "clera" "clear" \
+              "xit" "exit" \
+              "exti" "exit" \
+              "ext" "exit" \
+              "mkae" "make" \
+              "amke" "make" \
+              "sudp" "sudo" \
+              "suod" "sudo" \
+              "cd.." "cd .." \
+              "yay" "nh"
+
+          # Procurar correção simples
+          for i in (seq 1 2 (count $corrections))
+              if test "$cmd" = "$corrections[$i]"
+                  set -l suggestion "$corrections[(math $i + 1)]"
+                  echo
+                  set_color yellow
+                  echo -n "Did you mean: "
+                  set_color cyan
+                  echo -n "$suggestion"
+                  if test (count $argv) -gt 1
+                      echo -n " $argv[2..-1]"
+                  end
+                  set_color yellow
+                  echo -n "? (y/n/e) "
+                  set_color normal
+
+                  read -n 1 -P "" response
+                  echo
+
+                  switch $response
+                      case "y" "Y" ""
+                          if test (count $argv) -gt 1
+                              eval $suggestion $argv[2..-1]
+                          else
+                              eval $suggestion
+                          end
+                          return 0
+                      case "e" "E"
+                          if test (count $argv) -gt 1
+                              commandline -r "$suggestion $argv[2..-1]"
+                          else
+                              commandline -r "$suggestion"
+                          end
+                          return 0
+                      case "*"
+                          echo "Command not executed."
+                          return 1
+                  end
+              end
+          end
+
+          # Se não encontrou correção exata, mostrar erro
+          echo
+          set_color red
+          echo "Command '$cmd' not found."
+          set_color normal
+
+          return 127
+      end
+
       # Run fastfetch on shell startup
       if status is-interactive
           fastfetch
@@ -26,6 +165,52 @@
 
       $file_status"
       end
+
+      # Function para corrigir comandos comuns (como thefuck)
+      function fuck --description 'Correct previous command'
+          set -l fucked_up_command $history[1]
+          echo "Tentando corrigir: $fucked_up_command"
+
+          # Algumas correções comuns
+          switch $fucked_up_command
+              case "sl"
+                  ls
+              case "cd.."
+                  cd ..
+              case "xit" "exti" "ext"
+                  exit
+              case "claer" "clar" "clera"
+                  clear
+              case "les" "lss" "sl"
+                  lsd
+              case "gti"
+                  git status
+              case "gut"
+                  git
+              case "gits"
+                  git status
+              case "grpe" "gerp"
+                  grep
+              case "mkae"
+                  make
+              case "amke"
+                  make
+              case "sudp" "suod"
+                  sudo $history[2..-1]
+              case "*"
+                  echo "Não sei como corrigir '$fucked_up_command'"
+                  echo "Você quis dizer algum destes?"
+                  # Usar compgen se disponível, senão usar which
+                  if type -q compgen
+                      compgen -c | grep -i (echo $fucked_up_command | head -c 3) | head -5
+                  else if type -q which
+                      ls /usr/bin /bin | grep -i (echo $fucked_up_command | head -c 3) | head -5
+                  end
+          end
+      end
+
+      # Adicionar binding para Ctrl+X+E para editar comando no editor
+      bind \cx\ce edit_command_buffer
 
       # Tide configuration (baseado no seu config antigo)
       if type -q tide
@@ -169,6 +354,12 @@
       cc = "clear_all";
       clear = "clear_all";
 
+      # lsd aliases - moderno ls com ícones
+      ls = "lsd";
+      ll = "lsd -l";
+      la = "lsd -la";
+      lt = "lsd --tree";
+
       # yay alias (você usava pikaur no Arch)
       yay = "nh";
 
@@ -230,10 +421,17 @@
     fzf
     fd
     bat
-    eza  # modern replacement for exa
+    lsd  # LSDeluxe - ls moderno com ícones e cores
+    eza  # modern replacement for exa (backup)
     zoxide  # IMPORTANTE: instalar o zoxide
     gum     # Para alguns plugins
     delta   # Para git diffs melhores
+    # Pacotes para melhorar autocompletion e correção
+    bash-completion  # Para comandos bash
+    nix-bash-completions  # Completions para Nix
+    pay-respects  # Substituto do thefuck - correção de comandos
+    # Para command-not-found funcionar
+    nix-index  # Indexa pacotes para sugestões automáticas
   ];
 
   # Configurar zoxide NATIVO do Home Manager (mais confiável)
