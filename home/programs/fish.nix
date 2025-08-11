@@ -363,8 +363,6 @@
       # yay alias (você usava pikaur no Arch)
       yay = "nh";
 
-      # Claude alias
-      claude = "~/.claude/local/claude";
 
       # Rebuild alias
       fkr = "sudo nixos-rebuild switch --flake .#default";

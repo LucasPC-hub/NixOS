@@ -79,12 +79,11 @@ fonts.packages = with pkgs; [
     kernelPackages = pkgs.linuxPackages_latest;
     kernelParams = [
       "video=eDP-1:2880x1800@120"
+      "bluetooth.disable_ertm=1"
     ];
     kernelModules = [ "v4l2loopback" "i2c-dev" ];
     initrd.availableKernelModules = [ "i2c-dev" ];
-    extraModprobeConfig = ''
-      options v4l2loopback video_nr=0 card_label="DroidCam" exclusive_caps=1
-    '';
+
     extraModulePackages = with config.boot.kernelPackages; [
       v4l2loopback
     ];
@@ -183,7 +182,46 @@ fonts.packages = with pkgs; [
 
   xdg.portal.enable = true;
 
-  hardware.bluetooth.enable = true;
+  hardware.bluetooth = {
+     enable = true;
+     powerOnBoot = true;
+
+     # Bluetooth configuration
+     settings = {
+       General = {
+         ControllerMode = "dual";
+         FastConnectable = true;
+         ConnectTimeout = 60;
+       };
+
+       Policy = {
+         AutoEnable = true;
+       };
+
+       LE = {
+         MinConnectionInterval = 30;
+         MaxConnectionInterval = 50;
+         ConnectionLatency = 0;
+         ConnectionSupervisionTimeout = 420;
+       };
+     };
+   };
+
+   # Bluetooth kernel module options
+   boot.extraModprobeConfig = ''
+     options btusb enable_autosuspend=0
+     options btusb reset=1
+     options v4l2loopback video_nr=0 card_label="DroidCam" exclusive_caps=1
+   '';
+
+   # Disable USB autosuspend for Bluetooth (find your device ID first)
+   services.udev.extraRules = ''
+     # Disable autosuspend for Bluetooth USB devices (corrected for AX211)
+     ACTION=="add", SUBSYSTEM=="usb", ATTR{idVendor}=="8087", ATTR{idProduct}=="0033", TEST=="power/control", ATTR{power/control}="on"
+
+     # Auto-reset Bluetooth HCI on add
+     ACTION=="add", SUBSYSTEM=="bluetooth", KERNEL=="hci[0-9]*", RUN+="${pkgs.bluez}/bin/hciconfig %k reset"
+   '';
 
   # NVIDIA Configuration
   hardware.nvidia = {
