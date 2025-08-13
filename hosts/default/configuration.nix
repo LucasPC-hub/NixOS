@@ -158,6 +158,7 @@ fonts.packages = with pkgs; [
     dbus.packages = with pkgs; [ bluez ];
 
     power-profiles-daemon.enable = true;
+    upower.enable = true;
     printing.enable = true;
     gvfs.enable = true;
     tumbler.enable = true;

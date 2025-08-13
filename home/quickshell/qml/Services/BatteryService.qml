@@ -11,7 +11,7 @@ Singleton {
     readonly property UPowerDevice device: {
         for (var i = 0; i < UPower.devices.count; i++) {
             var dev = UPower.devices.get(i);
-            if (dev && dev.ready && dev.isLaptopBattery && dev.nativePath.includes("BAT1")) {
+            if (dev && dev.ready && dev.isLaptopBattery) {
                 return dev;
             }
         }
