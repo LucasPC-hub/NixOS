@@ -30,13 +30,18 @@
       inputs.nixpkgs.follows = "nixpkgs";
     };
 
+    dankMaterialShell = {
+      url = "path:./home/quickshell";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
+
     moonlight = {
       url = "github:moonlight-mod/moonlight";
       inputs.nixpkgs.follows = "nixpkgs";
     };
   };
 
-  outputs = { self, nixpkgs, home-manager, chaotic, nur, nixvim, niri, quickshell, ... }@inputs: {
+  outputs = { self, nixpkgs, home-manager, chaotic, nur, nixvim, niri, quickshell, dankMaterialShell, ... }@inputs: {
 
     # Expose NixOS configuration
     nixosConfigurations.default = nixpkgs.lib.nixosSystem {

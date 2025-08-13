@@ -14,7 +14,7 @@ in
 
   imports = [
     ../../home/niri/default.nix
-    ../../home/quickshell/quickshell.nix
+    inputs.dankMaterialShell.homeModules.dankMaterialShell
     ../../home/editors/vscode.nix
     ../../home/editors/nixvim.nix
     ../../home/programs/ghostty.nix
@@ -32,6 +32,7 @@ in
     inputs.nixvim.homeManagerModules.nixvim
   ];
   programs.zen-browser.enable = true;
+  programs.dankMaterialShell.enable = true;
   home.packages = allPackages;
 
   # Configure npm to use home directory for global installs
