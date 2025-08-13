@@ -6,6 +6,7 @@
     remotePlay.openFirewall = true; # Open ports in the firewall for Steam Remote Play
     dedicatedServer.openFirewall = true; # Open ports in the firewall for Source Dedicated Server
     localNetworkGameTransfers.openFirewall = true; # Open ports in the firewall for Steam Local Network Game Transfers
+    gamescopeSession.enable = true;
   };
 
   # OpenGL and Vulkan configuration
@@ -15,7 +16,7 @@
     vulkan-tools
   ];
 
-  # Add system packages for VR support
+  # Add system packages for VR support and Steam wrapper
   environment.systemPackages = with pkgs; [
     openvr # Required for SteamVR
     libusb1 # Used for VR devices
@@ -23,6 +24,18 @@
     pkgs.libsndfile
     pkgs.xwayland
     gamescope
+    # NVIDIA-specific packages for Steam
+    nvidia-vaapi-driver
+    libva
+    xdg-user-dirs # Fix missing xdg-user-dir command
+    # Steam wrapper that always uses NVIDIA
+    (writeShellScriptBin "steam-nvidia" ''
+      export __NV_PRIME_RENDER_OFFLOAD=1
+      export __NV_PRIME_RENDER_OFFLOAD_PROVIDER=NVIDIA-G0
+      export __GLX_VENDOR_LIBRARY_NAME=nvidia
+      export __VK_LAYER_NV_optimus=NVIDIA_only
+      exec ${steam}/bin/steam "$@"
+    '')
   ];
 
   # Udev rules for VR devices

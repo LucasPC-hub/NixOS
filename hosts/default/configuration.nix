@@ -6,7 +6,6 @@
     "${self}/system/greeter/greetd.nix"
     "${self}/system/scripts/keyboard.nix"
     "${self}/system/programs/steam.nix"
-    "${self}/system/programs/lact.nix"
     "${self}/system/programs/docker.nix"
     "${self}/system/programs/stylix.nix"
     "${self}/system/xdg.nix"
