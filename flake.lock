@@ -90,6 +90,23 @@
         "type": "github"
       }
     },
+    "dankMaterialShell": {
+      "inputs": {
+        "nixpkgs": [
+          "nixpkgs"
+        ],
+        "quickshell": "quickshell"
+      },
+      "locked": {
+        "path": "./home/quickshell",
+        "type": "path"
+      },
+      "original": {
+        "path": "./home/quickshell",
+        "type": "path"
+      },
+      "parent": []
+    },
     "firefox-gnome-theme": {
       "flake": false,
       "locked": {
@@ -716,6 +733,27 @@
     "quickshell": {
       "inputs": {
         "nixpkgs": [
+          "dankMaterialShell",
+          "nixpkgs"
+        ]
+      },
+      "locked": {
+        "lastModified": 1753595452,
+        "narHash": "sha256-vqkSDvh7hWhPvNjMjEDV4KbSCv2jyl2Arh73ZXe274k=",
+        "ref": "refs/heads/master",
+        "rev": "a5431dd02dc23d9ef1680e67777fed00fe5f7cda",
+        "revCount": 665,
+        "type": "git",
+        "url": "https://git.outfoxxed.me/quickshell/quickshell"
+      },
+      "original": {
+        "type": "git",
+        "url": "https://git.outfoxxed.me/quickshell/quickshell"
+      }
+    },
+    "quickshell_2": {
+      "inputs": {
+        "nixpkgs": [
           "nixpkgs"
         ]
       },
@@ -736,6 +774,7 @@
     "root": {
       "inputs": {
         "chaotic": "chaotic",
+        "dankMaterialShell": "dankMaterialShell",
         "home-manager": "home-manager_2",
         "matugen": "matugen",
         "moonlight": "moonlight",
@@ -743,7 +782,7 @@
         "nixpkgs": "nixpkgs_5",
         "nixvim": "nixvim",
         "nur": "nur",
-        "quickshell": "quickshell",
+        "quickshell": "quickshell_2",
         "spicetify-nix": "spicetify-nix",
         "stylix": "stylix",
         "zen-browser": "zen-browser"
