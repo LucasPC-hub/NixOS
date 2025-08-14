@@ -3,7 +3,7 @@
 {
   browser = "zen";
   terminal = "${pkgs.kitty}/bin/kitty";
-  fileManager = "${pkgs.xfce.thunar}/bin/thunar";
+  fileManager = "${pkgs.nautilus}/bin/nautilus";
   appLauncher = "${pkgs.walker}/bin/walker";
 
   screenshotArea = "${pkgs.bash}/bin/bash -c '${pkgs.grim}/bin/grim -g \"\\\$(${pkgs.slurp}/bin/slurp)\" - | ${pkgs.wl-clipboard}/bin/wl-copy'";

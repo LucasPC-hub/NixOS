@@ -13,6 +13,8 @@ with pkgs;
   heroic
   nautilus
   file-roller
+  eog
+  evince
   obsidian
 
   # TUI

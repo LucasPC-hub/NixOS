@@ -45,6 +45,8 @@ in
   home.sessionVariables = {
     EDITOR = "zeditor";
     PATH = "$PATH:${config.home.homeDirectory}/.npm-global/bin";
+    BROWSER = "zen";
+    DEFAULT_BROWSER = "zen";
   };
 
   home.file.".XCompose".text = ''
@@ -58,6 +60,51 @@ in
   ];
 
   xdg.portal.enable = true;
+
+  # Configure default applications
+  xdg.mimeApps = {
+    enable = true;
+    defaultApplications = {
+      # Web browsers
+      "text/html" = "zen-twilight.desktop";
+      "x-scheme-handler/http" = "zen-twilight.desktop";
+      "x-scheme-handler/https" = "zen-twilight.desktop";
+      "x-scheme-handler/about" = "zen-twilight.desktop";
+      "x-scheme-handler/unknown" = "zen-twilight.desktop";
+
+      # File manager
+      "inode/directory" = "nautilus.desktop";
+
+      # Text files
+      "text/plain" = "code.desktop";
+      "application/x-shellscript" = "code.desktop";
+
+      # Images
+      "image/png" = "eog.desktop";
+      "image/jpeg" = "eog.desktop";
+      "image/gif" = "eog.desktop";
+      "image/webp" = "eog.desktop";
+
+      # Videos
+      "video/mp4" = "mpv.desktop";
+      "video/x-matroska" = "mpv.desktop";
+      "video/webm" = "mpv.desktop";
+
+      # Audio
+      "audio/mpeg" = "mpv.desktop";
+      "audio/mp4" = "mpv.desktop";
+      "audio/x-flac" = "mpv.desktop";
+
+      # PDFs
+      "application/pdf" = "evince.desktop";
+
+      # Archives
+      "application/zip" = "file-roller.desktop";
+      "application/x-tar" = "file-roller.desktop";
+      "application/gzip" = "file-roller.desktop";
+    };
+  };
+
   home.stateVersion = "24.11";
 
   services.cliphist = {

@@ -9,15 +9,28 @@ Singleton {
     id: root
 
     readonly property UPowerDevice device: {
+        // First try to find a specific laptop battery
         for (var i = 0; i < UPower.devices.count; i++) {
             var dev = UPower.devices.get(i);
             if (dev && dev.ready && dev.isLaptopBattery) {
+                console.log("Found laptop battery:", dev.nativePath, "ready:", dev.ready, "isLaptopBattery:", dev.isLaptopBattery);
                 return dev;
             }
         }
+
+        // Fallback to any battery device
+        for (var i = 0; i < UPower.devices.count; i++) {
+            var dev = UPower.devices.get(i);
+            if (dev && dev.ready && dev.nativePath && dev.nativePath.includes("BAT")) {
+                console.log("Found BAT device:", dev.nativePath, "ready:", dev.ready);
+                return dev;
+            }
+        }
+
+        console.log("Using display device as fallback");
         return UPower.displayDevice;
     }
-    readonly property bool batteryAvailable: device && device.ready && device.isLaptopBattery
+    readonly property bool batteryAvailable: device && device.ready && (device.isLaptopBattery || device === UPower.displayDevice)
     readonly property real batteryLevel: batteryAvailable ? Math.round(device.percentage * 100) : 0
     readonly property bool isCharging: batteryAvailable && device.state === UPowerDeviceState.Charging && device.changeRate > 0
     readonly property bool isPluggedIn: batteryAvailable && (device.state !== UPowerDeviceState.Discharging && device.state !== UPowerDeviceState.Empty)
