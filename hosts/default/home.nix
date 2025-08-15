@@ -27,6 +27,7 @@ in
     ../../home/programs/firefox.nix
     ../../home/programs/swayidle.nix
     ../../system/shell/zsh.nix
+    ../../home/programs/dgop.nix
     inputs.zen-browser.homeModules.twilight-official
     inputs.spicetify-nix.homeManagerModules.default
     inputs.nixvim.homeManagerModules.nixvim

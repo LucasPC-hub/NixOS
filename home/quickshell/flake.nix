@@ -56,10 +56,8 @@
             programs.niri.settings = lib.mkMerge [
               (lib.mkIf cfg.enableKeybinds {
                 binds = {
-                  "Mod+Space".action.spawn = [
+                  "Mod+D".action.spawn = [
                     "qs"
-                    "-c"
-                    "DankMaterialShell"
                     "ipc"
                     "call"
                     "spotlight"
@@ -67,8 +65,6 @@
                   ];
                   "Mod+V".action.spawn = [
                     "qs"
-                    "-c"
-                    "DankMaterialShell"
                     "ipc"
                     "call"
                     "clipboard"
@@ -76,8 +72,6 @@
                   ];
                   "Mod+M".action.spawn = [
                     "qs"
-                    "-c"
-                    "DankMaterialShell"
                     "ipc"
                     "call"
                     "processlist"
@@ -85,8 +79,6 @@
                   ];
                   "Mod+Comma".action.spawn = [
                     "qs"
-                    "-c"
-                    "DankMaterialShell"
                     "ipc"
                     "call"
                     "settings"
@@ -94,8 +86,6 @@
                   ];
                   "Super+Alt+L".action.spawn = [
                     "qs"
-                    "-c"
-                    "DankMaterialShell"
                     "ipc"
                     "call"
                     "lock"
@@ -105,8 +95,6 @@
                     allow-when-locked = true;
                     action.spawn = [
                       "qs"
-                      "-c"
-                      "DankMaterialShell"
                       "ipc"
                       "call"
                       "audio"
@@ -118,8 +106,6 @@
                     allow-when-locked = true;
                     action.spawn = [
                       "qs"
-                      "-c"
-                      "DankMaterialShell"
                       "ipc"
                       "call"
                       "audio"
@@ -131,8 +117,6 @@
                     allow-when-locked = true;
                     action.spawn = [
                       "qs"
-                      "-c"
-                      "DankMaterialShell"
                       "ipc"
                       "call"
                       "audio"
@@ -143,8 +127,6 @@
                     allow-when-locked = true;
                     action.spawn = [
                       "qs"
-                      "-c"
-                      "DankMaterialShell"
                       "ipc"
                       "call"
                       "audio"
