@@ -1,10 +1,13 @@
 {
   pkgs,
-  inputs,  # Add this parameter
+  inputs,
   ...
 }:
-
 with pkgs;
+let
+  # Define custom packages
+  dgop = callPackage ../../home/programs/dgop.nix {};
+in
 [
   # Applications
   protonplus
@@ -16,16 +19,15 @@ with pkgs;
   eog
   evince
   obsidian
-
   # TUI
   btop
   fish
-
+  dgop  # Add it here
   # Desktop
   nwg-look
   walker
-
   # Development
+  jetbrains-toolbox
   rustup
   gcc
   gh
@@ -36,7 +38,6 @@ with pkgs;
   nodePackages.npm
   mockoon
   insomnia
-
   # Utilities
   jq
   socat
@@ -56,7 +57,6 @@ with pkgs;
   lazydocker
   kdePackages.dolphin
   yazi
-
   # Quickshell stuff
   qt6Packages.qt5compat
   libsForQt5.qt5.qtgraphicaleffects
@@ -64,7 +64,6 @@ with pkgs;
   kdePackages.qtdeclarative
   kdePackages.qtstyleplugin-kvantum
   wallust
-
   # Niri
   xwayland-satellite
   wl-clipboard
