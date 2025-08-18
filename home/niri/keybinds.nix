@@ -11,8 +11,14 @@ in {
     volume-down = spawn pactl [ "set-sink-volume" "@DEFAULT_SINK@" "-5%" ];
   in {
 
-    # Quickshell Keybinds (keep your existing ones)
-    "Super+D".action = spawn ["qs" "ipc" "call" "globalIPC" "toggleLauncher"];
+    # DankMaterial Shell Keybinds
+    "Super+D".action = spawn ["qs" "ipc" "call" "spotlight" "toggle"];
+    "Super+V".action = spawn ["qs" "ipc" "call" "clipboard" "toggle"];
+    "Super+M".action = spawn ["qs" "ipc" "call" "processlist" "toggle"];
+    "Super+N".action = spawn ["qs" "ipc" "call" "notifications" "toggle"];
+    "Super+Comma".action = spawn ["qs" "ipc" "call" "settings" "toggle"];
+    "Super+Alt+L".action = spawn ["qs" "ipc" "call" "lock" "lock"];
+
 
     # Hotkey overlay
     "Super+Shift+Slash".action = show-hotkey-overlay;
@@ -33,11 +39,23 @@ in {
     "Super+Shift+F".action = fullscreen-window;
     "Super+C".action = center-column;
 
-    # Audio controls
-    "XF86AudioRaiseVolume".action = volume-up;
-    "XF86AudioLowerVolume".action = volume-down;
-    "XF86AudioMute".action = spawn ["pactl" "set-sink-mute" "@DEFAULT_SINK@" "toggle"];
-    "XF86AudioMicMute".action = spawn ["pactl" "set-source-mute" "@DEFAULT_SOURCE@" "toggle"];
+    # Audio controls - DankMaterial Shell
+    "XF86AudioRaiseVolume" = {
+      action = spawn ["qs" "ipc" "call" "audio" "increment" "3"];
+      allow-when-locked = true;
+    };
+    "XF86AudioLowerVolume" = {
+      action = spawn ["qs" "ipc" "call" "audio" "decrement" "3"];
+      allow-when-locked = true;
+    };
+    "XF86AudioMute" = {
+      action = spawn ["qs" "ipc" "call" "audio" "mute"];
+      allow-when-locked = true;
+    };
+    "XF86AudioMicMute" = {
+      action = spawn ["qs" "ipc" "call" "audio" "micmute"];
+      allow-when-locked = true;
+    };
 
     # Brightness controls (keep your existing ddcutil script)
     "Control+Super+XF86AudioRaiseVolume".action = spawn "brightness" "up";
@@ -47,8 +65,14 @@ in {
     "XF86AudioPlay".action = spawn ["playerctl" "play-pause"];
     "XF86AudioNext".action = spawn ["playerctl" "next"];
     "XF86AudioPrev".action = spawn ["playerctl" "previous"];
-    "XF86MonBrightnessUp".action = spawn ["brightness" "up"];
-    "XF86MonBrightnessDown".action = spawn ["brightness" "down"];
+    "XF86MonBrightnessUp" = {
+      action = spawn ["qs" "ipc" "call" "brightness" "increment" "5" ""];
+      allow-when-locked = true;
+    };
+    "XF86MonBrightnessDown" = {
+      action = spawn ["qs" "ipc" "call" "brightness" "decrement" "5" ""];
+      allow-when-locked = true;
+    };
 
     # Focus movement
     "Super+Left".action = focus-column-left;
@@ -100,7 +124,6 @@ in {
     "Super+8".action = focus-workspace "8";
 
     # Column management
-    "Super+Comma".action = consume-window-into-column;
     "Super+Period".action = expel-window-from-column;
 
     # Resizing
@@ -123,12 +146,7 @@ in {
     "Super+Shift+P".action = power-off-monitors;
     # Add this to your existing home/niri/keybinds.nix
 
-    # Lock screen with hyprlock
-    "Super+Shift+L".action = spawn ["qs" "ipc" "call" "globalIPC" "toggleLock"];
-
-    # Alternative: use the lockscreen script
-    # "Super+L".action = spawn ["bash" "-c" "~/.local/bin/lockscreen"];
-
-    "Super+Alt+L".action = spawn ["bash" "-c" "qs ipc call globalIPC toggleLock && sleep 5 && systemctl suspend"];
+    # Lock screen
+    "Super+Shift+L".action = spawn ["bash" "-c" "qs ipc call call lock lock && sleep 5 && systemctl suspend"];
   };
 }
