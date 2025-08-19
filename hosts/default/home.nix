@@ -104,7 +104,12 @@ in
       "application/gzip" = "file-roller.desktop";
     };
   };
-
+    xdg.configFile."pipewire/pipewire.conf.d/10-clock-rate.conf".text = ''
+      context.properties = {
+        default.clock.rate = 96000
+        default.clock.allowed-rates = [ 44100 48000 88200 96000 176400 192000 352800 384000 ]
+      }
+    '';
   home.stateVersion = "24.11";
 
   services.cliphist = {
