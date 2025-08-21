@@ -1,6 +1,7 @@
 import QtQuick
 import Quickshell
 import Quickshell.Services.SystemTray
+import Quickshell.Widgets
 import qs.Common
 
 Rectangle {
@@ -11,8 +12,7 @@ Rectangle {
 
     readonly property int calculatedWidth: SystemTray.items.values.length
                                            > 0 ? SystemTray.items.values.length
-                                                 * 24 + (SystemTray.items.values.length - 1)
-                                                 * Theme.spacingXS + Theme.spacingS * 2 : 0
+                                                 * 24 + Theme.spacingS * 2 : 0
 
     width: calculatedWidth
     height: 30
@@ -31,7 +31,7 @@ Rectangle {
         id: systemTrayRow
 
         anchors.centerIn: parent
-        spacing: Theme.spacingXS
+        spacing: 0
 
         Repeater {
             model: SystemTray.items.values
@@ -74,14 +74,14 @@ Rectangle {
                     }
                 }
 
-                Image {
+                IconImage {
                     anchors.centerIn: parent
-                    width: 18
-                    height: 18
+                    width: 16
+                    height: 16
                     source: parent.iconSource
                     asynchronous: true
                     smooth: true
-                    fillMode: Image.PreserveAspectFit
+                    mipmap: true
                 }
 
                 MouseArea {
@@ -92,29 +92,30 @@ Rectangle {
                     hoverEnabled: true
                     cursorShape: Qt.PointingHandCursor
                     onClicked: mouse => {
-                        if (!trayItem)
-                        return
+                                   if (!trayItem)
+                                   return
 
-                        if (mouse.button === Qt.LeftButton && !trayItem.onlyMenu) {
-                            trayItem.activate()
-                            return
-                        }
+                                   if (mouse.button === Qt.LeftButton
+                                       && !trayItem.onlyMenu) {
+                                       trayItem.activate()
+                                       return
+                                   }
 
-                        if (trayItem.hasMenu) {
-                            var globalPos = mapToGlobal(0, 0)
-                            var currentScreen = parentScreen
-                            || Screen
-                            var screenX = currentScreen.x || 0
-                            var relativeX = globalPos.x - screenX
-                            menuAnchor.menu = trayItem.menu
-                            menuAnchor.anchor.window = parentWindow
-                            menuAnchor.anchor.rect = Qt.rect(
-                                relativeX,
-                                Theme.barHeight + Theme.spacingS,
-                                parent.width, 1)
-                            menuAnchor.open()
-                        }
-                    }
+                                   if (trayItem.hasMenu) {
+                                       var globalPos = mapToGlobal(0, 0)
+                                       var currentScreen = parentScreen
+                                       || Screen
+                                       var screenX = currentScreen.x || 0
+                                       var relativeX = globalPos.x - screenX
+                                       menuAnchor.menu = trayItem.menu
+                                       menuAnchor.anchor.window = parentWindow
+                                       menuAnchor.anchor.rect = Qt.rect(
+                                           relativeX,
+                                           Theme.barHeight + Theme.spacingS,
+                                           parent.width, 1)
+                                       menuAnchor.open()
+                                   }
+                               }
                 }
             }
         }

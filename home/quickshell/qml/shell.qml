@@ -6,6 +6,7 @@ import Quickshell.Widgets
 import qs.Modals
 import qs.Modules
 import qs.Modules.AppDrawer
+import qs.Modules.OSD
 import qs.Modules.CentcomCenter
 import qs.Modules.ControlCenter
 import qs.Modules.ControlCenter.Network
@@ -19,182 +20,265 @@ import qs.Modules.Dock
 import qs.Services
 
 ShellRoot {
-  id: root
+    id: root
 
-  WallpaperBackground {}
+    WallpaperBackground {}
 
-  Lock {
-    id: lock
+    Lock {
+        id: lock
 
-    anchors.fill: parent
-  }
-
-  Variants {
-    model: Quickshell.screens
-
-    delegate: TopBar {
-      modelData: item
-    }
-  }
-
-  Variants {
-    model: Quickshell.screens
-
-    delegate: Dock {
-      modelData: item
-      contextMenu: dockContextMenu
-      windowsMenu: dockWindowsMenu
-    }
-  }
-
-  CentcomPopout {
-    id: centcomPopout
-  }
-
-  DockContextMenu {
-    id: dockContextMenu
-  }
-
-  DockWindowsMenu {
-    id: dockWindowsMenu
-  }
-
-  NotificationCenterPopout {
-    id: notificationCenter
-  }
-
-  Variants {
-    model: Quickshell.screens
-
-    delegate: NotificationPopupManager {
-      modelData: item
-    }
-  }
-
-  ControlCenterPopout {
-    id: controlCenterPopout
-
-    onPowerActionRequested: (action, title, message) => {
-                              powerConfirmModal.powerConfirmAction = action
-                              powerConfirmModal.powerConfirmTitle = title
-                              powerConfirmModal.powerConfirmMessage = message
-                              powerConfirmModal.powerConfirmVisible = true
-                            }
-    onLockRequested: {
-      lock.activate()
-    }
-  }
-
-  WifiPasswordModal {
-    id: wifiPasswordModal
-  }
-
-  NetworkInfoModal {
-    id: networkInfoModal
-  }
-
-  BatteryPopout {
-    id: batteryPopout
-  }
-
-  PowerMenu {
-    id: powerMenu
-  }
-
-  PowerConfirmModal {
-    id: powerConfirmModal
-  }
-
-  ProcessListPopout {
-    id: processListPopout
-  }
-
-  SettingsModal {
-    id: settingsModal
-  }
-
-  AppDrawerPopout {
-    id: appDrawerPopout
-  }
-
-  SpotlightModal {
-    id: spotlightModal
-  }
-
-  ClipboardHistoryModal {
-    id: clipboardHistoryModalPopup
-  }
-
-  NotificationModal {
-    id: notificationModal
-  }
-
-  LazyLoader {
-    id: processListModalLoader
-
-    active: false
-
-    ProcessListModal {
-      id: processListModal
-    }
-  }
-
-  IpcHandler {
-    function open() {
-      processListModalLoader.active = true
-      if (processListModalLoader.item)
-        processListModalLoader.item.show()
-
-      return "PROCESSLIST_OPEN_SUCCESS"
+        anchors.fill: parent
     }
 
-    function close() {
-      if (processListModalLoader.item)
-        processListModalLoader.item.hide()
+    Variants {
+        model: Quickshell.screens
 
-      return "PROCESSLIST_CLOSE_SUCCESS"
+        delegate: TopBar {
+            modelData: item
+        }
     }
 
-    function toggle() {
-      processListModalLoader.active = true
-      if (processListModalLoader.item)
-        processListModalLoader.item.toggle()
+    Variants {
+        model: Quickshell.screens
 
-      return "PROCESSLIST_TOGGLE_SUCCESS"
+        delegate: Dock {
+            modelData: item
+            contextMenu: dockContextMenuLoader.item ? dockContextMenuLoader.item : null
+            windowsMenu: dockWindowsMenuLoader.item ? dockWindowsMenuLoader.item : null
+
+            Component.onCompleted: {
+                dockContextMenuLoader.active = true
+                dockWindowsMenuLoader.active = true
+            }
+        }
     }
 
-    target: "processlist"
-  }
-
-  Variants {
-    model: Quickshell.screens
-
-    delegate: Toast {
-      modelData: item
+    Loader {
+        id: centcomPopoutLoader
+        active: false
+        sourceComponent: Component {
+            CentcomPopout {
+                id: centcomPopout
+            }
+        }
     }
-  }
 
-  Variants {
-    model: Quickshell.screens
+    LazyLoader {
+        id: dockContextMenuLoader
+        active: false
 
-    delegate: VolumePopup {
-      modelData: item
+        DockContextMenu {
+            id: dockContextMenu
+        }
     }
-  }
 
-  Variants {
-    model: Quickshell.screens
+    LazyLoader {
+        id: dockWindowsMenuLoader
+        active: false
 
-    delegate: MicMutePopup {
-      modelData: item
+        DockWindowsMenu {
+            id: dockWindowsMenu
+        }
     }
-  }
 
-  Variants {
-    model: Quickshell.screens
+    LazyLoader {
+        id: notificationCenterLoader
+        active: false
 
-    delegate: BrightnessPopup {
-      modelData: item
+        NotificationCenterPopout {
+            id: notificationCenter
+        }
     }
-  }
+
+    Variants {
+        model: Quickshell.screens
+
+        delegate: NotificationPopupManager {
+            modelData: item
+        }
+    }
+
+    LazyLoader {
+        id: controlCenterLoader
+        active: false
+
+        ControlCenterPopout {
+            id: controlCenterPopout
+
+            onPowerActionRequested: (action, title, message) => {
+                                        powerConfirmModalLoader.active = true
+                                        if (powerConfirmModalLoader.item) {
+                                            powerConfirmModalLoader.item.show(
+                                                action, title, message)
+                                        }
+                                    }
+            onLockRequested: {
+                lock.activate()
+            }
+        }
+    }
+
+    LazyLoader {
+        id: wifiPasswordModalLoader
+        active: false
+
+        WifiPasswordModal {
+            id: wifiPasswordModal
+        }
+    }
+
+    LazyLoader {
+        id: networkInfoModalLoader
+        active: false
+
+        NetworkInfoModal {
+            id: networkInfoModal
+        }
+    }
+
+    LazyLoader {
+        id: batteryPopoutLoader
+        active: false
+
+        BatteryPopout {
+            id: batteryPopout
+        }
+    }
+
+    LazyLoader {
+        id: powerMenuLoader
+        active: false
+
+        PowerMenu {
+            id: powerMenu
+            onPowerActionRequested: (action, title, message) => {
+                                        powerConfirmModalLoader.active = true
+                                        if (powerConfirmModalLoader.item) {
+                                            powerConfirmModalLoader.item.show(
+                                                action, title, message)
+                                        }
+                                    }
+        }
+    }
+
+    LazyLoader {
+        id: powerConfirmModalLoader
+        active: false
+
+        PowerConfirmModal {
+            id: powerConfirmModal
+        }
+    }
+
+    LazyLoader {
+        id: processListPopoutLoader
+        active: false
+
+        ProcessListPopout {
+            id: processListPopout
+        }
+    }
+
+    SettingsModal {
+        id: settingsModal
+    }
+
+    LazyLoader {
+        id: appDrawerLoader
+        active: false
+
+        AppDrawerPopout {
+            id: appDrawerPopout
+        }
+    }
+
+    SpotlightModal {
+        id: spotlightModal
+    }
+
+    ClipboardHistoryModal {
+        id: clipboardHistoryModalPopup
+    }
+
+    NotificationModal {
+        id: notificationModal
+    }
+
+    LazyLoader {
+        id: processListModalLoader
+
+        active: false
+
+        ProcessListModal {
+            id: processListModal
+        }
+    }
+
+    IpcHandler {
+        function open() {
+            processListModalLoader.active = true
+            if (processListModalLoader.item)
+                processListModalLoader.item.show()
+
+            return "PROCESSLIST_OPEN_SUCCESS"
+        }
+
+        function close() {
+            if (processListModalLoader.item)
+                processListModalLoader.item.hide()
+
+            return "PROCESSLIST_CLOSE_SUCCESS"
+        }
+
+        function toggle() {
+            processListModalLoader.active = true
+            if (processListModalLoader.item)
+                processListModalLoader.item.toggle()
+
+            return "PROCESSLIST_TOGGLE_SUCCESS"
+        }
+
+        target: "processlist"
+    }
+
+    Variants {
+        model: Quickshell.screens
+
+        delegate: Toast {
+            modelData: item
+            visible: ToastService.toastVisible
+        }
+    }
+
+    Variants {
+        model: Quickshell.screens
+
+        delegate: VolumeOSD {
+            modelData: item
+        }
+    }
+
+    Variants {
+        model: Quickshell.screens
+
+        delegate: MicMuteOSD {
+            modelData: item
+        }
+    }
+
+    Variants {
+        model: Quickshell.screens
+
+        delegate: BrightnessOSD {
+            modelData: item
+        }
+    }
+
+    Variants {
+        model: Quickshell.screens
+
+        delegate: IdleInhibitorOSD {
+            modelData: item
+        }
+    }
 }

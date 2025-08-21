@@ -10,6 +10,7 @@ import Quickshell.Wayland
 import Quickshell.Widgets
 import qs.Common
 import qs.Modules
+import qs.Modules.TopBar
 import qs.Services
 import qs.Widgets
 
@@ -24,76 +25,109 @@ PanelWindow {
     property bool reveal: !autoHide || topBarMouseArea.containsMouse
 
     screen: modelData
-    implicitHeight: Theme.barHeight - 4
+    implicitHeight: Theme.barHeight - 4 + SettingsData.topBarSpacing
     color: "transparent"
     Component.onCompleted: {
         let fonts = Qt.fontFamilies()
         if (fonts.indexOf("Material Symbols Rounded") === -1)
             ToastService.showError(
-                "Please install Material Symbols Rounded and Restart your Shell. See README.md for instructions")
+                        "Please install Material Symbols Rounded and Restart your Shell. See README.md for instructions")
 
         SettingsData.forceTopBarLayoutRefresh.connect(function () {
             Qt.callLater(() => {
-                leftSection.visible = false
-                centerSection.visible = false
-                rightSection.visible = false
-                Qt.callLater(() => {
-                    leftSection.visible = true
-                    centerSection.visible = true
-                    rightSection.visible = true
-                })
-            })
+                             leftSection.visible = false
+                             centerSection.visible = false
+                             rightSection.visible = false
+                             Qt.callLater(() => {
+                                              leftSection.visible = true
+                                              centerSection.visible = true
+                                              rightSection.visible = true
+                                          })
+                         })
         })
-        
+
         // Configure GPU temperature monitoring based on widget configuration
         updateGpuTempConfig()
+
+        // Force widget initialization after brief delay to ensure services are loaded
+        Qt.callLater(() => {
+                         Qt.callLater(() => {
+                                          forceWidgetRefresh()
+                                      })
+                     })
     }
-    
+
+    function forceWidgetRefresh() {
+        // Force reload of all widget sections to handle race condition on desktop hardware
+        if (leftSection)
+            leftSection.visible = false
+        if (centerSection)
+            centerSection.visible = false
+        if (rightSection)
+            rightSection.visible = false
+
+        Qt.callLater(() => {
+                         if (leftSection)
+                         leftSection.visible = true
+                         if (centerSection)
+                         centerSection.visible = true
+                         if (rightSection)
+                         rightSection.visible = true
+                     })
+    }
+
     function updateGpuTempConfig() {
-        const allWidgets = [...(SettingsData.topBarLeftWidgets || []), 
-                           ...(SettingsData.topBarCenterWidgets || []), 
-                           ...(SettingsData.topBarRightWidgets || [])]
-        
+        const allWidgets = [...(SettingsData.topBarLeftWidgets
+                                || []), ...(SettingsData.topBarCenterWidgets
+                                            || []), ...(SettingsData.topBarRightWidgets
+                                                        || [])]
+
         const hasGpuTempWidget = allWidgets.some(widget => {
-            const widgetId = typeof widget === "string" ? widget : widget.id
-            const widgetEnabled = typeof widget === "string" ? true : (widget.enabled !== false)
-            return widgetId === "gpuTemp" && widgetEnabled
-        })
-        
-        DgopService.gpuTempEnabled = hasGpuTempWidget || SessionData.nvidiaGpuTempEnabled || SessionData.nonNvidiaGpuTempEnabled
-        DgopService.nvidiaGpuTempEnabled = hasGpuTempWidget || SessionData.nvidiaGpuTempEnabled
-        DgopService.nonNvidiaGpuTempEnabled = hasGpuTempWidget || SessionData.nonNvidiaGpuTempEnabled
+                                                     const widgetId = typeof widget
+                                                     === "string" ? widget : widget.id
+                                                     const widgetEnabled = typeof widget === "string" ? true : (widget.enabled !== false)
+                                                     return widgetId === "gpuTemp"
+                                                     && widgetEnabled
+                                                 })
+
+        DgopService.gpuTempEnabled = hasGpuTempWidget
+                || SessionData.nvidiaGpuTempEnabled
+                || SessionData.nonNvidiaGpuTempEnabled
+        DgopService.nvidiaGpuTempEnabled = hasGpuTempWidget
+                || SessionData.nvidiaGpuTempEnabled
+        DgopService.nonNvidiaGpuTempEnabled = hasGpuTempWidget
+                || SessionData.nonNvidiaGpuTempEnabled
     }
 
     Connections {
         function onTopBarTransparencyChanged() {
             root.backgroundTransparency = SettingsData.topBarTransparency
         }
-        
+
         function onTopBarLeftWidgetsChanged() {
             root.updateGpuTempConfig()
         }
-        
+
         function onTopBarCenterWidgetsChanged() {
             root.updateGpuTempConfig()
         }
-        
+
         function onTopBarRightWidgetsChanged() {
             root.updateGpuTempConfig()
         }
 
         target: SettingsData
     }
-    
+
     Connections {
         function onNvidiaGpuTempEnabledChanged() {
             root.updateGpuTempConfig()
         }
-        
+
         function onNonNvidiaGpuTempEnabledChanged() {
             root.updateGpuTempConfig()
         }
-        
+
         target: SessionData
     }
 
@@ -119,7 +153,7 @@ PanelWindow {
         right: true
     }
 
-    exclusiveZone: autoHide ? -1 : Theme.barHeight - 4
+    exclusiveZone: autoHide ? -1 : Theme.barHeight - 4 + SettingsData.topBarSpacing
 
     mask: Region {
         item: topBarMouseArea
@@ -127,7 +161,7 @@ PanelWindow {
 
     MouseArea {
         id: topBarMouseArea
-        height: root.reveal ? Theme.barHeight - 4 : 4
+        height: root.reveal ? Theme.barHeight - 4 + SettingsData.topBarSpacing : 4
         anchors {
             top: parent.top
             left: parent.left
@@ -160,17 +194,18 @@ PanelWindow {
 
             Item {
                 anchors.fill: parent
-                anchors.margins: 2
-                anchors.topMargin: 6
+                anchors.topMargin: SettingsData.topBarSpacing
                 anchors.bottomMargin: 0
-                anchors.leftMargin: 8
-                anchors.rightMargin: 8
+                anchors.leftMargin: SettingsData.topBarSpacing
+                anchors.rightMargin: SettingsData.topBarSpacing
 
                 Rectangle {
                     anchors.fill: parent
-                    radius: Theme.cornerRadius
-                    color: Qt.rgba(Theme.surfaceContainer.r, Theme.surfaceContainer.g,
-                                   Theme.surfaceContainer.b, root.backgroundTransparency)
+                    radius: SettingsData.topBarSquareCorners ? 0 : Theme.cornerRadius
+                    color: Qt.rgba(Theme.surfaceContainer.r,
+                                   Theme.surfaceContainer.g,
+                                   Theme.surfaceContainer.b,
+                                   root.backgroundTransparency)
                     layer.enabled: true
 
                     Rectangle {
@@ -183,7 +218,8 @@ PanelWindow {
 
                     Rectangle {
                         anchors.fill: parent
-                        color: Qt.rgba(Theme.surfaceTint.r, Theme.surfaceTint.g,
+                        color: Qt.rgba(Theme.surfaceTint.r,
+                                       Theme.surfaceTint.g,
                                        Theme.surfaceTint.b, 0.04)
                         radius: parent.radius
 
@@ -222,8 +258,7 @@ PanelWindow {
                     readonly property int launcherButtonWidth: 40
                     readonly property int workspaceSwitcherWidth: 120 // Approximate
                     readonly property int focusedAppMaxWidth: 456 // Fixed width since we don't have focusedApp reference
-                    readonly property int estimatedLeftSectionWidth: launcherButtonWidth + workspaceSwitcherWidth
-                                                                   + focusedAppMaxWidth + (Theme.spacingXS * 2)
+                    readonly property int estimatedLeftSectionWidth: launcherButtonWidth + workspaceSwitcherWidth + focusedAppMaxWidth + (Theme.spacingXS * 2)
                     readonly property int rightSectionWidth: rightSection.width
                     readonly property int clockWidth: 120 // Approximate clock width
                     readonly property int mediaMaxWidth: 280 // Normal max width
@@ -234,19 +269,17 @@ PanelWindow {
                     readonly property int clockLeftEdge: (availableWidth - clockWidth) / 2
                     readonly property int clockRightEdge: clockLeftEdge + clockWidth
                     readonly property int leftSectionRightEdge: estimatedLeftSectionWidth
-                    readonly property int mediaLeftEdge: clockLeftEdge - mediaMaxWidth - Theme.spacingS
+                    readonly property int mediaLeftEdge: clockLeftEdge - mediaMaxWidth
+                                                         - Theme.spacingS
                     readonly property int rightSectionLeftEdge: availableWidth - rightSectionWidth
                     readonly property int leftToClockGap: Math.max(
-                                                            0,
-                                                            clockLeftEdge - leftSectionRightEdge)
-                    readonly property int leftToMediaGap: mediaMaxWidth > 0 ? Math.max(
-                                                                                0,
-                                                                                mediaLeftEdge - leftSectionRightEdge) : leftToClockGap
+                                                              0,
+                                                              clockLeftEdge - leftSectionRightEdge)
+                    readonly property int leftToMediaGap: mediaMaxWidth > 0 ? Math.max(0, mediaLeftEdge - leftSectionRightEdge) : leftToClockGap
                     readonly property int mediaToClockGap: mediaMaxWidth > 0 ? Theme.spacingS : 0
                     readonly property int clockToRightGap: validLayout ? Math.max(
-                                                                           0,
-                                                                           rightSectionLeftEdge
-                                                                           - clockRightEdge) : 1000
+                                                                             0,
+                                                                             rightSectionLeftEdge - clockRightEdge) : 1000
                     readonly property bool spacingTight: validLayout
                                                          && (leftToMediaGap < 150
                                                              || clockToRightGap < 100)
@@ -265,6 +298,8 @@ PanelWindow {
                         case "workspaceSwitcher":
                             return true
                         case "focusedWindow":
+                            return true
+                        case "runningApps":
                             return true
                         case "clock":
                             return true
@@ -292,6 +327,8 @@ PanelWindow {
                             return true
                         case "controlCenterButton":
                             return true
+                        case "idleInhibitor":
+                            return true
                         case "spacer":
                             return true
                         case "separator":
@@ -309,6 +346,8 @@ PanelWindow {
                             return workspaceSwitcherComponent
                         case "focusedWindow":
                             return focusedWindowComponent
+                        case "runningApps":
+                            return runningAppsComponent
                         case "clock":
                             return clockComponent
                         case "music":
@@ -335,6 +374,8 @@ PanelWindow {
                             return batteryComponent
                         case "controlCenterButton":
                             return controlCenterButtonComponent
+                        case "idleInhibitor":
+                            return idleInhibitorComponent
                         case "spacer":
                             return spacerComponent
                         case "separator":
@@ -368,10 +409,13 @@ PanelWindow {
                                 property int spacerSize: model.size || 20
 
                                 anchors.verticalCenter: parent ? parent.verticalCenter : undefined
-                                active: topBarContent.getWidgetVisible(model.widgetId)
-                                sourceComponent: topBarContent.getWidgetComponent(model.widgetId)
-                                opacity: topBarContent.getWidgetEnabled(model.enabled) ? 1 : 0
-                                asynchronous: true
+                                active: topBarContent.getWidgetVisible(
+                                            model.widgetId)
+                                sourceComponent: topBarContent.getWidgetComponent(
+                                                     model.widgetId)
+                                opacity: topBarContent.getWidgetEnabled(
+                                             model.enabled) ? 1 : 0
+                                asynchronous: false
                             }
                         }
                     }
@@ -415,7 +459,8 @@ PanelWindow {
                             let parentCenterX = width / 2
                             if (totalWidgets % 2 === 1) {
                                 let middleIndex = Math.floor(totalWidgets / 2)
-                                let currentX = parentCenterX - (centerWidgets[middleIndex].width / 2)
+                                let currentX = parentCenterX
+                                    - (centerWidgets[middleIndex].width / 2)
                                 centerWidgets[middleIndex].x = currentX
                                 centerWidgets[middleIndex].anchors.horizontalCenter = undefined
                                 currentX = centerWidgets[middleIndex].x
@@ -424,7 +469,8 @@ PanelWindow {
                                     centerWidgets[i].x = currentX
                                     centerWidgets[i].anchors.horizontalCenter = undefined
                                 }
-                                currentX = centerWidgets[middleIndex].x + centerWidgets[middleIndex].width
+                                currentX = centerWidgets[middleIndex].x
+                                        + centerWidgets[middleIndex].width
                                 for (var i = middleIndex + 1; i < totalWidgets; i++) {
                                     currentX += spacing
                                     centerWidgets[i].x = currentX
@@ -437,7 +483,7 @@ PanelWindow {
                                 let gapCenter = parentCenterX
                                 let halfSpacing = spacing / 2
                                 centerWidgets[leftMiddleIndex].x = gapCenter - halfSpacing
-                                    - centerWidgets[leftMiddleIndex].width
+                                        - centerWidgets[leftMiddleIndex].width
                                 centerWidgets[leftMiddleIndex].anchors.horizontalCenter = undefined
                                 centerWidgets[rightMiddleIndex].x = gapCenter + halfSpacing
                                 centerWidgets[rightMiddleIndex].anchors.horizontalCenter = undefined
@@ -447,7 +493,8 @@ PanelWindow {
                                     centerWidgets[i].x = currentX
                                     centerWidgets[i].anchors.horizontalCenter = undefined
                                 }
-                                currentX = centerWidgets[rightMiddleIndex].x + centerWidgets[rightMiddleIndex].width
+                                currentX = centerWidgets[rightMiddleIndex].x
+                                        + centerWidgets[rightMiddleIndex].width
                                 for (var i = rightMiddleIndex + 1; i < totalWidgets; i++) {
                                     currentX += spacing
                                     centerWidgets[i].x = currentX
@@ -462,8 +509,8 @@ PanelWindow {
                         anchors.centerIn: parent
                         Component.onCompleted: {
                             Qt.callLater(() => {
-                                Qt.callLater(updateLayout)
-                            })
+                                             Qt.callLater(updateLayout)
+                                         })
                         }
 
                         onWidthChanged: {
@@ -489,18 +536,23 @@ PanelWindow {
                                 property int spacerSize: model.size || 20
 
                                 anchors.verticalCenter: parent ? parent.verticalCenter : undefined
-                                active: topBarContent.getWidgetVisible(model.widgetId)
-                                sourceComponent: topBarContent.getWidgetComponent(model.widgetId)
-                                opacity: topBarContent.getWidgetEnabled(model.enabled) ? 1 : 0
-                                asynchronous: true
-                                
+                                active: topBarContent.getWidgetVisible(
+                                            model.widgetId)
+                                sourceComponent: topBarContent.getWidgetComponent(
+                                                     model.widgetId)
+                                opacity: topBarContent.getWidgetEnabled(
+                                             model.enabled) ? 1 : 0
+                                asynchronous: false
+
                                 onLoaded: {
                                     if (item) {
-                                        item.onWidthChanged.connect(centerSection.updateLayout)
+                                        item.onWidthChanged.connect(
+                                                    centerSection.updateLayout)
                                         if (model.widgetId === "spacer")
                                             item.spacerSize = Qt.binding(() => {
-                                                return model.size || 20
-                                            })
+                                                                             return model.size
+                                                                             || 20
+                                                                         })
                                         Qt.callLater(centerSection.updateLayout)
                                     }
                                 }
@@ -536,14 +588,16 @@ PanelWindow {
                                 property int spacerSize: model.size || 20
 
                                 anchors.verticalCenter: parent ? parent.verticalCenter : undefined
-                                active: topBarContent.getWidgetVisible(model.widgetId)
-                                sourceComponent: topBarContent.getWidgetComponent(model.widgetId)
-                                opacity: topBarContent.getWidgetEnabled(model.enabled) ? 1 : 0
-                                asynchronous: true
+                                active: topBarContent.getWidgetVisible(
+                                            model.widgetId)
+                                sourceComponent: topBarContent.getWidgetComponent(
+                                                     model.widgetId)
+                                opacity: topBarContent.getWidgetEnabled(
+                                             model.enabled) ? 1 : 0
+                                asynchronous: false
                             }
                         }
                     }
-
 
                     Component {
                         id: clipboardComponent
@@ -554,8 +608,10 @@ PanelWindow {
                             radius: Theme.cornerRadius
                             color: {
                                 const baseColor = clipboardArea.containsMouse ? Theme.primaryHover : Theme.secondaryHover
-                                return Qt.rgba(baseColor.r, baseColor.g, baseColor.b,
-                                               baseColor.a * Theme.widgetTransparency)
+                                return Qt.rgba(
+                                            baseColor.r, baseColor.g,
+                                            baseColor.b,
+                                            baseColor.a * Theme.widgetTransparency)
                             }
 
                             DankIcon {
@@ -589,7 +645,7 @@ PanelWindow {
                         id: launcherButtonComponent
 
                         LauncherButton {
-                            isActive: appDrawerPopout ? appDrawerPopout.isVisible : false
+                            isActive: false
                             section: {
                                 if (parent && parent.parent) {
                                     if (parent.parent === leftSection)
@@ -601,11 +657,12 @@ PanelWindow {
                                 }
                                 return "left"
                             }
-                            popupTarget: appDrawerPopout
+                            popupTarget: appDrawerLoader.item
                             parentScreen: root.screen
                             onClicked: {
-                                if (appDrawerPopout)
-                                    appDrawerPopout.toggle()
+                                appDrawerLoader.active = true
+                                if (appDrawerLoader.item)
+                                    appDrawerLoader.item.toggle()
                             }
                         }
                     }
@@ -622,8 +679,25 @@ PanelWindow {
                         id: focusedWindowComponent
 
                         FocusedApp {
-                            compactMode: topBarContent.spacingTight
                             availableWidth: topBarContent.leftToMediaGap
+                        }
+                    }
+
+                    Component {
+                        id: runningAppsComponent
+
+                        RunningApps {
+                            section: {
+                                if (parent && parent.parent === leftSection)
+                                    return "left"
+                                if (parent && parent.parent === rightSection)
+                                    return "right"
+                                if (parent && parent.parent === centerSection)
+                                    return "center"
+                                return "left"
+                            }
+                            parentScreen: root.screen
+                            topBar: topBarContent
                         }
                     }
 
@@ -641,10 +715,17 @@ PanelWindow {
                                     return "center"
                                 return "center"
                             }
-                            popupTarget: centcomPopout
+                            popupTarget: {
+                                centcomPopoutLoader.active = true
+                                return centcomPopoutLoader.item
+                            }
                             parentScreen: root.screen
                             onClockClicked: {
-                                centcomPopout.calendarVisible = !centcomPopout.calendarVisible
+                                centcomPopoutLoader.active = true
+                                if (centcomPopoutLoader.item) {
+                                    centcomPopoutLoader.item.calendarVisible
+                                            = !centcomPopoutLoader.item.calendarVisible
+                                }
                             }
                         }
                     }
@@ -653,7 +734,8 @@ PanelWindow {
                         id: mediaComponent
 
                         Media {
-                            compactMode: topBarContent.spacingTight || topBarContent.overlapping
+                            compactMode: topBarContent.spacingTight
+                                         || topBarContent.overlapping
                             section: {
                                 if (parent && parent.parent === leftSection)
                                     return "left"
@@ -663,10 +745,17 @@ PanelWindow {
                                     return "center"
                                 return "center"
                             }
-                            popupTarget: centcomPopout
+                            popupTarget: {
+                                centcomPopoutLoader.active = true
+                                return centcomPopoutLoader.item
+                            }
                             parentScreen: root.screen
                             onClicked: {
-                                centcomPopout.calendarVisible = !centcomPopout.calendarVisible
+                                centcomPopoutLoader.active = true
+                                if (centcomPopoutLoader.item) {
+                                    centcomPopoutLoader.item.calendarVisible
+                                            = !centcomPopoutLoader.item.calendarVisible
+                                }
                             }
                         }
                     }
@@ -684,10 +773,17 @@ PanelWindow {
                                     return "center"
                                 return "center"
                             }
-                            popupTarget: centcomPopout
+                            popupTarget: {
+                                centcomPopoutLoader.active = true
+                                return centcomPopoutLoader.item
+                            }
                             parentScreen: root.screen
                             onClicked: {
-                                centcomPopout.calendarVisible = !centcomPopout.calendarVisible
+                                centcomPopoutLoader.active = true
+                                if (centcomPopoutLoader.item) {
+                                    centcomPopoutLoader.item.calendarVisible
+                                            = !centcomPopoutLoader.item.calendarVisible
+                                }
                             }
                         }
                     }
@@ -731,11 +827,16 @@ PanelWindow {
                                     return "center"
                                 return "right"
                             }
-                            popupTarget: processListPopout
+                            popupTarget: {
+                                processListPopoutLoader.active = true
+                                return processListPopoutLoader.item
+                            }
                             parentScreen: root.screen
                             toggleProcessList: () => {
-                                return processListPopout.toggle()
-                            }
+                                                   processListPopoutLoader.active = true
+                                                   if (processListPopoutLoader.item)
+                                                   return processListPopoutLoader.item.toggle()
+                                               }
                         }
                     }
 
@@ -752,11 +853,16 @@ PanelWindow {
                                     return "center"
                                 return "right"
                             }
-                            popupTarget: processListPopout
+                            popupTarget: {
+                                processListPopoutLoader.active = true
+                                return processListPopoutLoader.item
+                            }
                             parentScreen: root.screen
                             toggleProcessList: () => {
-                                return processListPopout.toggle()
-                            }
+                                                   processListPopoutLoader.active = true
+                                                   if (processListPopoutLoader.item)
+                                                   return processListPopoutLoader.item.toggle()
+                                               }
                         }
                     }
 
@@ -773,11 +879,16 @@ PanelWindow {
                                     return "center"
                                 return "right"
                             }
-                            popupTarget: processListPopout
+                            popupTarget: {
+                                processListPopoutLoader.active = true
+                                return processListPopoutLoader.item
+                            }
                             parentScreen: root.screen
                             toggleProcessList: () => {
-                                return processListPopout.toggle()
-                            }
+                                                   processListPopoutLoader.active = true
+                                                   if (processListPopoutLoader.item)
+                                                   return processListPopoutLoader.item.toggle()
+                                               }
                         }
                     }
 
@@ -794,12 +905,17 @@ PanelWindow {
                                     return "center"
                                 return "right"
                             }
-                            popupTarget: processListPopout
+                            popupTarget: {
+                                processListPopoutLoader.active = true
+                                return processListPopoutLoader.item
+                            }
                             parentScreen: root.screen
                             widgetData: parent.widgetData
                             toggleProcessList: () => {
-                                return processListPopout.toggle()
-                            }
+                                                   processListPopoutLoader.active = true
+                                                   if (processListPopoutLoader.item)
+                                                   return processListPopoutLoader.item.toggle()
+                                               }
                         }
                     }
 
@@ -808,7 +924,7 @@ PanelWindow {
 
                         NotificationCenterButton {
                             hasUnread: root.notificationCount > 0
-                            isActive: notificationCenter.notificationHistoryVisible
+                            isActive: notificationCenterLoader.item ? notificationCenterLoader.item.shouldBeVisible : false
                             section: {
                                 if (parent && parent.parent === leftSection)
                                     return "left"
@@ -818,11 +934,16 @@ PanelWindow {
                                     return "center"
                                 return "right"
                             }
-                            popupTarget: notificationCenter
+                            popupTarget: {
+                                notificationCenterLoader.active = true
+                                return notificationCenterLoader.item
+                            }
                             parentScreen: root.screen
                             onClicked: {
-                                notificationCenter.notificationHistoryVisible
-                                    = !notificationCenter.notificationHistoryVisible
+                                notificationCenterLoader.active = true
+                                if (notificationCenterLoader.item) {
+                                    notificationCenterLoader.item.toggle()
+                                }
                             }
                         }
                     }
@@ -831,7 +952,7 @@ PanelWindow {
                         id: batteryComponent
 
                         Battery {
-                            batteryPopupVisible: batteryPopout.batteryPopupVisible
+                            batteryPopupVisible: batteryPopoutLoader.item ? batteryPopoutLoader.item.shouldBeVisible : false
                             section: {
                                 if (parent && parent.parent === leftSection)
                                     return "left"
@@ -841,10 +962,16 @@ PanelWindow {
                                     return "center"
                                 return "right"
                             }
-                            popupTarget: batteryPopout
+                            popupTarget: {
+                                batteryPopoutLoader.active = true
+                                return batteryPopoutLoader.item
+                            }
                             parentScreen: root.screen
                             onToggleBatteryPopup: {
-                                batteryPopout.batteryPopupVisible = !batteryPopout.batteryPopupVisible
+                                batteryPopoutLoader.active = true
+                                if (batteryPopoutLoader.item) {
+                                    batteryPopoutLoader.item.toggle()
+                                }
                             }
                         }
                     }
@@ -853,7 +980,7 @@ PanelWindow {
                         id: controlCenterButtonComponent
 
                         ControlCenterButton {
-                            isActive: controlCenterPopout.controlCenterVisible
+                            isActive: controlCenterLoader.item ? controlCenterLoader.item.shouldBeVisible : false
                             section: {
                                 if (parent && parent.parent === leftSection)
                                     return "left"
@@ -863,16 +990,39 @@ PanelWindow {
                                     return "center"
                                 return "right"
                             }
-                            popupTarget: controlCenterPopout
+                            popupTarget: {
+                                controlCenterLoader.active = true
+                                return controlCenterLoader.item
+                            }
                             parentScreen: root.screen
                             onClicked: {
-                                controlCenterPopout.triggerScreen = root.screen
-                                controlCenterPopout.controlCenterVisible = !controlCenterPopout.controlCenterVisible
-                                if (controlCenterPopout.controlCenterVisible) {
-                                    if (NetworkService.wifiEnabled)
-                                        NetworkService.scanWifi()
+                                controlCenterLoader.active = true
+                                if (controlCenterLoader.item) {
+                                    controlCenterLoader.item.triggerScreen = root.screen
+                                    controlCenterLoader.item.toggle()
+                                    if (controlCenterLoader.item.shouldBeVisible) {
+                                        if (NetworkService.wifiEnabled)
+                                            NetworkService.scanWifi()
+                                    }
                                 }
                             }
+                        }
+                    }
+
+                    Component {
+                        id: idleInhibitorComponent
+
+                        IdleInhibitor {
+                            section: {
+                                if (parent && parent.parent === leftSection)
+                                    return "left"
+                                if (parent && parent.parent === rightSection)
+                                    return "right"
+                                if (parent && parent.parent === centerSection)
+                                    return "center"
+                                return "right"
+                            }
+                            parentScreen: root.screen
                         }
                     }
 
@@ -886,7 +1036,8 @@ PanelWindow {
                             Rectangle {
                                 anchors.fill: parent
                                 color: "transparent"
-                                border.color: Qt.rgba(Theme.outline.r, Theme.outline.g,
+                                border.color: Qt.rgba(Theme.outline.r,
+                                                      Theme.outline.g,
                                                       Theme.outline.b, 0.1)
                                 border.width: 1
                                 radius: 2

@@ -2,9 +2,10 @@
 
 <div align=center>
 
-![GitHub last commit](https://img.shields.io/github/last-commit/AvengeMedia/DankMaterialShell?style=for-the-badge&labelColor=101418&color=9ccbfb)
+![GitHub stars](https://img.shields.io/github/stars/AvengeMedia/DankMaterialShell?style=for-the-badge&labelColor=101418&color=ffd700)
 ![GitHub License](https://img.shields.io/github/license/AvengeMedia/DankMaterialShell?style=for-the-badge&labelColor=101418&color=b9c8da)
-![GitHub repo size](https://img.shields.io/github/repo-size/AvengeMedia/DankMaterialShell?style=for-the-badge&labelColor=101418&color=d3bfe6)
+![GitHub release](https://img.shields.io/github/v/release/AvengeMedia/DankMaterialShell?style=for-the-badge&labelColor=101418&color=9ccbfb)
+![GitHub last commit](https://img.shields.io/github/last-commit/AvengeMedia/DankMaterialShell?style=for-the-badge&labelColor=101418&color=9ccbfb)
 
 </div>
 
@@ -13,14 +14,22 @@ A modern Wayland desktop shell built with [Quickshell](https://quickshell.org/) 
 ## Screenshots
 
 <div align="center">
-<img src="https://github.com/user-attachments/assets/203a9678-c3b7-4720-bb97-853a511ac5c8" width="600" alt="DankMaterialShell Desktop" />
+<div style="max-width: 700px; margin: 0 auto;">
+
+https://github.com/user-attachments/assets/5ad934bb-e7aa-4c04-8d40-149181bd2d29
+
+</div>
 </div>
 
-<details><summary><strong>View More</strong></summary>
+<details><summary><strong>View More Screenshots</strong></summary>
 
 <br>
 
 <div align="center">
+
+### Desktop Overview
+
+<img src="https://github.com/user-attachments/assets/203a9678-c3b7-4720-bb97-853a511ac5c8" width="600" alt="DankMaterialShell Desktop" />
 
 ### Application Launcher
 
@@ -62,14 +71,17 @@ A modern Wayland desktop shell built with [Quickshell](https://quickshell.org/) 
   - **App Launcher** with fuzzy search, categories, and auto-sorting by most used apps.
   - **Workspace Switcher** Dynamically resizing niri workspace switcher.
   - **Focused Window** Displays the currently focused window app name and title.
+  - **Running Apps** A view of all running apps, sorted by monitor, workspace, then position on workspace.
   - **Media Player** Short form media player with equalizer, song title, and controls.
   - **Clock** Clock and date widget
   - **Weather** Weather widget with customizable location
   - **System Tray** System tray applets with context menus.
-  - **Process Monitor** CPU/Ram usage indicators - with a detailed process list PopUp
+  - **Process Monitor** CPU, RAM, and GPU usage percentages, temperatures. (requires [dgop](https://github.com/AvengeMedia/dgop))
   - **Power/Battery** Power/Battery widget for battery metrics and power profile changing.
   - **Notifications** Notification bell with a notification center popup
   - **Control Center** High-level view of network, bluetooth, and audio status
+  - **Privacy Indicator** Attempts to reveal if a microphone or screen recording session is active, relying on Pipewire data sources
+  - **Idle Inhibitor** Creates a systemd idle inhibitor to prevent sleep/locking from occuring.
 - **Spotlight Launcher** A central app launcher/search that can be triggered via an IPC keybinding.
 - **Central Command** A combined music, weather, calendar, and events PopUp.
 - **Process List** A process list, with system metrics and information. More detailed modal available via IPC.
@@ -96,27 +108,43 @@ A modern Wayland desktop shell built with [Quickshell](https://quickshell.org/) 
 
 **Dependencies:**
 
-```bash
+
 # Arch Linux
+```bash
 paru -S quickshell-git ttf-material-symbols-variable-git inter-font ttf-fira-code
+```
 
 # Fedora
+```bash
 sudo dnf copr enable errornointernet/quickshell && sudo dnf install quickshell-git rsms-inter-fonts fira-code-fonts
+```
 # Install icon fonts manually
+```bash
 mkdir -p ~/.local/share/fonts
+```
+```bash
 curl -L "https://github.com/google/material-design-icons/raw/master/variablefont/MaterialSymbolsRounded%5BFILL%2CGRAD%2Copsz%2Cwght%5D.ttf" -o ~/.local/share/fonts/MaterialSymbolsRounded.ttf
+```
+```bash
 fc-cache -f
 ```
 
 **Get the shell:**
 
-```bash
+
 # Arch linux available via AUR
+```bash
 paru -S dankmaterialshell-git
+```
 
 # Manual install
+```bash
 mkdir -p ~/.config/quickshell
+```
+```bash
 git clone https://github.com/AvengeMedia/DankMaterialShell.git ~/.config/quickshell/DankMaterialShell
+```
+```bash
 qs -c DankMaterialShell
 ```
 
@@ -126,25 +154,31 @@ qs -c DankMaterialShell
 
 **Material Symbols (Required):**
 
-```bash
+
 # Manual installation
+```bash
 mkdir -p ~/.local/share/fonts
 curl -L "https://github.com/google/material-design-icons/raw/master/variablefont/MaterialSymbolsRounded%5BFILL%2CGRAD%2Copsz%2Cwght%5D.ttf" -o ~/.local/share/fonts/MaterialSymbolsRounded.ttf
 fc-cache -f
+```
 
 # Arch Linux
+```bash
 paru -S ttf-material-symbols-variable-git
 ```
 
 **Typography (Recommended):**
 
-```bash
+
 # Inter Variable Font
+```bash
 curl -L "https://github.com/rsms/inter/releases/download/v4.0/Inter-4.0.zip" -o /tmp/Inter.zip
 unzip -j /tmp/Inter.zip "InterVariable.ttf" "InterVariable-Italic.ttf" -d ~/.local/share/fonts/
 rm /tmp/Inter.zip && fc-cache -f
+```
 
 # Fira Code
+```bash
 curl -L "https://github.com/tonsky/FiraCode/releases/download/6.2/Fira_Code_v6.2.zip" -o /tmp/FiraCode.zip
 unzip -j /tmp/FiraCode.zip "ttf/*.ttf" -d ~/.local/share/fonts/
 rm /tmp/FiraCode.zip && fc-cache -f
@@ -156,18 +190,19 @@ rm /tmp/FiraCode.zip && fc-cache -f
 
 **Enhanced Functionality:**
 
-```bash
 # Install dgop on any distro (requires go 1.23+):
+```bash
 git clone https://github.com/AvengeMedia/dgop.git && cd dgop
 make && sudo make install
 ```
 
-```bash
 # Arch Linux
-pacman -S cava wl-clipboard cliphist brightnessctl
+```bash
+sudo pacman -S cava wl-clipboard cliphist brightnessctl
 paru -S matugen dgop
-
+```
 # Fedora
+```bash
 sudo dnf install cava wl-clipboard brightnessctl
 sudo dnf copr enable wef/cliphist && sudo dnf install cliphist
 sudo dnf copr enable heus-sueh/packages && sudo dnf install matugen
@@ -201,6 +236,12 @@ spawn-at-startup "/usr/lib/mate-polkit/polkit-mate-authentication-agent-1"
 
 // Starts DankShell
 spawn-at-startup "qs" "-c" "DankMaterialShell"
+
+// If using niri newer than 271534e115e5915231c99df287bbfe396185924d (~aug 17 2025)
+// you can add this to disable built in config load errors since dank shell provides this
+config-notification {
+    disable-failed
+}
 
 // Dank keybinds
 // 1. These should not be in conflict with any pre-existing keybindings
@@ -250,23 +291,27 @@ binds {
 
 ### IPC Commands
 
-Control everything from the command line, or via keybinds:
+Control everything from the command line, or via keybinds. For comprehensive documentation of all available IPC commands, see [docs/IPC.md](docs/IPC.md).
 
-```bash
+
 # Audio control
+```bash
 qs -c DankMaterialShell ipc call audio setvolume 50
 qs -c DankMaterialShell ipc call audio mute
-
+```
 # Launch applications
+```bash
 qs -c DankMaterialShell ipc call spotlight toggle
 qs -c DankMaterialShell ipc call processlist toggle
-
+```
 # System control
+```
 qs -c DankMaterialShell ipc call wallpaper set /path/to/image.jpg
 qs -c DankMaterialShell ipc call theme toggle
 qs -c DankMaterialShell ipc call lock lock
-
+```
 # Media control
+```
 qs -c DankMaterialShell ipc call mpris playPause
 qs -c DankMaterialShell ipc call mpris next
 ```
@@ -324,11 +369,14 @@ environment {
 
 1. Install qt6ct and qt5ct
 
-```bash
+
 # Arch
-pacman -S qt5ct qt6ct
+```bash
+sudo pacman -S qt5ct qt6ct
+```
 # Fedora
-dnf install qt5ct qt6ct
+```bash
+sudo dnf install qt5ct qt6ct
 ```
 
 2. Configure Environment in niri
@@ -357,11 +405,14 @@ Sync your caldev compatible calendar (Google, Office365, etc.) for dashboard int
 
 **Install dependencies:**
 
-```bash
+
 # Arch
-pacman -S vdirsyncer khal python-aiohttp-oauthlib
+```bash
+sudo pacman -S vdirsyncer khal python-aiohttp-oauthlib
+```
 
 # Fedora
+```bash
 sudo dnf install python3-vdirsyncer khal python3-aiohttp-oauthlib
 ```
 
@@ -395,8 +446,10 @@ fileext = ".ics"
 ```bash
 vdirsyncer sync
 khal configure
+```
 
 # Auto-sync every 5 minutes
+```bash
 crontab -e
 # Add: */5 * * * * /usr/bin/vdirsyncer sync
 ```
@@ -405,7 +458,10 @@ crontab -e
 
 ## Configuration
 
-All settings are configurable in `~/.config/DankMaterialShell/settings.json`, or more intuitively the built-in settings modal.
+All settings are configurable in
+```
+~/.config/DankMaterialShell/settings.json`, or more intuitively the built-in settings modal.
+```
 
 **Key configuration areas:**
 

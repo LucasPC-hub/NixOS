@@ -34,11 +34,8 @@ Item {
                 width: parent.width
                 sourceComponent: settingsComponent
             }
-
         }
-
     }
-
 
     Component {
         id: brightnessComponent
@@ -56,26 +53,69 @@ Item {
             }
 
             DankDropdown {
+                id: deviceDropdown
                 width: parent.width
                 height: 40
                 visible: BrightnessService.devices.length > 1
                 text: "Device"
-                description: ""
+                description: {
+                    const deviceInfo = BrightnessService.getCurrentDeviceInfo()
+                    if (deviceInfo && deviceInfo.class === "ddc") {
+                        return "DDC changes can be slow and unreliable"
+                    }
+                    return ""
+                }
                 currentValue: BrightnessService.currentDevice
-                options: BrightnessService.devices.map(function(d) {
-                    return d.name;
+                options: BrightnessService.devices.map(function (d) {
+                    return d.name
                 })
-                optionIcons: BrightnessService.devices.map(function(d) {
+                optionIcons: BrightnessService.devices.map(function (d) {
                     if (d.class === "backlight")
-                        return "desktop_windows";
+                        return "desktop_windows"
+
+                    if (d.class === "ddc")
+                        return "tv"
 
                     if (d.name.includes("kbd"))
-                        return "keyboard";
+                        return "keyboard"
 
-                    return "lightbulb";
+                    return "lightbulb"
                 })
-                onValueChanged: function(value) {
-                    BrightnessService.setCurrentDevice(value);
+                onValueChanged: function (value) {
+                    BrightnessService.setCurrentDevice(value, true)
+                }
+
+                Connections {
+                    target: BrightnessService
+                    function onDevicesChanged() {
+                        if (BrightnessService.currentDevice) {
+                            deviceDropdown.currentValue = BrightnessService.currentDevice
+                        }
+
+                        // Check if saved device is now available
+                        const lastDevice = SessionData.lastBrightnessDevice
+                                         || ""
+                        if (lastDevice) {
+                            const deviceExists = BrightnessService.devices.some(
+                                                   d => d.name === lastDevice)
+                            if (deviceExists
+                                    && (!BrightnessService.currentDevice
+                                        || BrightnessService.currentDevice !== lastDevice)) {
+                                BrightnessService.setCurrentDevice(lastDevice,
+                                                                   false)
+                            }
+                        }
+                    }
+                    function onDeviceSwitched() {
+                        // Force update the description when device switches
+                        deviceDropdown.description = Qt.binding(function () {
+                            const deviceInfo = BrightnessService.getCurrentDeviceInfo()
+                            if (deviceInfo && deviceInfo.class === "ddc") {
+                                return "DDC changes can be slow and unreliable"
+                            }
+                            return ""
+                        })
+                    }
                 }
             }
 
@@ -86,29 +126,30 @@ Item {
                 leftIcon: "brightness_low"
                 rightIcon: "brightness_high"
                 enabled: BrightnessService.brightnessAvailable
-                onSliderValueChanged: function(newValue) {
-                    brightnessDebounceTimer.pendingValue = newValue;
-                    brightnessDebounceTimer.restart();
+                         && BrightnessService.isCurrentDeviceReady()
+                opacity: BrightnessService.isCurrentDeviceReady() ? 1.0 : 0.5
+                onSliderValueChanged: function (newValue) {
+                    brightnessDebounceTimer.pendingValue = newValue
+                    brightnessDebounceTimer.restart()
                 }
-                onSliderDragFinished: function(finalValue) {
-                    brightnessDebounceTimer.stop();
-                    BrightnessService.setBrightnessInternal(finalValue, BrightnessService.currentDevice);
+                onSliderDragFinished: function (finalValue) {
+                    brightnessDebounceTimer.stop()
+                    BrightnessService.setBrightnessInternal(
+                                finalValue, BrightnessService.currentDevice)
                 }
 
                 Connections {
                     target: BrightnessService
                     function onBrightnessChanged() {
-                        brightnessSlider.value = BrightnessService.brightnessLevel;
+                        brightnessSlider.value = BrightnessService.brightnessLevel
                     }
-                    
+
                     function onDeviceSwitched() {
-                        brightnessSlider.value = BrightnessService.brightnessLevel;
+                        brightnessSlider.value = BrightnessService.brightnessLevel
                     }
                 }
             }
-
         }
-
     }
 
     Component {
@@ -133,7 +174,11 @@ Item {
                     width: (parent.width - Theme.spacingM) / 2
                     height: 80
                     radius: Theme.cornerRadius
-                    color: BrightnessService.nightModeActive ? Qt.rgba(Theme.primary.r, Theme.primary.g, Theme.primary.b, 0.12) : (nightModeToggle.containsMouse ? Qt.rgba(Theme.primary.r, Theme.primary.g, Theme.primary.b, 0.08) : Qt.rgba(Theme.surfaceVariant.r, Theme.surfaceVariant.g, Theme.surfaceVariant.b, 0.08))
+                    color: BrightnessService.nightModeActive ? Qt.rgba(
+                                                                   Theme.primary.r,
+                                                                   Theme.primary.g,
+                                                                   Theme.primary.b,
+                                                                   0.12) : (nightModeToggle.containsMouse ? Qt.rgba(Theme.primary.r, Theme.primary.g, Theme.primary.b, 0.08) : Qt.rgba(Theme.surfaceVariant.r, Theme.surfaceVariant.g, Theme.surfaceVariant.b, 0.08))
                     border.color: BrightnessService.nightModeActive ? Theme.primary : "transparent"
                     border.width: BrightnessService.nightModeActive ? 1 : 0
 
@@ -155,7 +200,6 @@ Item {
                             font.weight: Font.Medium
                             anchors.horizontalCenter: parent.horizontalCenter
                         }
-
                     }
 
                     MouseArea {
@@ -165,17 +209,20 @@ Item {
                         hoverEnabled: true
                         cursorShape: Qt.PointingHandCursor
                         onClicked: {
-                            BrightnessService.toggleNightMode();
+                            BrightnessService.toggleNightMode()
                         }
                     }
-
                 }
 
                 Rectangle {
                     width: (parent.width - Theme.spacingM) / 2
                     height: 80
                     radius: Theme.cornerRadius
-                    color: Theme.isLightMode ? Qt.rgba(Theme.primary.r, Theme.primary.g, Theme.primary.b, 0.12) : (lightModeToggle.containsMouse ? Qt.rgba(Theme.primary.r, Theme.primary.g, Theme.primary.b, 0.08) : Qt.rgba(Theme.surfaceVariant.r, Theme.surfaceVariant.g, Theme.surfaceVariant.b, 0.08))
+                    color: Theme.isLightMode ? Qt.rgba(
+                                                   Theme.primary.r,
+                                                   Theme.primary.g,
+                                                   Theme.primary.b,
+                                                   0.12) : (lightModeToggle.containsMouse ? Qt.rgba(Theme.primary.r, Theme.primary.g, Theme.primary.b, 0.08) : Qt.rgba(Theme.surfaceVariant.r, Theme.surfaceVariant.g, Theme.surfaceVariant.b, 0.08))
                     border.color: Theme.isLightMode ? Theme.primary : "transparent"
                     border.width: Theme.isLightMode ? 1 : 0
 
@@ -197,7 +244,6 @@ Item {
                             font.weight: Font.Medium
                             anchors.horizontalCenter: parent.horizontalCenter
                         }
-
                     }
 
                     MouseArea {
@@ -207,7 +253,7 @@ Item {
                         hoverEnabled: true
                         cursorShape: Qt.PointingHandCursor
                         onClicked: {
-                            Theme.toggleLightMode();
+                            Theme.toggleLightMode()
                         }
                     }
 
@@ -216,25 +262,24 @@ Item {
                             duration: Theme.shortDuration
                             easing.type: Theme.standardEasing
                         }
-
                     }
-
                 }
-
             }
-
         }
-
     }
 
     brightnessDebounceTimer: Timer {
         property int pendingValue: 0
 
-        interval: 50
+        interval: {
+            // Use longer interval for DDC devices since ddcutil is slow
+            const deviceInfo = BrightnessService.getCurrentDeviceInfo()
+            return (deviceInfo && deviceInfo.class === "ddc") ? 100 : 50
+        }
         repeat: false
         onTriggered: {
-            BrightnessService.setBrightnessInternal(pendingValue, BrightnessService.currentDevice);
+            BrightnessService.setBrightnessInternal(
+                        pendingValue, BrightnessService.currentDevice)
         }
     }
-
 }
