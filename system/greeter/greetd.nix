@@ -14,7 +14,6 @@
     animation = "matrix";
     asterisk = "*";
     hide_borders = false;
-    tty = 2;
   };
 
   # Habilita niri no sistema

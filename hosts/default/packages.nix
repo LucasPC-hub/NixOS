@@ -19,10 +19,12 @@ in
   eog
   evince
   obsidian
+  modrinth-app
   # TUI
   btop
   fish
-  dgop  # Add it here
+  dgop
+  rmpc  # Add rmpc here
   # Desktop
   nwg-look
   walker
@@ -63,9 +65,11 @@ in
   kdePackages.qtbase
   kdePackages.qtdeclarative
   kdePackages.qtstyleplugin-kvantum
-  wallust
   # Niri
   xwayland-satellite
   wl-clipboard
   swayidle
+  # Music server
+  mpd  # Music Player Daemon
+  mpc-cli  # Command line client for MPD
 ]

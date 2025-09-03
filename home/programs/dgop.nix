@@ -8,10 +8,10 @@ buildGoModule rec {
     owner = "AvengeMedia";
     repo = "dgop";
     rev = "main"; # Use "v${version}" when they create tagged releases
-    hash = "sha256-QCJbcczQjUZ+Xf7tQHckuP9h8SD0C4p0C8SVByIAq/g="; # You'll need to update this
+    hash = "sha256-Who8Q9eZS2QTXasgTL4i9YtHkjPqAZven1znUI+nP6w="; # You'll need to update this
   };
 
-  vendorHash = "sha256-+5rN3ekzExcnFdxK2xqOzgYiUzxbJtODHGd4HVq6hqk="; # You'll need to update this
+  vendorHash = "sha256-+3o/Kg5ROSgp8IZfvU71JvbEgaiLasx5IAkjq27faLQ="; # You'll need to update this
 
   # Build configuration
     subPackages = [ "cmd/cli" ];

@@ -122,6 +122,7 @@
 
       cursor = {
         size = 20;
+        theme = "layan-cursors";
       };
 
       environment = {

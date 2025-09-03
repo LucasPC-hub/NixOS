@@ -30,5 +30,6 @@
     base16-schemes
     ddcutil
     os-prober
+    layan-cursors
   ];
   }
