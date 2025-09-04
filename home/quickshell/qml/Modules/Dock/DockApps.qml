@@ -1,6 +1,7 @@
 import QtQuick
 import QtQuick.Controls
 import Quickshell
+import Quickshell.Wayland
 import qs.Common
 import qs.Services
 import qs.Widgets
@@ -9,7 +10,6 @@ Item {
     id: root
 
     property var contextMenu: null
-    property var windowsMenu: null
     property bool requestDockShow: false
     property int pinnedAppCount: 0
 
@@ -17,15 +17,16 @@ Item {
     implicitHeight: row.height
 
     function movePinnedApp(fromIndex, toIndex) {
-        if (fromIndex === toIndex)
+        if (fromIndex === toIndex) {
             return
+        }
 
-        var currentPinned = [...(SessionData.pinnedApps || [])]
-        if (fromIndex < 0 || fromIndex >= currentPinned.length || toIndex < 0
-                || toIndex >= currentPinned.length)
+        const currentPinned = [...(SessionData.pinnedApps || [])]
+        if (fromIndex < 0 || fromIndex >= currentPinned.length || toIndex < 0 || toIndex >= currentPinned.length) {
             return
+        }
 
-        var movedApp = currentPinned.splice(fromIndex, 1)[0]
+        const movedApp = currentPinned.splice(fromIndex, 1)[0]
         currentPinned.splice(toIndex, 0, movedApp)
 
         SessionData.setPinnedApps(currentPinned)
@@ -47,75 +48,56 @@ Item {
                 function updateModel() {
                     clear()
 
-                    var items = []
-                    var pinnedApps = [...(SessionData.pinnedApps || [])]
+                    const items = []
+                    const pinnedApps = [...(SessionData.pinnedApps || [])]
 
-                    // First section: Pinned apps (always visible, not representing running windows)
                     pinnedApps.forEach(appId => {
                                            items.push({
                                                           "type": "pinned",
                                                           "appId": appId,
                                                           "windowId": -1,
-                                                          "windowTitle"// Use -1 instead of null to avoid ListModel warnings
-                                                          : "",
+                                                          "windowTitle": "",
                                                           "workspaceId": -1,
-                                                          "isPinned"// Use -1 instead of null
-                                                          : true,
-                                                          "isRunning": false,
-                                                          "isFocused": false
+                                                          "isPinned": true,
+                                                          "isRunning": false
                                                       })
                                        })
 
                     root.pinnedAppCount = pinnedApps.length
 
-                    // Add separator between pinned and running if both exist
-                    if (pinnedApps.length > 0
-                            && NiriService.windows.length > 0) {
+                    const sortedToplevels = CompositorService.sortedToplevels
+
+                    if (pinnedApps.length > 0 && sortedToplevels.length > 0) {
                         items.push({
                                        "type": "separator",
                                        "appId": "__SEPARATOR__",
                                        "windowId": -1,
-                                       "windowTitle"// Use -1 instead of null
-                                       : "",
+                                       "windowTitle": "",
                                        "workspaceId": -1,
-                                       "isPinned"// Use -1 instead of null
-                                       : false,
+                                       "isPinned": false,
                                        "isRunning": false,
                                        "isFocused": false
                                    })
                     }
 
-                    // Second section: Running windows (sorted by display->workspace->position)
-                    // NiriService.windows is already sorted by sortWindowsByLayout
-                    NiriService.windows.forEach(window => {
-                                                    // Limit window title length for tooltip
-                                                    var title = window.title
-                                                    || "(Unnamed)"
-                                                    if (title.length > 50) {
-                                                        title = title.substring(
-                                                            0, 47) + "..."
-                                                    }
+                    sortedToplevels.forEach((toplevel, index) => {
+                                                const title = toplevel.title || "(Unnamed)"
+                                                const truncatedTitle = title.length > 50 ? title.substring(0, 47) + "..." : title
+                                                const uniqueId = toplevel.title + "|" + (toplevel.appId || "") + "|" + index
 
-                                                    // Check if this window is focused - compare as numbers
-                                                    var isFocused = window.id
-                                                    == NiriService.focusedWindowId
+                                                items.push({
+                                                               "type": "window",
+                                                               "appId": toplevel.appId,
+                                                               "windowId": index,
+                                                               "windowTitle": truncatedTitle,
+                                                               "workspaceId": -1,
+                                                               "isPinned": false,
+                                                               "isRunning": true,
+                                                               "uniqueId": uniqueId
+                                                           })
+                                            })
 
-                                                    items.push({
-                                                                   "type": "window",
-                                                                   "appId": window.app_id
-                                                                            || "",
-                                                                   "windowId": window.id || -1,
-                                                                   "windowTitle": title,
-                                                                   "workspaceId": window.workspace_id || -1,
-                                                                   "isPinned": false,
-                                                                   "isRunning": true,
-                                                                   "isFocused": isFocused
-                                                               })
-                                                })
-
-                    items.forEach(item => {
-                                      append(item)
-                                  })
+                    items.forEach(item => append(item))
                 }
             }
 
@@ -130,8 +112,7 @@ Item {
                     visible: model.type === "separator"
                     width: 2
                     height: 20
-                    color: Qt.rgba(Theme.outline.r, Theme.outline.g,
-                                   Theme.outline.b, 0.3)
+                    color: Qt.rgba(Theme.outline.r, Theme.outline.g, Theme.outline.b, 0.3)
                     radius: 1
                     anchors.centerIn: parent
                 }
@@ -146,7 +127,6 @@ Item {
 
                     appData: model
                     contextMenu: root.contextMenu
-                    windowsMenu: root.windowsMenu
                     dockApps: root
                     index: model.index
 
@@ -159,14 +139,8 @@ Item {
     }
 
     Connections {
-        target: NiriService
-        function onWindowsChanged() {
-            dockModel.updateModel()
-        }
-        function onWindowOpenedOrChanged() {
-            dockModel.updateModel()
-        }
-        function onFocusedWindowIdChanged() {
+        target: CompositorService
+        function onSortedToplevelsChanged() {
             dockModel.updateModel()
         }
     }

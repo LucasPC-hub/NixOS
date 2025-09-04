@@ -3,24 +3,34 @@ import QtQuick
 import Quickshell
 import Quickshell.Io
 import Quickshell.Widgets
+import qs.Common
 import qs.Modals
+import qs.Modals.Clipboard
+import qs.Modals.Common
+import qs.Modals.Settings
+import qs.Modals.Spotlight
 import qs.Modules
 import qs.Modules.AppDrawer
-import qs.Modules.OSD
 import qs.Modules.CentcomCenter
 import qs.Modules.ControlCenter
-import qs.Modules.ControlCenter.Network
+import qs.Modules.Dock
 import qs.Modules.Lock
 import qs.Modules.Notifications.Center
 import qs.Modules.Notifications.Popup
+import qs.Modules.OSD
 import qs.Modules.ProcessList
 import qs.Modules.Settings
 import qs.Modules.TopBar
-import qs.Modules.Dock
 import qs.Services
 
 ShellRoot {
     id: root
+
+    Component.onCompleted: {
+        PortalService.init()
+        // Initialize DisplayService night mode functionality
+        DisplayService.nightModeEnabled
+    }
 
     WallpaperBackground {}
 
@@ -31,7 +41,7 @@ ShellRoot {
     }
 
     Variants {
-        model: Quickshell.screens
+        model: SettingsData.getFilteredScreens("topBar")
 
         delegate: TopBar {
             modelData: item
@@ -39,23 +49,22 @@ ShellRoot {
     }
 
     Variants {
-        model: Quickshell.screens
+        model: SettingsData.getFilteredScreens("dock")
 
         delegate: Dock {
             modelData: item
             contextMenu: dockContextMenuLoader.item ? dockContextMenuLoader.item : null
-            windowsMenu: dockWindowsMenuLoader.item ? dockWindowsMenuLoader.item : null
-
             Component.onCompleted: {
                 dockContextMenuLoader.active = true
-                dockWindowsMenuLoader.active = true
             }
         }
     }
 
     Loader {
         id: centcomPopoutLoader
+
         active: false
+
         sourceComponent: Component {
             CentcomPopout {
                 id: centcomPopout
@@ -65,6 +74,7 @@ ShellRoot {
 
     LazyLoader {
         id: dockContextMenuLoader
+
         active: false
 
         DockContextMenu {
@@ -73,16 +83,8 @@ ShellRoot {
     }
 
     LazyLoader {
-        id: dockWindowsMenuLoader
-        active: false
-
-        DockWindowsMenu {
-            id: dockWindowsMenu
-        }
-    }
-
-    LazyLoader {
         id: notificationCenterLoader
+
         active: false
 
         NotificationCenterPopout {
@@ -91,7 +93,7 @@ ShellRoot {
     }
 
     Variants {
-        model: Quickshell.screens
+        model: SettingsData.getFilteredScreens("notifications")
 
         delegate: NotificationPopupManager {
             modelData: item
@@ -100,6 +102,7 @@ ShellRoot {
 
     LazyLoader {
         id: controlCenterLoader
+
         active: false
 
         ControlCenterPopout {
@@ -108,8 +111,23 @@ ShellRoot {
             onPowerActionRequested: (action, title, message) => {
                                         powerConfirmModalLoader.active = true
                                         if (powerConfirmModalLoader.item) {
-                                            powerConfirmModalLoader.item.show(
-                                                action, title, message)
+                                            powerConfirmModalLoader.item.confirmButtonColor = action === "poweroff" ? Theme.error : action === "reboot" ? Theme.warning : Theme.primary
+                                            powerConfirmModalLoader.item.show(title, message, function () {
+                                                switch (action) {
+                                                case "logout":
+                                                    SessionService.logout()
+                                                    break
+                                                case "suspend":
+                                                    SessionService.suspend()
+                                                    break
+                                                case "reboot":
+                                                    SessionService.reboot()
+                                                    break
+                                                case "poweroff":
+                                                    SessionService.poweroff()
+                                                    break
+                                                }
+                                            }, function () {})
                                         }
                                     }
             onLockRequested: {
@@ -120,6 +138,7 @@ ShellRoot {
 
     LazyLoader {
         id: wifiPasswordModalLoader
+
         active: false
 
         WifiPasswordModal {
@@ -129,6 +148,7 @@ ShellRoot {
 
     LazyLoader {
         id: networkInfoModalLoader
+
         active: false
 
         NetworkInfoModal {
@@ -138,6 +158,7 @@ ShellRoot {
 
     LazyLoader {
         id: batteryPopoutLoader
+
         active: false
 
         BatteryPopout {
@@ -146,16 +167,43 @@ ShellRoot {
     }
 
     LazyLoader {
+        id: vpnPopoutLoader
+
+        active: false
+
+        VpnPopout {
+            id: vpnPopout
+        }
+    }
+
+    LazyLoader {
         id: powerMenuLoader
+
         active: false
 
         PowerMenu {
             id: powerMenu
+
             onPowerActionRequested: (action, title, message) => {
                                         powerConfirmModalLoader.active = true
                                         if (powerConfirmModalLoader.item) {
-                                            powerConfirmModalLoader.item.show(
-                                                action, title, message)
+                                            powerConfirmModalLoader.item.confirmButtonColor = action === "poweroff" ? Theme.error : action === "reboot" ? Theme.warning : Theme.primary
+                                            powerConfirmModalLoader.item.show(title, message, function () {
+                                                switch (action) {
+                                                case "logout":
+                                                    SessionService.logout()
+                                                    break
+                                                case "suspend":
+                                                    SessionService.suspend()
+                                                    break
+                                                case "reboot":
+                                                    SessionService.reboot()
+                                                    break
+                                                case "poweroff":
+                                                    SessionService.poweroff()
+                                                    break
+                                                }
+                                            }, function () {})
                                         }
                                     }
         }
@@ -163,15 +211,17 @@ ShellRoot {
 
     LazyLoader {
         id: powerConfirmModalLoader
+
         active: false
 
-        PowerConfirmModal {
+        ConfirmModal {
             id: powerConfirmModal
         }
     }
 
     LazyLoader {
         id: processListPopoutLoader
+
         active: false
 
         ProcessListPopout {
@@ -185,6 +235,7 @@ ShellRoot {
 
     LazyLoader {
         id: appDrawerLoader
+
         active: false
 
         AppDrawerPopout {
@@ -214,6 +265,78 @@ ShellRoot {
         }
     }
 
+    LazyLoader {
+        id: notepadSlideoutLoader
+
+        active: false
+
+        NotepadSlideout {
+            id: notepadSlideout
+
+            modelData: Quickshell.screens.length > 0 ? Quickshell.screens[0] : null
+        }
+    }
+
+    LazyLoader {
+        id: powerMenuModalLoader
+
+        active: false
+
+        PowerMenuModal {
+            id: powerMenuModal
+
+            onPowerActionRequested: (action, title, message) => {
+                                        powerConfirmModalLoader.active = true
+                                        if (powerConfirmModalLoader.item) {
+                                            powerConfirmModalLoader.item.confirmButtonColor = action === "poweroff" ? Theme.error : action === "reboot" ? Theme.warning : Theme.primary
+                                            powerConfirmModalLoader.item.show(title, message, function () {
+                                                switch (action) {
+                                                case "logout":
+                                                    SessionService.logout()
+                                                    break
+                                                case "suspend":
+                                                    SessionService.suspend()
+                                                    break
+                                                case "reboot":
+                                                    SessionService.reboot()
+                                                    break
+                                                case "poweroff":
+                                                    SessionService.poweroff()
+                                                    break
+                                                }
+                                            }, function () {})
+                                        }
+                                    }
+        }
+    }
+
+    IpcHandler {
+        function open() {
+            powerMenuModalLoader.active = true
+            if (powerMenuModalLoader.item)
+                powerMenuModalLoader.item.open()
+
+            return "POWERMENU_OPEN_SUCCESS"
+        }
+
+        function close() {
+            if (powerMenuModalLoader.item)
+                powerMenuModalLoader.item.close()
+
+            return "POWERMENU_CLOSE_SUCCESS"
+        }
+
+        function toggle() {
+            powerMenuModalLoader.active = true
+            if (powerMenuModalLoader.item)
+                powerMenuModalLoader.item.toggle()
+
+            return "POWERMENU_TOGGLE_SUCCESS"
+        }
+
+        target: "powermenu"
+    }
+
     IpcHandler {
         function open() {
             processListModalLoader.active = true
@@ -241,8 +364,38 @@ ShellRoot {
         target: "processlist"
     }
 
+    IpcHandler {
+        function open() {
+            notepadSlideoutLoader.active = true
+            if (notepadSlideoutLoader.item) {
+                notepadSlideoutLoader.item.show()
+                return "NOTEPAD_OPEN_SUCCESS"
+            }
+            return "NOTEPAD_OPEN_FAILED"
+        }
+
+        function close() {
+            if (notepadSlideoutLoader.item) {
+                notepadSlideoutLoader.item.hide()
+                return "NOTEPAD_CLOSE_SUCCESS"
+            }
+            return "NOTEPAD_CLOSE_FAILED"
+        }
+
+        function toggle() {
+            notepadSlideoutLoader.active = true
+            if (notepadSlideoutLoader.item) {
+                notepadSlideoutLoader.item.toggle()
+                return "NOTEPAD_TOGGLE_SUCCESS"
+            }
+            return "NOTEPAD_TOGGLE_FAILED"
+        }
+
+        target: "notepad"
+    }
+
     Variants {
-        model: Quickshell.screens
+        model: SettingsData.getFilteredScreens("toast")
 
         delegate: Toast {
             modelData: item
@@ -251,7 +404,7 @@ ShellRoot {
     }
 
     Variants {
-        model: Quickshell.screens
+        model: SettingsData.getFilteredScreens("osd")
 
         delegate: VolumeOSD {
             modelData: item
@@ -259,7 +412,7 @@ ShellRoot {
     }
 
     Variants {
-        model: Quickshell.screens
+        model: SettingsData.getFilteredScreens("osd")
 
         delegate: MicMuteOSD {
             modelData: item
@@ -267,7 +420,7 @@ ShellRoot {
     }
 
     Variants {
-        model: Quickshell.screens
+        model: SettingsData.getFilteredScreens("osd")
 
         delegate: BrightnessOSD {
             modelData: item
@@ -275,7 +428,7 @@ ShellRoot {
     }
 
     Variants {
-        model: Quickshell.screens
+        model: SettingsData.getFilteredScreens("osd")
 
         delegate: IdleInhibitorOSD {
             modelData: item

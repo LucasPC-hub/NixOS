@@ -278,6 +278,10 @@ fonts.packages = with pkgs; [
     glxinfo
     pciutils
     polkit_gnome
+    # Quickshell dependencies
+    glib
+    networkmanager
+    khal
   ];
 
   nixpkgs.config.allowUnfree = true;

@@ -1,5 +1,6 @@
-import Quickshell
 import QtQuick
+import Quickshell
+import Quickshell.Wayland
 import qs.Common
 import qs.Services
 import qs.Widgets
@@ -9,25 +10,30 @@ Rectangle {
 
     property bool compactMode: SettingsData.focusedWindowCompactMode
     property int availableWidth: 400
-    readonly property int baseWidth: contentRow.implicitWidth + Theme.spacingS * 2
+    property real widgetHeight: 30
+    readonly property real horizontalPadding: SettingsData.topBarNoBackground ? 2 : Theme.spacingS
+    readonly property int baseWidth: contentRow.implicitWidth + horizontalPadding * 2
     readonly property int maxNormalWidth: 456
     readonly property int maxCompactWidth: 288
+    readonly property Toplevel activeWindow: ToplevelManager.activeToplevel
 
-    width: compactMode ? Math.min(baseWidth,
-                                  maxCompactWidth) : Math.min(baseWidth,
-                                                              maxNormalWidth)
-    height: 30
-    radius: Theme.cornerRadius
+    width: compactMode ? Math.min(baseWidth, maxCompactWidth) : Math.min(baseWidth, maxNormalWidth)
+    height: widgetHeight
+    radius: SettingsData.topBarNoBackground ? 0 : Theme.cornerRadius
     color: {
-        if (!NiriService.focusedWindowTitle)
-            return "transparent"
+        if (!activeWindow || !activeWindow.title) {
+            return "transparent";
+        }
 
-        const baseColor = mouseArea.containsMouse ? Theme.primaryHover : Theme.surfaceTextHover
-        return Qt.rgba(baseColor.r, baseColor.g, baseColor.b,
-                       baseColor.a * Theme.widgetTransparency)
+        if (SettingsData.topBarNoBackground) {
+            return "transparent";
+        }
+
+        const baseColor = mouseArea.containsMouse ? Theme.primaryHover : Theme.surfaceTextHover;
+        return Qt.rgba(baseColor.r, baseColor.g, baseColor.b, baseColor.a * Theme.widgetTransparency);
     }
     clip: true
-    visible: NiriService.niriAvailable && NiriService.focusedWindowTitle
+    visible: activeWindow && activeWindow.title
 
     Row {
         id: contentRow
@@ -39,18 +45,12 @@ Rectangle {
             id: appText
 
             text: {
-                if (!NiriService.focusedWindowId)
-                    return ""
+                if (!activeWindow || !activeWindow.appId) {
+                    return "";
+                }
 
-                var window = NiriService.windows.find(w => {
-                                                          return w.id == NiriService.focusedWindowId
-                                                      })
-                if (!window || !window.app_id)
-                    return ""
-
-                var desktopEntry = DesktopEntries.byId(window.app_id)
-                return desktopEntry
-                        && desktopEntry.name ? desktopEntry.name : window.app_id
+                const desktopEntry = DesktopEntries.heuristicLookup(activeWindow.appId);
+                return desktopEntry && desktopEntry.name ? desktopEntry.name : activeWindow.appId;
             }
             font.pixelSize: Theme.fontSizeSmall
             font.weight: Font.Medium
@@ -74,24 +74,22 @@ Rectangle {
             id: titleText
 
             text: {
-                var title = NiriService.focusedWindowTitle || ""
-                var appName = appText.text
-
-                if (!title || !appName)
-                    return title
+                const title = activeWindow && activeWindow.title ? activeWindow.title : "";
+                const appName = appText.text;
+                if (!title || !appName) {
+                    return title;
+                }
 
                 // Remove app name from end of title if it exists there
                 if (title.endsWith(" - " + appName)) {
-                    return title.substring(
-                                0, title.length - (" - " + appName).length)
-                }
-                if (title.endsWith(appName)) {
-                    return title.substring(
-                                0, title.length - appName.length).replace(
-                                / - $/, "")
+                    return title.substring(0, title.length - (" - " + appName).length);
                 }
 
-                return title
+                if (title.endsWith(appName)) {
+                    return title.substring(0, title.length - appName.length).replace(/ - $/, "");
+                }
+
+                return title;
             }
             font.pixelSize: Theme.fontSizeSmall
             font.weight: Font.Medium
@@ -102,6 +100,7 @@ Rectangle {
             width: Math.min(implicitWidth, compactMode ? 280 : 250)
             visible: text.length > 0
         }
+
     }
 
     MouseArea {
@@ -116,6 +115,7 @@ Rectangle {
             duration: Theme.shortDuration
             easing.type: Theme.standardEasing
         }
+
     }
 
     Behavior on width {
@@ -123,5 +123,7 @@ Rectangle {
             duration: Theme.shortDuration
             easing.type: Theme.standardEasing
         }
+
     }
+
 }

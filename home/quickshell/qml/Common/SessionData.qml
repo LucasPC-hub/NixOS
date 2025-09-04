@@ -1,6 +1,6 @@
 pragma Singleton
 
-pragma ComponentBehavior
+pragma ComponentBehavior: Bound
 
 import QtCore
 import QtQuick
@@ -19,6 +19,15 @@ Singleton {
     property bool doNotDisturb: false
     property bool nightModeEnabled: false
     property int nightModeTemperature: 4500
+    property bool nightModeAutoEnabled: false
+    property string nightModeAutoMode: "time"
+    property int nightModeStartHour: 18
+    property int nightModeStartMinute: 0
+    property int nightModeEndHour: 6
+    property int nightModeEndMinute: 0
+    property real latitude: 0.0
+    property real longitude: 0.0
+    property string nightModeLocationProvider: ""
     property var pinnedApps: []
     property int selectedGpuIndex: 0
     property bool nvidiaGpuTempEnabled: false
@@ -29,6 +38,7 @@ Singleton {
     property int wallpaperCyclingInterval: 300 // seconds (5 minutes)
     property string wallpaperCyclingTime: "06:00" // HH:mm format
     property string lastBrightnessDevice: ""
+    property string notepadContent: ""
 
     Component.onCompleted: {
         loadSettings()
@@ -44,34 +54,44 @@ Singleton {
                 var settings = JSON.parse(content)
                 isLightMode = settings.isLightMode !== undefined ? settings.isLightMode : false
                 wallpaperPath = settings.wallpaperPath !== undefined ? settings.wallpaperPath : ""
-                wallpaperLastPath = settings.wallpaperLastPath
-                        !== undefined ? settings.wallpaperLastPath : ""
-                profileLastPath = settings.profileLastPath
-                        !== undefined ? settings.profileLastPath : ""
+                wallpaperLastPath = settings.wallpaperLastPath !== undefined ? settings.wallpaperLastPath : ""
+                profileLastPath = settings.profileLastPath !== undefined ? settings.profileLastPath : ""
                 doNotDisturb = settings.doNotDisturb !== undefined ? settings.doNotDisturb : false
-                nightModeEnabled = settings.nightModeEnabled
-                        !== undefined ? settings.nightModeEnabled : false
-                nightModeTemperature = settings.nightModeTemperature
-                        !== undefined ? settings.nightModeTemperature : 4500
+                nightModeEnabled = settings.nightModeEnabled !== undefined ? settings.nightModeEnabled : false
+                nightModeTemperature = settings.nightModeTemperature !== undefined ? settings.nightModeTemperature : 4500
+                nightModeAutoEnabled = settings.nightModeAutoEnabled !== undefined ? settings.nightModeAutoEnabled : false
+                nightModeAutoMode = settings.nightModeAutoMode !== undefined ? settings.nightModeAutoMode : "time"
+                // Handle legacy time format
+                if (settings.nightModeStartTime !== undefined) {
+                    const parts = settings.nightModeStartTime.split(":")
+                    nightModeStartHour = parseInt(parts[0]) || 18
+                    nightModeStartMinute = parseInt(parts[1]) || 0
+                } else {
+                    nightModeStartHour = settings.nightModeStartHour !== undefined ? settings.nightModeStartHour : 18
+                    nightModeStartMinute = settings.nightModeStartMinute !== undefined ? settings.nightModeStartMinute : 0
+                }
+                if (settings.nightModeEndTime !== undefined) {
+                    const parts = settings.nightModeEndTime.split(":")
+                    nightModeEndHour = parseInt(parts[0]) || 6
+                    nightModeEndMinute = parseInt(parts[1]) || 0
+                } else {
+                    nightModeEndHour = settings.nightModeEndHour !== undefined ? settings.nightModeEndHour : 6
+                    nightModeEndMinute = settings.nightModeEndMinute !== undefined ? settings.nightModeEndMinute : 0
+                }
+                latitude = settings.latitude !== undefined ? settings.latitude : 0.0
+                longitude = settings.longitude !== undefined ? settings.longitude : 0.0
+                nightModeLocationProvider = settings.nightModeLocationProvider !== undefined ? settings.nightModeLocationProvider : ""
                 pinnedApps = settings.pinnedApps !== undefined ? settings.pinnedApps : []
-                selectedGpuIndex = settings.selectedGpuIndex
-                        !== undefined ? settings.selectedGpuIndex : 0
-                nvidiaGpuTempEnabled = settings.nvidiaGpuTempEnabled
-                        !== undefined ? settings.nvidiaGpuTempEnabled : false
-                nonNvidiaGpuTempEnabled = settings.nonNvidiaGpuTempEnabled
-                        !== undefined ? settings.nonNvidiaGpuTempEnabled : false
-                enabledGpuPciIds = settings.enabledGpuPciIds
-                        !== undefined ? settings.enabledGpuPciIds : []
-                wallpaperCyclingEnabled = settings.wallpaperCyclingEnabled
-                        !== undefined ? settings.wallpaperCyclingEnabled : false
-                wallpaperCyclingMode = settings.wallpaperCyclingMode
-                        !== undefined ? settings.wallpaperCyclingMode : "interval"
-                wallpaperCyclingInterval = settings.wallpaperCyclingInterval
-                        !== undefined ? settings.wallpaperCyclingInterval : 300
-                wallpaperCyclingTime = settings.wallpaperCyclingTime
-                        !== undefined ? settings.wallpaperCyclingTime : "06:00"
-                lastBrightnessDevice = settings.lastBrightnessDevice
-                        !== undefined ? settings.lastBrightnessDevice : ""
+                selectedGpuIndex = settings.selectedGpuIndex !== undefined ? settings.selectedGpuIndex : 0
+                nvidiaGpuTempEnabled = settings.nvidiaGpuTempEnabled !== undefined ? settings.nvidiaGpuTempEnabled : false
+                nonNvidiaGpuTempEnabled = settings.nonNvidiaGpuTempEnabled !== undefined ? settings.nonNvidiaGpuTempEnabled : false
+                enabledGpuPciIds = settings.enabledGpuPciIds !== undefined ? settings.enabledGpuPciIds : []
+                wallpaperCyclingEnabled = settings.wallpaperCyclingEnabled !== undefined ? settings.wallpaperCyclingEnabled : false
+                wallpaperCyclingMode = settings.wallpaperCyclingMode !== undefined ? settings.wallpaperCyclingMode : "interval"
+                wallpaperCyclingInterval = settings.wallpaperCyclingInterval !== undefined ? settings.wallpaperCyclingInterval : 300
+                wallpaperCyclingTime = settings.wallpaperCyclingTime !== undefined ? settings.wallpaperCyclingTime : "06:00"
+                lastBrightnessDevice = settings.lastBrightnessDevice !== undefined ? settings.lastBrightnessDevice : ""
+                notepadContent = settings.notepadContent !== undefined ? settings.notepadContent : ""
             }
         } catch (e) {
 
@@ -87,6 +107,15 @@ Singleton {
                                                 "doNotDisturb": doNotDisturb,
                                                 "nightModeEnabled": nightModeEnabled,
                                                 "nightModeTemperature": nightModeTemperature,
+                                                "nightModeAutoEnabled": nightModeAutoEnabled,
+                                                "nightModeAutoMode": nightModeAutoMode,
+                                                "nightModeStartHour": nightModeStartHour,
+                                                "nightModeStartMinute": nightModeStartMinute,
+                                                "nightModeEndHour": nightModeEndHour,
+                                                "nightModeEndMinute": nightModeEndMinute,
+                                                "latitude": latitude,
+                                                "longitude": longitude,
+                                                "nightModeLocationProvider": nightModeLocationProvider,
                                                 "pinnedApps": pinnedApps,
                                                 "selectedGpuIndex": selectedGpuIndex,
                                                 "nvidiaGpuTempEnabled": nvidiaGpuTempEnabled,
@@ -96,7 +125,8 @@ Singleton {
                                                 "wallpaperCyclingMode": wallpaperCyclingMode,
                                                 "wallpaperCyclingInterval": wallpaperCyclingInterval,
                                                 "wallpaperCyclingTime": wallpaperCyclingTime,
-                                                "lastBrightnessDevice": lastBrightnessDevice
+                                                "lastBrightnessDevice": lastBrightnessDevice,
+                                                "notepadContent": notepadContent
                                             }, null, 2))
     }
 
@@ -120,6 +150,54 @@ Singleton {
         saveSettings()
     }
 
+    function setNightModeAutoEnabled(enabled) {
+        console.log("SessionData: Setting nightModeAutoEnabled to", enabled)
+        nightModeAutoEnabled = enabled
+        saveSettings()
+    }
+
+    function setNightModeAutoMode(mode) {
+        nightModeAutoMode = mode
+        saveSettings()
+    }
+
+    function setNightModeStartHour(hour) {
+        nightModeStartHour = hour
+        saveSettings()
+    }
+
+    function setNightModeStartMinute(minute) {
+        nightModeStartMinute = minute
+        saveSettings()
+    }
+
+    function setNightModeEndHour(hour) {
+        nightModeEndHour = hour
+        saveSettings()
+    }
+
+    function setNightModeEndMinute(minute) {
+        nightModeEndMinute = minute
+        saveSettings()
+    }
+
+    function setLatitude(lat) {
+        console.log("SessionData: Setting latitude to", lat)
+        latitude = lat
+        saveSettings()
+    }
+
+    function setLongitude(lng) {
+        console.log("SessionData: Setting longitude to", lng)
+        longitude = lng
+        saveSettings()
+    }
+
+    function setNightModeLocationProvider(provider) {
+        nightModeLocationProvider = provider
+        saveSettings()
+    }
+
     function setWallpaperPath(path) {
         wallpaperPath = path
         saveSettings()
@@ -129,9 +207,38 @@ Singleton {
         wallpaperPath = imagePath
         saveSettings()
 
-        if (typeof Colors !== "undefined" && typeof SettingsData !== "undefined"
-                && SettingsData.wallpaperDynamicTheming) {
-            Colors.extractColors()
+        if (typeof Theme !== "undefined") {
+            if (typeof SettingsData !== "undefined" && SettingsData.wallpaperDynamicTheming) {
+                Theme.switchTheme("dynamic")
+                Theme.extractColors()
+            }
+            Theme.generateSystemThemesFromCurrentTheme()
+        }
+    }
+
+    function setWallpaperColor(color) {
+        wallpaperPath = color
+        saveSettings()
+
+        if (typeof Theme !== "undefined") {
+            if (typeof SettingsData !== "undefined" && SettingsData.wallpaperDynamicTheming) {
+                Theme.switchTheme("dynamic")
+                Theme.extractColors()
+            }
+            Theme.generateSystemThemesFromCurrentTheme()
+        }
+    }
+
+    function clearWallpaper() {
+        wallpaperPath = ""
+        saveSettings()
+
+        if (typeof Theme !== "undefined") {
+            if (typeof SettingsData !== "undefined" && SettingsData.theme) {
+                Theme.switchTheme(SettingsData.theme)
+            } else {
+                Theme.switchTheme("blue")
+            }
         }
     }
 
@@ -219,8 +326,7 @@ Singleton {
     FileView {
         id: settingsFile
 
-        path: StandardPaths.writableLocation(
-                  StandardPaths.GenericStateLocation) + "/DankMaterialShell/session.json"
+        path: StandardPaths.writableLocation(StandardPaths.GenericStateLocation) + "/DankMaterialShell/session.json"
         blockLoading: true
         blockWrites: true
         watchChanges: true
@@ -242,9 +348,7 @@ Singleton {
                 return "ERROR: No path provided"
             }
 
-            var absolutePath = path.startsWith(
-                        "/") ? path : StandardPaths.writableLocation(
-                                   StandardPaths.HomeLocation) + "/" + path
+            var absolutePath = path.startsWith("/") ? path : StandardPaths.writableLocation(StandardPaths.HomeLocation) + "/" + path
 
             try {
                 root.setWallpaper(absolutePath)
@@ -283,29 +387,6 @@ Singleton {
             } catch (e) {
                 return "ERROR: Failed to cycle wallpaper: " + e.toString()
             }
-        }
-    }
-
-    IpcHandler {
-        target: "theme"
-
-        function toggle(): string {
-            root.setLightMode(!root.isLightMode)
-            return root.isLightMode ? "light" : "dark"
-        }
-
-        function light(): string {
-            root.setLightMode(true)
-            return "light"
-        }
-
-        function dark(): string {
-            root.setLightMode(false)
-            return "dark"
-        }
-
-        function getMode(): string {
-            return root.isLightMode ? "light" : "dark"
         }
     }
 }

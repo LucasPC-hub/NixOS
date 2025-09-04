@@ -9,18 +9,23 @@ Rectangle {
     property string section: "center"
     property var popupTarget: null
     property var parentScreen: null
+    property real barHeight: 48
+    property real widgetHeight: 30
+    readonly property real horizontalPadding: SettingsData.topBarNoBackground ? 2 : Theme.spacingS
 
-    signal clicked
+    signal clicked()
 
     visible: SettingsData.weatherEnabled
-    width: visible ? Math.min(100,
-                              weatherRow.implicitWidth + Theme.spacingS * 2) : 0
-    height: 30
-    radius: Theme.cornerRadius
+    width: visible ? Math.min(100, weatherRow.implicitWidth + horizontalPadding * 2) : 0
+    height: widgetHeight
+    radius: SettingsData.topBarNoBackground ? 0 : Theme.cornerRadius
     color: {
-        const baseColor = weatherArea.containsMouse ? Theme.primaryHover : Theme.surfaceTextHover
-        return Qt.rgba(baseColor.r, baseColor.g, baseColor.b,
-                       baseColor.a * Theme.widgetTransparency)
+        if (SettingsData.topBarNoBackground) {
+            return "transparent";
+        }
+
+        const baseColor = weatherArea.containsMouse ? Theme.primaryHover : Theme.surfaceTextHover;
+        return Qt.rgba(baseColor.r, baseColor.g, baseColor.b, baseColor.a * Theme.widgetTransparency);
     }
 
     Ref {
@@ -42,16 +47,18 @@ Rectangle {
 
         StyledText {
             text: {
-                var temp = SettingsData.useFahrenheit ? WeatherService.weather.tempF : WeatherService.weather.temp
+                const temp = SettingsData.useFahrenheit ? WeatherService.weather.tempF : WeatherService.weather.temp;
                 if (temp === undefined || temp === null || temp === 0) {
-                    return "--°" + (SettingsData.useFahrenheit ? "F" : "C")
+                    return "--°" + (SettingsData.useFahrenheit ? "F" : "C");
                 }
-                return temp + "°" + (SettingsData.useFahrenheit ? "F" : "C")
+
+                return temp + "°" + (SettingsData.useFahrenheit ? "F" : "C");
             }
             font.pixelSize: Theme.fontSizeSmall
             color: Theme.surfaceText
             anchors.verticalCenter: parent.verticalCenter
         }
+
     }
 
     MouseArea {
@@ -62,15 +69,13 @@ Rectangle {
         cursorShape: Qt.PointingHandCursor
         onPressed: {
             if (popupTarget && popupTarget.setTriggerPosition) {
-                var globalPos = mapToGlobal(0, 0)
-                var currentScreen = parentScreen || Screen
-                var screenX = currentScreen.x || 0
-                var relativeX = globalPos.x - screenX
-                popupTarget.setTriggerPosition(
-                            relativeX, Theme.barHeight + Theme.spacingXS,
-                            width, section, currentScreen)
+                const globalPos = mapToGlobal(0, 0);
+                const currentScreen = parentScreen || Screen;
+                const screenX = currentScreen.x || 0;
+                const relativeX = globalPos.x - screenX;
+                popupTarget.setTriggerPosition(relativeX, barHeight + Theme.spacingXS, width, section, currentScreen);
             }
-            root.clicked()
+            root.clicked();
         }
     }
 
@@ -79,6 +84,7 @@ Rectangle {
             duration: Theme.shortDuration
             easing.type: Theme.standardEasing
         }
+
     }
 
     Behavior on width {
@@ -86,5 +92,7 @@ Rectangle {
             duration: Theme.shortDuration
             easing.type: Theme.standardEasing
         }
+
     }
+
 }

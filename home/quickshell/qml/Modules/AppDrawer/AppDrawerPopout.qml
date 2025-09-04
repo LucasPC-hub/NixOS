@@ -1,5 +1,4 @@
 import QtQuick
-import QtQuick.Controls
 import QtQuick.Effects
 import Quickshell
 import Quickshell.Io
@@ -18,14 +17,6 @@ DankPopout {
 
     function show() {
         open()
-        appLauncher.searchQuery = ""
-        appLauncher.selectedIndex = 0
-        appLauncher.setCategory("All")
-        appLauncher.keyboardNavigationActive = false
-    }
-
-    function hide() {
-        close()
     }
 
     function setTriggerPosition(x, y, width, section, screen) {
@@ -45,12 +36,26 @@ DankPopout {
     WlrLayershell.namespace: "quickshell-launcher"
     screen: triggerScreen
 
+    onShouldBeVisibleChanged: {
+        if (shouldBeVisible) {
+            appLauncher.searchQuery = ""
+            appLauncher.selectedIndex = 0
+            appLauncher.setCategory("All")
+            Qt.callLater(() => {
+                             if (contentLoader.item && contentLoader.item.searchField) {
+                                 contentLoader.item.searchField.text = ""
+                                 contentLoader.item.searchField.forceActiveFocus()
+                             }
+                         })
+        }
+    }
+
     AppLauncher {
         id: appLauncher
 
         viewMode: SettingsData.appLauncherViewMode
         gridColumns: 4
-        onAppLaunched: appDrawerPopout.hide()
+        onAppLaunched: appDrawerPopout.close()
         onViewModeSelected: function (mode) {
             SettingsData.setAppLauncherViewMode(mode)
         }
@@ -60,39 +65,37 @@ DankPopout {
         Rectangle {
             id: launcherPanel
 
+            property alias searchField: searchField
+
             color: Theme.popupBackground()
             radius: Theme.cornerRadius
             antialiasing: true
             smooth: true
 
-            Rectangle {
-                anchors.fill: parent
-                anchors.margins: -3
-                color: "transparent"
-                radius: parent.radius + 3
-                border.color: Qt.rgba(0, 0, 0, 0.05)
-                border.width: 1
-                z: -3
-            }
-
-            Rectangle {
-                anchors.fill: parent
-                anchors.margins: -2
-                color: "transparent"
-                radius: parent.radius + 2
-                border.color: Qt.rgba(0, 0, 0, 0.08)
-                border.width: 1
-                z: -2
-            }
-
-            Rectangle {
-                anchors.fill: parent
-                color: "transparent"
-                border.color: Qt.rgba(Theme.outline.r, Theme.outline.g,
-                                      Theme.outline.b, 0.12)
-                border.width: 1
-                radius: parent.radius
-                z: -1
+            // Multi-layer border effect
+            Repeater {
+                model: [{
+                        "margin": -3,
+                        "color": Qt.rgba(0, 0, 0, 0.05),
+                        "z": -3
+                    }, {
+                        "margin": -2,
+                        "color": Qt.rgba(0, 0, 0, 0.08),
+                        "z": -2
+                    }, {
+                        "margin": 0,
+                        "color": Qt.rgba(Theme.outline.r, Theme.outline.g, Theme.outline.b, 0.12),
+                        "z": -1
+                    }]
+                Rectangle {
+                    anchors.fill: parent
+                    anchors.margins: modelData.margin
+                    color: "transparent"
+                    radius: parent.radius + Math.abs(modelData.margin)
+                    border.color: modelData.color
+                    border.width: 1
+                    z: modelData.z
+                }
             }
 
             Item {
@@ -100,35 +103,30 @@ DankPopout {
 
                 anchors.fill: parent
                 focus: true
-                Component.onCompleted: {
-                    if (appDrawerPopout.shouldBeVisible)
-                        forceActiveFocus()
+                readonly property var keyMappings: {
+                    const mappings = {}
+                    mappings[Qt.Key_Escape] = () => appDrawerPopout.close()
+                    mappings[Qt.Key_Down] = () => appLauncher.selectNext()
+                    mappings[Qt.Key_Up] = () => appLauncher.selectPrevious()
+                    mappings[Qt.Key_Return] = () => appLauncher.launchSelected()
+                    mappings[Qt.Key_Enter] = () => appLauncher.launchSelected()
+
+                    if (appLauncher.viewMode === "grid") {
+                        mappings[Qt.Key_Right] = () => appLauncher.selectNextInRow()
+                        mappings[Qt.Key_Left] = () => appLauncher.selectPreviousInRow()
+                    }
+
+                    return mappings
                 }
+
                 Keys.onPressed: function (event) {
-                    if (event.key === Qt.Key_Escape) {
-                        appDrawerPopout.close()
+                    if (keyMappings[event.key]) {
+                        keyMappings[event.key]()
                         event.accepted = true
-                    } else if (event.key === Qt.Key_Down) {
-                        appLauncher.selectNext()
-                        event.accepted = true
-                    } else if (event.key === Qt.Key_Up) {
-                        appLauncher.selectPrevious()
-                        event.accepted = true
-                    } else if (event.key === Qt.Key_Right
-                               && appLauncher.viewMode === "grid") {
-                        appLauncher.selectNextInRow()
-                        event.accepted = true
-                    } else if (event.key === Qt.Key_Left
-                               && appLauncher.viewMode === "grid") {
-                        appLauncher.selectPreviousInRow()
-                        event.accepted = true
-                    } else if (event.key === Qt.Key_Return
-                               || event.key === Qt.Key_Enter) {
-                        appLauncher.launchSelected()
-                        event.accepted = true
-                    } else if (!searchField.activeFocus && event.text
-                               && event.text.length > 0 && event.text.match(
-                                   /[a-zA-Z0-9\\s]/)) {
+                        return
+                    }
+
+                    if (!searchField.activeFocus && event.text && /[a-zA-Z0-9\s]/.test(event.text)) {
                         searchField.forceActiveFocus()
                         searchField.insertText(event.text)
                         event.accepted = true
@@ -173,15 +171,8 @@ DankPopout {
                         width: parent.width
                         height: 52
                         cornerRadius: Theme.cornerRadius
-                        backgroundColor: Qt.rgba(
-                                             Theme.surfaceVariant.r,
-                                             Theme.surfaceVariant.g,
-                                             Theme.surfaceVariant.b,
-                                             Theme.getContentBackgroundAlpha(
-                                                 ) * 0.7)
-                        normalBorderColor: Qt.rgba(Theme.outline.r,
-                                                   Theme.outline.g,
-                                                   Theme.outline.b, 0.3)
+                        backgroundColor: Qt.rgba(Theme.surfaceVariant.r, Theme.surfaceVariant.g, Theme.surfaceVariant.b, Theme.getContentBackgroundAlpha() * 0.7)
+                        normalBorderColor: Qt.rgba(Theme.outline.r, Theme.outline.g, Theme.outline.b, 0.3)
                         focusedBorderColor: Theme.primary
                         leftIconName: "search"
                         leftIconSize: Theme.iconSize
@@ -199,36 +190,34 @@ DankPopout {
                             if (event.key === Qt.Key_Escape) {
                                 appDrawerPopout.close()
                                 event.accepted = true
-                            } else if ((event.key === Qt.Key_Return
-                                        || event.key === Qt.Key_Enter)
-                                       && text.length > 0) {
-                                if (appLauncher.keyboardNavigationActive
-                                        && appLauncher.model.count > 0) {
+                                return
+                            }
+
+                            const isEnterKey = [Qt.Key_Return, Qt.Key_Enter].includes(event.key)
+                            const hasText = text.length > 0
+
+                            if (isEnterKey && hasText) {
+                                if (appLauncher.keyboardNavigationActive && appLauncher.model.count > 0) {
                                     appLauncher.launchSelected()
                                 } else if (appLauncher.model.count > 0) {
-                                    var firstApp = appLauncher.model.get(0)
-                                    appLauncher.launchApp(firstApp)
+                                    appLauncher.launchApp(appLauncher.model.get(0))
                                 }
                                 event.accepted = true
-                            } else if (event.key === Qt.Key_Down || event.key
-                                       === Qt.Key_Up || event.key === Qt.Key_Left || event.key
-                                       === Qt.Key_Right || ((event.key === Qt.Key_Return || event.key === Qt.Key_Enter) && text.length === 0)) {
-                                event.accepted = false
+                                return
                             }
-                        }
-                        Component.onCompleted: {
-                            if (appDrawerPopout.shouldBeVisible)
-                                searchField.forceActiveFocus()
+
+                            const navigationKeys = [Qt.Key_Down, Qt.Key_Up, Qt.Key_Left, Qt.Key_Right]
+                            const isNavigationKey = navigationKeys.includes(event.key)
+                            const isEmptyEnter = isEnterKey && !hasText
+
+                            event.accepted = !(isNavigationKey || isEmptyEnter)
                         }
 
                         Connections {
                             function onShouldBeVisibleChanged() {
-                                if (appDrawerPopout.shouldBeVisible)
-                                    Qt.callLater(function () {
-                                        searchField.forceActiveFocus()
-                                    })
-                                else
-                                    searchField.clearFocus()
+                                if (!appDrawerPopout.shouldBeVisible) {
+                                    searchField.focus = false
+                                }
                             }
 
                             target: appDrawerPopout
@@ -271,24 +260,8 @@ DankPopout {
                                 circular: false
                                 iconName: "view_list"
                                 iconSize: 20
-                                iconColor: appLauncher.viewMode
-                                           === "list" ? Theme.primary : Theme.surfaceText
-                                hoverColor: appLauncher.viewMode
-                                            === "list" ? Qt.rgba(
-                                                             Theme.primary.r,
-                                                             Theme.primary.g,
-                                                             Theme.primary.b,
-                                                             0.12) : Qt.rgba(
-                                                             Theme.surfaceVariant.r,
-                                                             Theme.surfaceVariant.g,
-                                                             Theme.surfaceVariant.b,
-                                                             0.08)
-                                backgroundColor: appLauncher.viewMode
-                                                 === "list" ? Qt.rgba(
-                                                                  Theme.primary.r,
-                                                                  Theme.primary.g,
-                                                                  Theme.primary.b,
-                                                                  0.12) : "transparent"
+                                iconColor: appLauncher.viewMode === "list" ? Theme.primary : Theme.surfaceText
+                                backgroundColor: appLauncher.viewMode === "list" ? Qt.rgba(Theme.primary.r, Theme.primary.g, Theme.primary.b, 0.12) : "transparent"
                                 onClicked: {
                                     appLauncher.setViewMode("list")
                                 }
@@ -299,24 +272,8 @@ DankPopout {
                                 circular: false
                                 iconName: "grid_view"
                                 iconSize: 20
-                                iconColor: appLauncher.viewMode
-                                           === "grid" ? Theme.primary : Theme.surfaceText
-                                hoverColor: appLauncher.viewMode
-                                            === "grid" ? Qt.rgba(
-                                                             Theme.primary.r,
-                                                             Theme.primary.g,
-                                                             Theme.primary.b,
-                                                             0.12) : Qt.rgba(
-                                                             Theme.surfaceVariant.r,
-                                                             Theme.surfaceVariant.g,
-                                                             Theme.surfaceVariant.b,
-                                                             0.08)
-                                backgroundColor: appLauncher.viewMode
-                                                 === "grid" ? Qt.rgba(
-                                                                  Theme.primary.r,
-                                                                  Theme.primary.g,
-                                                                  Theme.primary.b,
-                                                                  0.12) : "transparent"
+                                iconColor: appLauncher.viewMode === "grid" ? Theme.primary : Theme.surfaceText
+                                backgroundColor: appLauncher.viewMode === "grid" ? Qt.rgba(Theme.primary.r, Theme.primary.g, Theme.primary.b, 0.12) : "transparent"
                                 onClicked: {
                                     appLauncher.setViewMode("grid")
                                 }
@@ -333,11 +290,8 @@ DankPopout {
                             return parent.height - usedHeight
                         }
                         radius: Theme.cornerRadius
-                        color: Qt.rgba(Theme.surfaceVariant.r,
-                                       Theme.surfaceVariant.g,
-                                       Theme.surfaceVariant.b, 0.1)
-                        border.color: Qt.rgba(Theme.outline.r, Theme.outline.g,
-                                              Theme.outline.b, 0.05)
+                        color: Qt.rgba(Theme.surfaceVariant.r, Theme.surfaceVariant.g, Theme.surfaceVariant.b, 0.1)
+                        border.color: Qt.rgba(Theme.outline.r, Theme.outline.g, Theme.outline.b, 0.05)
                         border.width: 1
 
                         DankListView {
@@ -393,14 +347,6 @@ DankPopout {
                                 appLauncher.keyboardNavigationActive = false
                             }
 
-                            ScrollBar.vertical: ScrollBar {
-                                policy: ScrollBar.AlwaysOn
-                            }
-
-                            ScrollBar.horizontal: ScrollBar {
-                                policy: ScrollBar.AlwaysOff
-                            }
-
                             delegate: Rectangle {
                                 width: ListView.view.width
                                 height: appList.itemHeight
@@ -423,9 +369,7 @@ DankPopout {
                                             id: listIconImg
 
                                             anchors.fill: parent
-                                            source: (model.icon) ? Quickshell.iconPath(
-                                                                       model.icon,
-                                                                       SettingsData.iconTheme === "System Default" ? "" : SettingsData.iconTheme) : ""
+                                            source: Quickshell.iconPath(model.icon, true)
                                             smooth: true
                                             asynchronous: true
                                             visible: status === Image.Ready
@@ -441,11 +385,7 @@ DankPopout {
 
                                             StyledText {
                                                 anchors.centerIn: parent
-                                                text: (model.name
-                                                       && model.name.length
-                                                       > 0) ? model.name.charAt(
-                                                                  0).toUpperCase(
-                                                                  ) : "A"
+                                                text: (model.name && model.name.length > 0) ? model.name.charAt(0).toUpperCase() : "A"
                                                 font.pixelSize: appList.iconSize * 0.4
                                                 color: Theme.primary
                                                 font.weight: Font.Bold
@@ -473,9 +413,7 @@ DankPopout {
                                             font.pixelSize: Theme.fontSizeMedium
                                             color: Theme.surfaceVariantText
                                             elide: Text.ElideRight
-                                            visible: appList.showDescription
-                                                     && model.comment
-                                                     && model.comment.length > 0
+                                            visible: appList.showDescription && model.comment && model.comment.length > 0
                                         }
                                     }
                                 }
@@ -489,8 +427,7 @@ DankPopout {
                                     acceptedButtons: Qt.LeftButton | Qt.RightButton
                                     z: 10
                                     onEntered: {
-                                        if (appList.hoverUpdatesSelection
-                                                && !appList.keyboardNavigationActive)
+                                        if (appList.hoverUpdatesSelection && !appList.keyboardNavigationActive)
                                             appList.currentIndex = index
                                     }
                                     onPositionChanged: {
@@ -498,16 +435,10 @@ DankPopout {
                                     }
                                     onClicked: mouse => {
                                                    if (mouse.button === Qt.LeftButton) {
-                                                       appList.itemClicked(
-                                                           index, model)
+                                                       appList.itemClicked(index, model)
                                                    } else if (mouse.button === Qt.RightButton) {
-                                                       var panelPos = mapToItem(
-                                                           contextMenu.parent,
-                                                           mouse.x, mouse.y)
-                                                       appList.itemRightClicked(
-                                                           index, model,
-                                                           panelPos.x,
-                                                           panelPos.y)
+                                                       var panelPos = mapToItem(contextMenu.parent, mouse.x, mouse.y)
+                                                       appList.itemRightClicked(index, model, panelPos.x, panelPos.y)
                                                    }
                                                }
                                 }
@@ -541,8 +472,7 @@ DankPopout {
                                 if (index < 0 || index >= count)
                                     return
 
-                                var itemY = Math.floor(
-                                            index / actualColumns) * cellHeight
+                                var itemY = Math.floor(index / actualColumns) * cellHeight
                                 var itemBottom = itemY + cellHeight
                                 if (itemY < contentY)
                                     contentY = itemY
@@ -557,8 +487,7 @@ DankPopout {
                             clip: true
                             cellWidth: baseCellWidth
                             cellHeight: baseCellHeight
-                            leftMargin: Math.max(Theme.spacingS,
-                                                 remainingSpace / 2)
+                            leftMargin: Math.max(Theme.spacingS, remainingSpace / 2)
                             rightMargin: leftMargin
                             focus: true
                             interactive: true
@@ -580,14 +509,6 @@ DankPopout {
                                 appLauncher.keyboardNavigationActive = false
                             }
 
-                            ScrollBar.vertical: ScrollBar {
-                                policy: ScrollBar.AsNeeded
-                            }
-
-                            ScrollBar.horizontal: ScrollBar {
-                                policy: ScrollBar.AlwaysOff
-                            }
-
                             delegate: Rectangle {
                                 width: appGrid.cellWidth - appGrid.cellPadding
                                 height: appGrid.cellHeight - appGrid.cellPadding
@@ -601,12 +522,7 @@ DankPopout {
                                     spacing: Theme.spacingS
 
                                     Item {
-                                        property int iconSize: Math.min(
-                                                                   appGrid.maxIconSize,
-                                                                   Math.max(
-                                                                       appGrid.minIconSize,
-                                                                       appGrid.cellWidth
-                                                                       * appGrid.iconSizeRatio))
+                                        property int iconSize: Math.min(appGrid.maxIconSize, Math.max(appGrid.minIconSize, appGrid.cellWidth * appGrid.iconSizeRatio))
 
                                         width: iconSize
                                         height: iconSize
@@ -616,9 +532,7 @@ DankPopout {
                                             id: gridIconImg
 
                                             anchors.fill: parent
-                                            source: (model.icon) ? Quickshell.iconPath(
-                                                                       model.icon,
-                                                                       SettingsData.iconTheme === "System Default" ? "" : SettingsData.iconTheme) : ""
+                                            source: Quickshell.iconPath(model.icon, true)
                                             smooth: true
                                             asynchronous: true
                                             visible: status === Image.Ready
@@ -634,14 +548,8 @@ DankPopout {
 
                                             StyledText {
                                                 anchors.centerIn: parent
-                                                text: (model.name
-                                                       && model.name.length
-                                                       > 0) ? model.name.charAt(
-                                                                  0).toUpperCase(
-                                                                  ) : "A"
-                                                font.pixelSize: Math.min(
-                                                                    28,
-                                                                    parent.width * 0.5)
+                                                text: (model.name && model.name.length > 0) ? model.name.charAt(0).toUpperCase() : "A"
+                                                font.pixelSize: Math.min(28, parent.width * 0.5)
                                                 color: Theme.primary
                                                 font.weight: Font.Bold
                                             }
@@ -671,8 +579,7 @@ DankPopout {
                                     acceptedButtons: Qt.LeftButton | Qt.RightButton
                                     z: 10
                                     onEntered: {
-                                        if (appGrid.hoverUpdatesSelection
-                                                && !appGrid.keyboardNavigationActive)
+                                        if (appGrid.hoverUpdatesSelection && !appGrid.keyboardNavigationActive)
                                             appGrid.currentIndex = index
                                     }
                                     onPositionChanged: {
@@ -680,16 +587,10 @@ DankPopout {
                                     }
                                     onClicked: mouse => {
                                                    if (mouse.button === Qt.LeftButton) {
-                                                       appGrid.itemClicked(
-                                                           index, model)
+                                                       appGrid.itemClicked(index, model)
                                                    } else if (mouse.button === Qt.RightButton) {
-                                                       var panelPos = mapToItem(
-                                                           contextMenu.parent,
-                                                           mouse.x, mouse.y)
-                                                       appGrid.itemRightClicked(
-                                                           index, model,
-                                                           panelPos.x,
-                                                           panelPos.y)
+                                                       var panelPos = mapToItem(contextMenu.parent, mouse.x, mouse.y)
+                                                       appGrid.itemRightClicked(index, model, panelPos.x, panelPos.y)
                                                    }
                                                }
                                 }
@@ -706,6 +607,9 @@ DankPopout {
 
         property var currentApp: null
         property bool menuVisible: false
+
+        readonly property string appId: (currentApp && currentApp.desktopEntry) ? (currentApp.desktopEntry.id || currentApp.desktopEntry.execString || "") : ""
+        readonly property bool isPinned: appId && SessionData.isPinnedApp(appId)
 
         function show(x, y, app) {
             currentApp = app
@@ -724,12 +628,8 @@ DankPopout {
                 finalY = y - menuHeight - 8
             }
 
-            finalX = Math.max(
-                        8, Math.min(finalX,
-                                    appDrawerPopout.popupWidth - menuWidth - 8))
-            finalY = Math.max(8, Math.min(
-                                  finalY,
-                                  appDrawerPopout.popupHeight - menuHeight - 8))
+            finalX = Math.max(8, Math.min(finalX, appDrawerPopout.popupWidth - menuWidth - 8))
+            finalY = Math.max(8, Math.min(finalY, appDrawerPopout.popupHeight - menuHeight - 8))
 
             contextMenu.x = finalX
             contextMenu.y = finalY
@@ -749,8 +649,7 @@ DankPopout {
         height: menuColumn.implicitHeight + Theme.spacingS * 2
         radius: Theme.cornerRadius
         color: Theme.popupBackground()
-        border.color: Qt.rgba(Theme.outline.r, Theme.outline.g,
-                              Theme.outline.b, 0.08)
+        border.color: Qt.rgba(Theme.outline.r, Theme.outline.g, Theme.outline.b, 0.08)
         border.width: 1
         z: 1000
         opacity: menuVisible ? 1 : 0
@@ -778,11 +677,7 @@ DankPopout {
                 width: parent.width
                 height: 32
                 radius: Theme.cornerRadius
-                color: pinMouseArea.containsMouse ? Qt.rgba(
-                                                        Theme.primary.r,
-                                                        Theme.primary.g,
-                                                        Theme.primary.b,
-                                                        0.12) : "transparent"
+                color: pinMouseArea.containsMouse ? Qt.rgba(Theme.primary.r, Theme.primary.g, Theme.primary.b, 0.12) : "transparent"
 
                 Row {
                     anchors.left: parent.left
@@ -791,17 +686,7 @@ DankPopout {
                     spacing: Theme.spacingS
 
                     DankIcon {
-                        name: {
-                            if (!contextMenu.currentApp
-                                    || !contextMenu.currentApp.desktopEntry)
-                                return "push_pin"
-
-                            var appId = contextMenu.currentApp.desktopEntry.id
-                                    || contextMenu.currentApp.desktopEntry.execString
-                                    || ""
-                            return SessionData.isPinnedApp(
-                                        appId) ? "keep_off" : "push_pin"
-                        }
+                        name: contextMenu.isPinned ? "keep_off" : "push_pin"
                         size: Theme.iconSize - 2
                         color: Theme.surfaceText
                         opacity: 0.7
@@ -809,17 +694,7 @@ DankPopout {
                     }
 
                     StyledText {
-                        text: {
-                            if (!contextMenu.currentApp
-                                    || !contextMenu.currentApp.desktopEntry)
-                                return "Pin to Dock"
-
-                            var appId = contextMenu.currentApp.desktopEntry.id
-                                    || contextMenu.currentApp.desktopEntry.execString
-                                    || ""
-                            return SessionData.isPinnedApp(
-                                        appId) ? "Unpin from Dock" : "Pin to Dock"
-                        }
+                        text: contextMenu.isPinned ? "Unpin from Dock" : "Pin to Dock"
                         font.pixelSize: Theme.fontSizeSmall
                         color: Theme.surfaceText
                         font.weight: Font.Normal
@@ -834,17 +709,15 @@ DankPopout {
                     hoverEnabled: true
                     cursorShape: Qt.PointingHandCursor
                     onClicked: {
-                        if (!contextMenu.currentApp
-                                || !contextMenu.currentApp.desktopEntry)
+                        if (!contextMenu.currentApp || !contextMenu.currentApp.desktopEntry) {
                             return
+                        }
 
-                        var appId = contextMenu.currentApp.desktopEntry.id
-                                || contextMenu.currentApp.desktopEntry.execString
-                                || ""
-                        if (SessionData.isPinnedApp(appId))
-                            SessionData.removePinnedApp(appId)
-                        else
-                            SessionData.addPinnedApp(appId)
+                        if (contextMenu.isPinned) {
+                            SessionData.removePinnedApp(contextMenu.appId)
+                        } else {
+                            SessionData.addPinnedApp(contextMenu.appId)
+                        }
                         contextMenu.close()
                     }
                 }
@@ -860,8 +733,7 @@ DankPopout {
                     anchors.centerIn: parent
                     width: parent.width
                     height: 1
-                    color: Qt.rgba(Theme.outline.r, Theme.outline.g,
-                                   Theme.outline.b, 0.2)
+                    color: Qt.rgba(Theme.outline.r, Theme.outline.g, Theme.outline.b, 0.2)
                 }
             }
 
@@ -869,11 +741,7 @@ DankPopout {
                 width: parent.width
                 height: 32
                 radius: Theme.cornerRadius
-                color: launchMouseArea.containsMouse ? Qt.rgba(
-                                                           Theme.primary.r,
-                                                           Theme.primary.g,
-                                                           Theme.primary.b,
-                                                           0.12) : "transparent"
+                color: launchMouseArea.containsMouse ? Qt.rgba(Theme.primary.r, Theme.primary.g, Theme.primary.b, 0.12) : "transparent"
 
                 Row {
                     anchors.left: parent.left

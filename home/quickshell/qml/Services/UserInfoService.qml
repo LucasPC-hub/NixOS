@@ -1,6 +1,6 @@
 pragma Singleton
 
-pragma ComponentBehavior
+pragma ComponentBehavior: Bound
 
 import QtQuick
 import Quickshell
@@ -34,7 +34,6 @@ Singleton {
         getUptime()
     }
 
-    // Get username and full name
     Process {
         id: userInfoProcess
 
@@ -61,7 +60,6 @@ Singleton {
         }
     }
 
-    // Get system uptime
     Process {
         id: uptimeProcess
 
@@ -82,17 +80,21 @@ Singleton {
                 const minutes = Math.floor((seconds % 3600) / 60)
 
                 const parts = []
-                if (days > 0)
-                parts.push(`${days} day${days === 1 ? "" : "s"}`)
-                if (hours > 0)
-                parts.push(`${hours} hour${hours === 1 ? "" : "s"}`)
-                if (minutes > 0)
-                parts.push(`${minutes} minute${minutes === 1 ? "" : "s"}`)
+                if (days > 0) {
+                    parts.push(`${days} day${days === 1 ? "" : "s"}`)
+                }
+                if (hours > 0) {
+                    parts.push(`${hours} hour${hours === 1 ? "" : "s"}`)
+                }
+                if (minutes > 0) {
+                    parts.push(`${minutes} minute${minutes === 1 ? "" : "s"}`)
+                }
 
-                if (parts.length > 0)
-                root.uptime = "up " + parts.join(", ")
-                else
-                root.uptime = `up ${seconds} seconds`
+                if (parts.length > 0) {
+                    root.uptime = `up ${parts.join(", ")}`
+                } else {
+                    root.uptime = `up ${seconds} seconds`
+                }
             }
         }
     }

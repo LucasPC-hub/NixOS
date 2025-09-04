@@ -1,6 +1,6 @@
 pragma Singleton
 
-pragma ComponentBehavior
+pragma ComponentBehavior: Bound
 
 import QtQuick
 import Quickshell
@@ -14,6 +14,8 @@ Singleton {
     property string profileImage: ""
     property bool settingsPortalAvailable: false
     property int systemColorScheme: 0 // 0=default, 1=prefer-dark, 2=prefer-light
+
+    function init() {}
 
     function getSystemProfileImage() {
         systemProfileCheckProcess.running = true
@@ -37,22 +39,23 @@ Singleton {
     }
 
     function setSystemColorScheme(isLightMode) {
-        if (!settingsPortalAvailable)
+        if (!settingsPortalAvailable) {
             return
+        }
 
-        var colorScheme = isLightMode ? "prefer-light" : "prefer-dark"
-        var script = "gsettings set org.gnome.desktop.interface color-scheme '" + colorScheme + "'"
+        const colorScheme = isLightMode ? "prefer-light" : "prefer-dark"
+        const script = `gsettings set org.gnome.desktop.interface color-scheme '${colorScheme}'`
 
         systemColorSchemeSetProcess.command = ["bash", "-c", script]
         systemColorSchemeSetProcess.running = true
     }
 
     function setSystemProfileImage(imagePath) {
-        if (!accountsServiceAvailable || !imagePath)
+        if (!accountsServiceAvailable || !imagePath) {
             return
+        }
 
-        var script = ["dbus-send --system --print-reply --dest=org.freedesktop.Accounts", "/org/freedesktop/Accounts/User$(id -u)", "org.freedesktop.Accounts.User.SetIconFile", "string:'" + imagePath + "'"].join(
-                    " ")
+        const script = `dbus-send --system --print-reply --dest=org.freedesktop.Accounts /org/freedesktop/Accounts/User$(id -u) org.freedesktop.Accounts.User.SetIconFile string:'${imagePath}'`
 
         systemProfileSetProcess.command = ["bash", "-c", script]
         systemProfileSetProcess.running = true
@@ -91,9 +94,8 @@ Singleton {
 
         stdout: StdioCollector {
             onStreamFinished: {
-                var match = text.match(/string\s+"([^"]+)"/)
-                if (match && match[1] && match[1] !== ""
-                    && match[1] !== "/var/lib/AccountsService/icons/") {
+                const match = text.match(/string\s+"([^"]+)"/)
+                if (match && match[1] && match[1] !== "" && match[1] !== "/var/lib/AccountsService/icons/") {
                     root.systemProfileImage = match[1]
 
                     if (!root.profileImage || root.profileImage === "") {
@@ -141,12 +143,12 @@ Singleton {
 
         stdout: StdioCollector {
             onStreamFinished: {
-                var match = text.match(/uint32 (\d+)/)
+                const match = text.match(/uint32 (\d+)/)
                 if (match && match[1]) {
                     root.systemColorScheme = parseInt(match[1])
 
                     if (typeof Theme !== "undefined") {
-                        var shouldBeLightMode = (root.systemColorScheme === 2)
+                        const shouldBeLightMode = (root.systemColorScheme === 2)
                         if (Theme.isLightMode !== shouldBeLightMode) {
                             Theme.isLightMode = shouldBeLightMode
                             if (typeof SessionData !== "undefined") {
@@ -175,6 +177,34 @@ Singleton {
                                  root.getSystemColorScheme()
                              })
             }
+        }
+    }
+
+    IpcHandler {
+        target: "profile"
+
+        function getImage(): string {
+            return root.profileImage
+        }
+
+        function setImage(path: string): string {
+            if (!path) {
+                return "ERROR: No path provided"
+            }
+
+            const absolutePath = path.startsWith("/") ? path : `${StandardPaths.writableLocation(StandardPaths.HomeLocation)}/${path}`
+
+            try {
+                root.setProfileImage(absolutePath)
+                return "SUCCESS: Profile image set to " + absolutePath
+            } catch (e) {
+                return "ERROR: Failed to set profile image: " + e.toString()
+            }
+        }
+
+        function clearImage(): string {
+            root.setProfileImage("")
+            return "SUCCESS: Profile image cleared"
         }
     }
 }

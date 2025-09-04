@@ -42,6 +42,8 @@ This is a Quickshell-based desktop shell implementation with Material Design 3 d
 
 **Architecture**: Modular design with clean separation between UI components (Modules), system services (Services), and shared utilities (Common).
 
+**Compositor Support**: Originally designed for niri, now also fully compatible with Hyprland. Both compositors are supported with their own configuration examples and keybind formats.
+
 ## Technology Stack
 
 - **QML (Qt Modeling Language)** - Primary language for all UI components
@@ -62,8 +64,7 @@ quickshell -p shell.qml
 qs -p .
 
 # Code formatting and linting
-./qmlformat-all.sh       # Format all QML files using project script
-qmlformat -i **/*.qml    # Format all QML files in place
+qmlfmt -t 4 -i 4 -b 250 -w /path/to/file.qml    # Format a QML file (requires qmlfmt, do not use qmlformat)
 qmllint **/*.qml         # Lint all QML files for syntax errors
 ```
 
@@ -85,7 +86,7 @@ shell.qml           # Main entry point (minimal orchestration)
 │   ├── AudioService.qml
 │   ├── NetworkService.qml
 │   ├── BluetoothService.qml
-│   ├── BrightnessService.qml
+│   ├── DisplayService.qml
 │   ├── NotificationService.qml
 │   ├── WeatherService.qml
 │   └── [14 more services]
@@ -129,7 +130,7 @@ shell.qml           # Main entry point (minimal orchestration)
 3. **Services/** - System integration singletons
    - **Pattern**: All services use `Singleton` type with `id: root`
    - **Independence**: No cross-service dependencies
-   - **Examples**: AudioService, NetworkService, BluetoothService, BrightnessService, WeatherService, NotificationService, CalendarService, BatteryService, NiriService, MprisController
+   - **Examples**: AudioService, NetworkService, BluetoothService, DisplayService, WeatherService, NotificationService, CalendarService, BatteryService, NiriService, MprisController
    - Services handle system commands, state management, and hardware integration
 
 4. **Modules/** - UI components (93 files)
@@ -219,6 +220,8 @@ shell.qml           # Main entry point (minimal orchestration)
    - Properties before signal handlers before child components
    - Prefer property bindings over imperative code
    - **CRITICAL**: NEVER add comments unless absolutely essential for complex logic understanding. Code should be self-documenting through clear naming and structure. Comments are a code smell indicating unclear implementation.
+   - Use guard statements, example `if (abc) { something() return;} somethingElse();`
+   - Don't use crazy ternary stuff, but use it for simple if else only. `propertyVal: a ? b : c`
 
 2. **Naming Conventions**:
    - **Services**: Use `Singleton` type with `id: root`
@@ -226,9 +229,7 @@ shell.qml           # Main entry point (minimal orchestration)
    - **Properties**: camelCase for properties, PascalCase for types
 
 3. **Null-Safe Operations**:
-   - **Do NOT use** `?.` operator (not supported by qmlformat)
-   - **Use** `object && object.property` instead of `object?.property`
-   - **Example**: `activePlayer && activePlayer.trackTitle` instead of `activePlayer?.trackTitle`
+   - **Use** `object?.property`
 
 4. **Component Structure**:
    ```qml
@@ -292,9 +293,9 @@ shell.qml           # Main entry point (minimal orchestration)
    
    // In modules - adapt UI accordingly
    DankSlider {
-       visible: BrightnessService.brightnessAvailable
-       enabled: BrightnessService.brightnessAvailable
-       value: BrightnessService.brightnessLevel
+       visible: DisplayService.brightnessAvailable
+       enabled: DisplayService.brightnessAvailable
+       value: DisplayService.brightnessLevel
    }
    ```
 
@@ -337,9 +338,10 @@ shell.qml           # Main entry point (minimal orchestration)
 
 The shell uses Quickshell's `Variants` pattern for multi-monitor support:
 - Each connected monitor gets its own top bar instance
-- Workspace switchers are per-display and Niri-aware
+- Workspace switchers are compositor-aware (Niri and Hyprland)
 - Monitors are automatically detected by screen name (DP-1, DP-2, etc.)
-- Workspaces are dynamically synchronized with Niri's per-output workspaces
+- **Niri**: Workspaces are dynamically synchronized with Niri's per-output workspaces
+- **Hyprland**: Integrates with Hyprland's workspace system and multi-monitor handling
 
 ## Common Development Tasks
 
@@ -352,7 +354,8 @@ When modifying the shell:
 4. **Theming**: Use `Theme.propertyName` for Material Design 3 consistency
 5. **Wayland compatibility**: Test on Wayland session
 6. **Multi-monitor**: Verify behavior with multiple displays
-7. **Feature detection**: Test on systems with/without required tools
+7. **Compositor compatibility**: Test on both Niri and Hyprland when possible
+8. **Feature detection**: Test on systems with/without required tools
 
 ### Adding New Modules
 

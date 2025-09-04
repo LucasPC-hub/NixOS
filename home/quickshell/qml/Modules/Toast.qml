@@ -66,9 +66,7 @@ PanelWindow {
             }
         }
 
-        width: shouldBeVisible ? 
-               (ToastService.hasDetails ? 380 : messageText.implicitWidth + Theme.iconSize + Theme.spacingM * 3 + Theme.spacingL * 2) : 
-               frozenWidth
+        width: shouldBeVisible ? (ToastService.hasDetails ? 380 : 350) : frozenWidth
         height: toastContent.height + Theme.spacingL * 2
         anchors.horizontalCenter: parent.horizontalCenter
         y: Theme.barHeight - 4 + SettingsData.topBarSpacing + 2
@@ -79,14 +77,14 @@ PanelWindow {
             case ToastService.levelWarn:
                 return Theme.warning
             case ToastService.levelInfo:
-                return Theme.primary
+                return Theme.surfaceContainer
             default:
-                return Theme.primary
+                return Theme.surfaceContainer
             }
         }
         radius: Theme.cornerRadius
         layer.enabled: true
-        opacity: shouldBeVisible ? 0.9 : 0
+        opacity: shouldBeVisible ? 1 : 0
 
         Column {
             id: toastContent
@@ -118,7 +116,15 @@ PanelWindow {
                         }
                     }
                     size: Theme.iconSize
-                    color: Theme.background
+                    color: {
+                        switch (ToastService.currentLevel) {
+                        case ToastService.levelError:
+                        case ToastService.levelWarn:
+                            return SessionData.isLightMode ? Theme.surfaceText : Theme.background
+                        default:
+                            return Theme.surfaceText
+                        }
+                    }
                     anchors.left: parent.left
                     anchors.verticalCenter: parent.verticalCenter
                 }
@@ -127,18 +133,38 @@ PanelWindow {
                     id: messageText
                     text: ToastService.currentMessage
                     font.pixelSize: Theme.fontSizeMedium
-                    color: Theme.background
+                    color: {
+                        switch (ToastService.currentLevel) {
+                        case ToastService.levelError:
+                        case ToastService.levelWarn:
+                            return SessionData.isLightMode ? Theme.surfaceText : Theme.background
+                        default:
+                            return Theme.surfaceText
+                        }
+                    }
                     font.weight: Font.Medium
                     anchors.left: statusIcon.right
                     anchors.leftMargin: Theme.spacingM
                     anchors.verticalCenter: parent.verticalCenter
+                    anchors.right: ToastService.hasDetails ? expandButton.left : closeButton.left
+                    anchors.rightMargin: Theme.spacingM
                     wrapMode: Text.NoWrap
+                    elide: Text.ElideRight
                 }
 
                 DankActionButton {
+                    id: expandButton
                     iconName: toast.expanded ? "expand_less" : "expand_more"
                     iconSize: Theme.iconSize
-                    iconColor: Theme.background
+                    iconColor: {
+                        switch (ToastService.currentLevel) {
+                        case ToastService.levelError:
+                        case ToastService.levelWarn:
+                            return SessionData.isLightMode ? Theme.surfaceText : Theme.background
+                        default:
+                            return Theme.surfaceText
+                        }
+                    }
                     buttonSize: Theme.iconSize + 8
                     anchors.right: closeButton.left
                     anchors.rightMargin: 2
@@ -159,7 +185,15 @@ PanelWindow {
                     id: closeButton
                     iconName: "close"
                     iconSize: Theme.iconSize
-                    iconColor: Theme.background
+                    iconColor: {
+                        switch (ToastService.currentLevel) {
+                        case ToastService.levelError:
+                        case ToastService.levelWarn:
+                            return SessionData.isLightMode ? Theme.surfaceText : Theme.background
+                        default:
+                            return Theme.surfaceText
+                        }
+                    }
                     buttonSize: Theme.iconSize + 8
                     anchors.right: parent.right
                     anchors.verticalCenter: parent.verticalCenter
@@ -183,7 +217,15 @@ PanelWindow {
                     id: detailsText
                     text: ToastService.currentDetails
                     font.pixelSize: Theme.fontSizeSmall
-                    color: Theme.background
+                    color: {
+                        switch (ToastService.currentLevel) {
+                        case ToastService.levelError:
+                        case ToastService.levelWarn:
+                            return SessionData.isLightMode ? Theme.surfaceText : Theme.background
+                        default:
+                            return Theme.surfaceText
+                        }
+                    }
                     isMonospace: true
                     anchors.left: parent.left
                     anchors.right: copyButton.left
@@ -197,7 +239,15 @@ PanelWindow {
                     id: copyButton
                     iconName: "content_copy"
                     iconSize: Theme.iconSizeSmall
-                    iconColor: Theme.background
+                    iconColor: {
+                        switch (ToastService.currentLevel) {
+                        case ToastService.levelError:
+                        case ToastService.levelWarn:
+                            return SessionData.isLightMode ? Theme.surfaceText : Theme.background
+                        default:
+                            return Theme.surfaceText
+                        }
+                    }
                     buttonSize: Theme.iconSizeSmall + 8
                     anchors.right: parent.right
                     anchors.verticalCenter: parent.verticalCenter

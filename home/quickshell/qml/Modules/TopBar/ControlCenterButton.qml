@@ -10,32 +10,26 @@ Rectangle {
     property string section: "right"
     property var popupTarget: null
     property var parentScreen: null
+    property var widgetData: null
+    property bool showNetworkIcon: SettingsData.controlCenterShowNetworkIcon
+    property bool showBluetoothIcon: SettingsData.controlCenterShowBluetoothIcon
+    property bool showAudioIcon: SettingsData.controlCenterShowAudioIcon
+    property real widgetHeight: 30
+    property real barHeight: 48
+    readonly property real horizontalPadding: SettingsData.topBarNoBackground ? 0 : Math.max(Theme.spacingXS, Theme.spacingS * (widgetHeight / 30))
 
-        signal clicked
+    signal clicked()
 
-    function getWiFiSignalIcon(signalStrength) {
-        switch (signalStrength) {
-            case "excellent":
-                return "wifi"
-            case "good":
-                return "wifi_2_bar"
-            case "fair":
-                return "wifi_1_bar"
-            case "poor":
-                return "signal_wifi_0_bar"
-            default:
-                return "wifi"
-        }
-    }
-
-    width: Math.max(80, controlIndicators.implicitWidth + Theme.spacingS * 2)
-    height: 30
-    radius: Theme.cornerRadius
+    width: controlIndicators.implicitWidth + horizontalPadding * 2
+    height: widgetHeight
+    radius: SettingsData.topBarNoBackground ? 0 : Theme.cornerRadius
     color: {
-        const baseColor = controlCenterArea.containsMouse
-            || root.isActive ? Theme.primaryPressed : Theme.secondaryHover
-        return Qt.rgba(baseColor.r, baseColor.g, baseColor.b,
-            baseColor.a * Theme.widgetTransparency)
+        if (SettingsData.topBarNoBackground) {
+            return "transparent";
+        }
+
+        const baseColor = controlCenterArea.containsMouse || root.isActive ? Theme.primaryPressed : Theme.secondaryHover;
+        return Qt.rgba(baseColor.r, baseColor.g, baseColor.b, baseColor.a * Theme.widgetTransparency);
     }
 
     Row {
@@ -45,26 +39,48 @@ Rectangle {
         spacing: Theme.spacingXS
 
         DankIcon {
+            id: networkIcon
+
             name: {
-                if (NetworkService.networkStatus === "ethernet")
-                    return "lan"
-                else if (NetworkService.networkStatus === "wifi")
-                    return getWiFiSignalIcon(NetworkService.wifiSignalStrength)
-                else
-                    return "wifi_off"
+                if (NetworkService.wifiToggling) {
+                    return "sync";
+                }
+
+                if (NetworkService.networkStatus === "ethernet") {
+                    return "lan";
+                }
+
+                return NetworkService.wifiSignalIcon;
             }
             size: Theme.iconSize - 8
-            color: NetworkService.networkStatus !== "disconnected" ? Theme.primary : Theme.outlineButton
+            color: {
+                if (NetworkService.wifiToggling) {
+                    return Theme.primary;
+                }
+
+                return NetworkService.networkStatus !== "disconnected" ? Theme.primary : Theme.outlineButton;
+            }
             anchors.verticalCenter: parent.verticalCenter
-            visible: true
+            visible: root.showNetworkIcon
+
+            RotationAnimation on rotation {
+                running: NetworkService.wifiToggling
+                loops: Animation.Infinite
+                from: 0
+                to: 360
+                duration: 1000
+            }
+
         }
 
         DankIcon {
+            id: bluetoothIcon
+
             name: "bluetooth"
             size: Theme.iconSize - 8
             color: BluetoothService.enabled ? Theme.primary : Theme.outlineButton
             anchors.verticalCenter: parent.verticalCenter
-            visible: BluetoothService.available && BluetoothService.enabled
+            visible: root.showBluetoothIcon && BluetoothService.available && BluetoothService.enabled
         }
 
         Rectangle {
@@ -72,17 +88,25 @@ Rectangle {
             height: audioIcon.implicitHeight + 4
             color: "transparent"
             anchors.verticalCenter: parent.verticalCenter
+            visible: root.showAudioIcon
 
             DankIcon {
                 id: audioIcon
 
-                name: (AudioService.sink && AudioService.sink.audio
-                    && AudioService.sink.audio.muted) ? "volume_off" : (AudioService.sink
-                    && AudioService.sink.audio
-                    && AudioService.sink.audio.volume * 100) < 33 ? "volume_down" : "volume_up"
+                name: {
+                    if (AudioService.sink && AudioService.sink.audio) {
+                        if (AudioService.sink.audio.muted || AudioService.sink.audio.volume === 0) {
+                            return "volume_off";
+                        } else if (AudioService.sink.audio.volume * 100 < 33) {
+                            return "volume_down";
+                        } else {
+                            return "volume_up";
+                        }
+                    }
+                    return "volume_up";
+                }
                 size: Theme.iconSize - 8
-                color: audioWheelArea.containsMouse || controlCenterArea.containsMouse
-                    || root.isActive ? Theme.primary : Theme.surfaceText
+                color: Theme.surfaceText
                 anchors.centerIn: parent
             }
 
@@ -92,22 +116,24 @@ Rectangle {
                 anchors.fill: parent
                 hoverEnabled: true
                 acceptedButtons: Qt.NoButton
-                onWheel: function (wheelEvent) {
-                    let delta = wheelEvent.angleDelta.y
-                    let currentVolume = (AudioService.sink && AudioService.sink.audio
-                        && AudioService.sink.audio.volume * 100) || 0
-                    let newVolume
-                    if (delta > 0)
-                        newVolume = Math.min(100, currentVolume + 5)
-                    else
-                        newVolume = Math.max(0, currentVolume - 5)
-                    if (AudioService.sink && AudioService.sink.audio) {
-                        AudioService.sink.audio.muted = false
-                        AudioService.sink.audio.volume = newVolume / 100
+                onWheel: function(wheelEvent) {
+                    let delta = wheelEvent.angleDelta.y;
+                    let currentVolume = (AudioService.sink && AudioService.sink.audio && AudioService.sink.audio.volume * 100) || 0;
+                    let newVolume;
+                    if (delta > 0) {
+                        newVolume = Math.min(100, currentVolume + 5);
+                    } else {
+                        newVolume = Math.max(0, currentVolume - 5);
                     }
-                    wheelEvent.accepted = true
+                    if (AudioService.sink && AudioService.sink.audio) {
+                        AudioService.sink.audio.muted = false;
+                        AudioService.sink.audio.volume = newVolume / 100;
+                        AudioService.volumeChanged();
+                    }
+                    wheelEvent.accepted = true;
                 }
             }
+
         }
 
         DankIcon {
@@ -117,6 +143,16 @@ Rectangle {
             anchors.verticalCenter: parent.verticalCenter
             visible: false // TODO: Add mic detection
         }
+
+        // Fallback settings icon when all other icons are hidden
+        DankIcon {
+            name: "settings"
+            size: Theme.iconSize - 8
+            color: controlCenterArea.containsMouse || root.isActive ? Theme.primary : Theme.surfaceText
+            anchors.verticalCenter: parent.verticalCenter
+            visible: !root.showNetworkIcon && !root.showBluetoothIcon && !root.showAudioIcon
+        }
+
     }
 
     MouseArea {
@@ -125,17 +161,15 @@ Rectangle {
         anchors.fill: parent
         hoverEnabled: true
         cursorShape: Qt.PointingHandCursor
-        onClicked: {
+        onPressed: {
             if (popupTarget && popupTarget.setTriggerPosition) {
-                var globalPos = mapToGlobal(0, 0)
-                var currentScreen = parentScreen || Screen
-                var screenX = currentScreen.x || 0
-                var relativeX = globalPos.x - screenX
-                popupTarget.setTriggerPosition(relativeX,
-                    Theme.barHeight + Theme.spacingXS,
-                    width, section, currentScreen)
+                const globalPos = mapToGlobal(0, 0);
+                const currentScreen = parentScreen || Screen;
+                const screenX = currentScreen.x || 0;
+                const relativeX = globalPos.x - screenX;
+                popupTarget.setTriggerPosition(relativeX, barHeight + Theme.spacingXS, width, section, currentScreen);
             }
-            root.clicked()
+            root.clicked();
         }
     }
 
@@ -144,5 +178,7 @@ Rectangle {
             duration: Theme.shortDuration
             easing.type: Theme.standardEasing
         }
+
     }
+
 }

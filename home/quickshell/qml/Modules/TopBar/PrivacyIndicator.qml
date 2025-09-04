@@ -10,26 +10,29 @@ Rectangle {
     property string section: "right"
     property var popupTarget: null
     property var parentScreen: null
-
+    property real widgetHeight: 30
+    readonly property real horizontalPadding: SettingsData.topBarNoBackground ? 2 : Theme.spacingS
     readonly property bool hasActivePrivacy: PrivacyService.anyPrivacyActive
-    readonly property int activeCount: PrivacyService.microphoneActive + PrivacyService.cameraActive
-                                       + PrivacyService.screensharingActive
+    readonly property int activeCount: PrivacyService.microphoneActive + PrivacyService.cameraActive + PrivacyService.screensharingActive
+    readonly property real contentWidth: hasActivePrivacy ? (activeCount * 18 + (activeCount - 1) * Theme.spacingXS) : 0
 
-    width: hasActivePrivacy ? (activeCount > 1 ? 80 : 60) : 0
-    height: hasActivePrivacy ? 30 : 0
-    radius: Theme.cornerRadius
+    width: hasActivePrivacy ? (contentWidth + horizontalPadding * 2) : 0
+    height: hasActivePrivacy ? widgetHeight : 0
+    radius: SettingsData.topBarNoBackground ? 0 : Theme.cornerRadius
     visible: hasActivePrivacy
     opacity: hasActivePrivacy ? 1 : 0
     enabled: hasActivePrivacy
+    color: {
+        if (SettingsData.topBarNoBackground) {
+            return "transparent";
+        }
 
-    color: Qt.rgba(
-               privacyArea.containsMouse ? Theme.errorPressed.r : Theme.errorHover.r,
-               privacyArea.containsMouse ? Theme.errorPressed.g : Theme.errorHover.g,
-               privacyArea.containsMouse ? Theme.errorPressed.b : Theme.errorHover.b,
-               (privacyArea.containsMouse ? Theme.errorPressed.a : Theme.errorHover.a)
-               * Theme.widgetTransparency)
+        return Qt.rgba(privacyArea.containsMouse ? Theme.errorPressed.r : Theme.errorHover.r, privacyArea.containsMouse ? Theme.errorPressed.g : Theme.errorHover.g, privacyArea.containsMouse ? Theme.errorPressed.b : Theme.errorHover.b, (privacyArea.containsMouse ? Theme.errorPressed.a : Theme.errorHover.a) * Theme.widgetTransparency);
+    }
 
     MouseArea {
+        // Privacy indicator click handler
+
         id: privacyArea
 
         anchors.fill: parent
@@ -37,7 +40,6 @@ Rectangle {
         enabled: hasActivePrivacy
         cursorShape: Qt.PointingHandCursor
         onClicked: {
-
         }
     }
 
@@ -59,6 +61,7 @@ Rectangle {
                 filled: true
                 anchors.centerIn: parent
             }
+
         }
 
         Item {
@@ -85,6 +88,7 @@ Rectangle {
                 anchors.rightMargin: -2
                 anchors.topMargin: -1
             }
+
         }
 
         Item {
@@ -100,15 +104,9 @@ Rectangle {
                 filled: true
                 anchors.centerIn: parent
             }
-        }
-    }
 
-    Behavior on width {
-        enabled: hasActivePrivacy && visible
-        NumberAnimation {
-            duration: Theme.mediumDuration
-            easing.type: Theme.emphasizedEasing
         }
+
     }
 
     Rectangle {
@@ -123,24 +121,16 @@ Rectangle {
         visible: false
         opacity: privacyArea.containsMouse && hasActivePrivacy ? 1 : 0
         z: 100
-
         x: (parent.width - width) / 2
         y: -height - Theme.spacingXS
 
         StyledText {
             id: tooltipText
+
             anchors.centerIn: parent
             text: PrivacyService.getPrivacySummary()
             font.pixelSize: Theme.fontSizeSmall
             color: Theme.surfaceText
-        }
-
-        Behavior on opacity {
-            enabled: hasActivePrivacy && root.visible
-            NumberAnimation {
-                duration: Theme.shortDuration
-                easing.type: Theme.standardEasing
-            }
         }
 
         Rectangle {
@@ -154,5 +144,27 @@ Rectangle {
             anchors.top: parent.bottom
             anchors.topMargin: -4
         }
+
+        Behavior on opacity {
+            enabled: hasActivePrivacy && root.visible
+
+            NumberAnimation {
+                duration: Theme.shortDuration
+                easing.type: Theme.standardEasing
+            }
+
+        }
+
     }
+
+    Behavior on width {
+        enabled: hasActivePrivacy && visible
+
+        NumberAnimation {
+            duration: Theme.mediumDuration
+            easing.type: Theme.emphasizedEasing
+        }
+
+    }
+
 }

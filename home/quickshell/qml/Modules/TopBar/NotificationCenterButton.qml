@@ -10,25 +10,31 @@ Rectangle {
     property string section: "right"
     property var popupTarget: null
     property var parentScreen: null
+    property real widgetHeight: 30
+    property real barHeight: 48
+    readonly property real horizontalPadding: SettingsData.topBarNoBackground ? 0 : Math.max(Theme.spacingXS, Theme.spacingS * (widgetHeight / 30))
 
-    signal clicked
+    signal clicked()
 
-    width: 40
-    height: 30
-    radius: Theme.cornerRadius
+    width: notificationIcon.width + horizontalPadding * 2
+    height: widgetHeight
+    radius: SettingsData.topBarNoBackground ? 0 : Theme.cornerRadius
     color: {
-        const baseColor = notificationArea.containsMouse
-                        || root.isActive ? Theme.primaryPressed : Theme.secondaryHover
-        return Qt.rgba(baseColor.r, baseColor.g, baseColor.b,
-                       baseColor.a * Theme.widgetTransparency)
+        if (SettingsData.topBarNoBackground) {
+            return "transparent";
+        }
+
+        const baseColor = notificationArea.containsMouse || root.isActive ? Theme.primaryPressed : Theme.secondaryHover;
+        return Qt.rgba(baseColor.r, baseColor.g, baseColor.b, baseColor.a * Theme.widgetTransparency);
     }
 
     DankIcon {
+        id: notificationIcon
+
         anchors.centerIn: parent
         name: SessionData.doNotDisturb ? "notifications_off" : "notifications"
         size: Theme.iconSize - 6
-        color: SessionData.doNotDisturb ? Theme.error : (notificationArea.containsMouse
-                                                         || root.isActive ? Theme.primary : Theme.surfaceText)
+        color: SessionData.doNotDisturb ? Theme.error : (notificationArea.containsMouse || root.isActive ? Theme.primary : Theme.surfaceText)
     }
 
     Rectangle {
@@ -38,8 +44,8 @@ Rectangle {
         color: Theme.error
         anchors.right: parent.right
         anchors.top: parent.top
-        anchors.rightMargin: 6
-        anchors.topMargin: 6
+        anchors.rightMargin: SettingsData.topBarNoBackground ? 0 : 6
+        anchors.topMargin: SettingsData.topBarNoBackground ? 0 : 6
         visible: root.hasUnread
     }
 
@@ -51,15 +57,13 @@ Rectangle {
         cursorShape: Qt.PointingHandCursor
         onPressed: {
             if (popupTarget && popupTarget.setTriggerPosition) {
-                var globalPos = mapToGlobal(0, 0)
-                var currentScreen = parentScreen || Screen
-                var screenX = currentScreen.x || 0
-                var relativeX = globalPos.x - screenX
-                popupTarget.setTriggerPosition(
-                            relativeX, Theme.barHeight + Theme.spacingXS,
-                            width, section, currentScreen)
+                const globalPos = mapToGlobal(0, 0);
+                const currentScreen = parentScreen || Screen;
+                const screenX = currentScreen.x || 0;
+                const relativeX = globalPos.x - screenX;
+                popupTarget.setTriggerPosition(relativeX, barHeight + Theme.spacingXS, width, section, currentScreen);
             }
-            root.clicked()
+            root.clicked();
         }
     }
 
@@ -68,5 +72,7 @@ Rectangle {
             duration: Theme.shortDuration
             easing.type: Theme.standardEasing
         }
+
     }
+
 }

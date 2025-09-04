@@ -1,15 +1,15 @@
 pragma Singleton
 
-pragma ComponentBehavior
+pragma ComponentBehavior: Bound
 
 import QtQuick
 import Quickshell
 import Quickshell.Io
+import Quickshell.Wayland
 
 Singleton {
     id: root
 
-    // Workspace management
     property var workspaces: ({})
     property var allWorkspaces: []
     property int focusedWorkspaceIndex: 0
@@ -17,50 +17,26 @@ Singleton {
     property var currentOutputWorkspaces: []
     property string currentOutput: ""
 
-    // Output/Monitor management
-    property var outputs: ({}) // Map of output name to output info with positions
+    property var outputs: ({})
 
-    // Window management
     property var windows: []
-    property int focusedWindowIndex: -1
-    property string focusedWindowTitle: "(No active window)"
-    property string focusedWindowId: ""
 
-    // Overview state
     property bool inOverview: false
 
-    // Config validation
+    property int currentKeyboardLayoutIndex: 0
+    property var keyboardLayoutNames: []
+
     property string configValidationOutput: ""
     property bool hasInitialConnection: false
 
-    signal windowOpenedOrChanged(var windowData)
-
-    // Feature availability
-    property bool niriAvailable: false
-
     readonly property string socketPath: Quickshell.env("NIRI_SOCKET")
 
-    Component.onCompleted: checkNiriAvailability()
-
-    Process {
-        id: niriCheck
-        command: ["test", "-S", root.socketPath]
-
-        onExited: exitCode => {
-            root.niriAvailable = exitCode === 0
-            if (root.niriAvailable) {
-                eventStreamSocket.connected = true
-                fetchOutputs()
-            }
-        }
-    }
-
-    function checkNiriAvailability() {
-        niriCheck.running = true
+    Component.onCompleted: {
+        fetchOutputs()
     }
 
     function fetchOutputs() {
-        if (niriAvailable) {
+        if (CompositorService.isNiri) {
             outputsProcess.running = true
         }
     }
@@ -72,11 +48,9 @@ Singleton {
         stdout: StdioCollector {
             onStreamFinished: {
                 try {
-                    var outputsData = JSON.parse(text)
+                    const outputsData = JSON.parse(text)
                     outputs = outputsData
-                    console.log("NiriService: Loaded",
-                                Object.keys(outputsData).length, "outputs")
-                    // Re-sort windows with monitor positions
+                    console.log("NiriService: Loaded", Object.keys(outputsData).length, "outputs")
                     if (windows.length > 0) {
                         windows = sortWindowsByLayout(windows)
                     }
@@ -88,9 +62,7 @@ Singleton {
 
         onExited: exitCode => {
             if (exitCode !== 0) {
-                console.warn(
-                    "NiriService: Failed to fetch outputs, exit code:",
-                    exitCode)
+                console.warn("NiriService: Failed to fetch outputs, exit code:", exitCode)
             }
         }
     }
@@ -98,7 +70,7 @@ Singleton {
     Socket {
         id: eventStreamSocket
         path: root.socketPath
-        connected: false
+        connected: CompositorService.isNiri
 
         onConnectionStateChanged: {
             if (connected) {
@@ -121,64 +93,45 @@ Singleton {
     Socket {
         id: requestSocket
         path: root.socketPath
-        connected: root.niriAvailable
+        connected: CompositorService.isNiri
     }
 
     function sortWindowsByLayout(windowList) {
         return [...windowList].sort((a, b) => {
-                                        // Get workspace info for both windows
-                                        var aWorkspace = workspaces[a.workspace_id]
-                                        var bWorkspace = workspaces[b.workspace_id]
+                                        const aWorkspace = workspaces[a.workspace_id]
+                                        const bWorkspace = workspaces[b.workspace_id]
 
                                         if (aWorkspace && bWorkspace) {
-                                            var aOutput = aWorkspace.output
-                                            var bOutput = bWorkspace.output
+                                            const aOutput = aWorkspace.output
+                                            const bOutput = bWorkspace.output
 
-                                            // 1. First, sort by monitor position (left to right, top to bottom)
-                                            var aOutputInfo = outputs[aOutput]
-                                            var bOutputInfo = outputs[bOutput]
+                                            const aOutputInfo = outputs[aOutput]
+                                            const bOutputInfo = outputs[bOutput]
 
-                                            if (aOutputInfo && bOutputInfo
-                                                && aOutputInfo.logical
-                                                && bOutputInfo.logical) {
-                                                // Sort by monitor X position (left to right)
-                                                if (aOutputInfo.logical.x
-                                                    !== bOutputInfo.logical.x) {
-                                                    return aOutputInfo.logical.x
-                                                    - bOutputInfo.logical.x
+                                            if (aOutputInfo && bOutputInfo && aOutputInfo.logical && bOutputInfo.logical) {
+                                                if (aOutputInfo.logical.x !== bOutputInfo.logical.x) {
+                                                    return aOutputInfo.logical.x - bOutputInfo.logical.x
                                                 }
-                                                // If same X, sort by Y position (top to bottom)
-                                                if (aOutputInfo.logical.y
-                                                    !== bOutputInfo.logical.y) {
-                                                    return aOutputInfo.logical.y
-                                                    - bOutputInfo.logical.y
+                                                if (aOutputInfo.logical.y !== bOutputInfo.logical.y) {
+                                                    return aOutputInfo.logical.y - bOutputInfo.logical.y
                                                 }
                                             }
 
-                                            // 2. If same monitor, sort by workspace index
-                                            if (aOutput === bOutput
-                                                && aWorkspace.idx !== bWorkspace.idx) {
+                                            if (aOutput === bOutput && aWorkspace.idx !== bWorkspace.idx) {
                                                 return aWorkspace.idx - bWorkspace.idx
                                             }
                                         }
 
-                                        // 3. If same workspace, sort by actual position within workspace
-                                        if (a.workspace_id === b.workspace_id
-                                            && a.layout && b.layout) {
+                                        if (a.workspace_id === b.workspace_id && a.layout && b.layout) {
 
-                                            // Use pos_in_scrolling_layout [x, y] coordinates
-                                            if (a.layout.pos_in_scrolling_layout
-                                                && b.layout.pos_in_scrolling_layout) {
-                                                var aPos = a.layout.pos_in_scrolling_layout
-                                                var bPos = b.layout.pos_in_scrolling_layout
+                                            if (a.layout.pos_in_scrolling_layout && b.layout.pos_in_scrolling_layout) {
+                                                const aPos = a.layout.pos_in_scrolling_layout
+                                                const bPos = b.layout.pos_in_scrolling_layout
 
-                                                if (aPos.length > 1
-                                                    && bPos.length > 1) {
-                                                    // Sort by X (horizontal) position first
+                                                if (aPos.length > 1 && bPos.length > 1) {
                                                     if (aPos[0] !== bPos[0]) {
                                                         return aPos[0] - bPos[0]
                                                     }
-                                                    // Then sort by Y (vertical) position
                                                     if (aPos[1] !== bPos[1]) {
                                                         return aPos[1] - bPos[1]
                                                     }
@@ -186,35 +139,50 @@ Singleton {
                                             }
                                         }
 
-                                        // 4. Fallback to window ID for consistent ordering
                                         return a.id - b.id
                                     })
     }
 
     function handleNiriEvent(event) {
-        if (event.WorkspacesChanged) {
-            handleWorkspacesChanged(event.WorkspacesChanged)
-        } else if (event.WorkspaceActivated) {
-            handleWorkspaceActivated(event.WorkspaceActivated)
-        } else if (event.WorkspaceActiveWindowChanged) {
-            handleWorkspaceActiveWindowChanged(
-                        event.WorkspaceActiveWindowChanged)
-        } else if (event.WindowsChanged) {
-            handleWindowsChanged(event.WindowsChanged)
-        } else if (event.WindowClosed) {
-            handleWindowClosed(event.WindowClosed)
-        } else if (event.WindowFocusChanged) {
-            handleWindowFocusChanged(event.WindowFocusChanged)
-        } else if (event.WindowOpenedOrChanged) {
-            handleWindowOpenedOrChanged(event.WindowOpenedOrChanged)
-        } else if (event.WindowLayoutsChanged) {
-            handleWindowLayoutsChanged(event.WindowLayoutsChanged)
-        } else if (event.OutputsChanged) {
-            handleOutputsChanged(event.OutputsChanged)
-        } else if (event.OverviewOpenedOrClosed) {
-            handleOverviewChanged(event.OverviewOpenedOrClosed)
-        } else if (event.ConfigLoaded) {
-            handleConfigLoaded(event.ConfigLoaded)
+        const eventType = Object.keys(event)[0];
+        
+        switch (eventType) {
+            case 'WorkspacesChanged':
+                handleWorkspacesChanged(event.WorkspacesChanged);
+                break;
+            case 'WorkspaceActivated':
+                handleWorkspaceActivated(event.WorkspaceActivated);
+                break;
+            case 'WorkspaceActiveWindowChanged':
+                handleWorkspaceActiveWindowChanged(event.WorkspaceActiveWindowChanged);
+                break;
+            case 'WindowsChanged':
+                handleWindowsChanged(event.WindowsChanged);
+                break;
+            case 'WindowClosed':
+                handleWindowClosed(event.WindowClosed);
+                break;
+            case 'WindowOpenedOrChanged':
+                handleWindowOpenedOrChanged(event.WindowOpenedOrChanged);
+                break;
+            case 'WindowLayoutsChanged':
+                handleWindowLayoutsChanged(event.WindowLayoutsChanged);
+                break;
+            case 'OutputsChanged':
+                handleOutputsChanged(event.OutputsChanged);
+                break;
+            case 'OverviewOpenedOrClosed':
+                handleOverviewChanged(event.OverviewOpenedOrClosed);
+                break;
+            case 'ConfigLoaded':
+                handleConfigLoaded(event.ConfigLoaded);
+                break;
+            case 'KeyboardLayoutsChanged':
+                handleKeyboardLayoutsChanged(event.KeyboardLayoutsChanged);
+                break;
+            case 'KeyboardLayoutSwitched':
+                handleKeyboardLayoutSwitched(event.KeyboardLayoutSwitched);
+                break;
         }
     }
 
@@ -230,7 +198,7 @@ Singleton {
 
         focusedWorkspaceIndex = allWorkspaces.findIndex(w => w.is_focused)
         if (focusedWorkspaceIndex >= 0) {
-            var focusedWs = allWorkspaces[focusedWorkspaceIndex]
+            const focusedWs = allWorkspaces[focusedWorkspaceIndex]
             focusedWorkspaceId = focusedWs.id
             currentOutput = focusedWs.output || ""
         } else {
@@ -243,8 +211,9 @@ Singleton {
 
     function handleWorkspaceActivated(data) {
         const ws = root.workspaces[data.id]
-        if (!ws)
+        if (!ws) {
             return
+        }
         const output = ws.output
 
         for (const id in root.workspaces) {
@@ -267,27 +236,18 @@ Singleton {
             currentOutput = allWorkspaces[focusedWorkspaceIndex].output || ""
         }
 
-        allWorkspaces = Object.values(root.workspaces).sort(
-                    (a, b) => a.idx - b.idx)
+        allWorkspaces = Object.values(root.workspaces).sort((a, b) => a.idx - b.idx)
 
         updateCurrentOutputWorkspaces()
         workspacesChanged()
     }
 
     function handleWorkspaceActiveWindowChanged(data) {
-        // Update the focused window when workspace's active window changes
-        // This is crucial for handling floating window close scenarios
-        if (data.active_window_id !== null
-                && data.active_window_id !== undefined) {
-            focusedWindowId = String(data.active_window_id)
-            focusedWindowIndex = windows.findIndex(
-                        w => w.id == data.active_window_id)
-
-            // Create new windows array with updated focus states to trigger property change
-            let updatedWindows = []
+        if (data.active_window_id !== null && data.active_window_id !== undefined) {
+            const updatedWindows = []
             for (var i = 0; i < windows.length; i++) {
-                let w = windows[i]
-                let updatedWindow = {}
+                const w = windows[i]
+                const updatedWindow = {}
                 for (let prop in w) {
                     updatedWindow[prop] = w[prop]
                 }
@@ -295,95 +255,52 @@ Singleton {
                 updatedWindows.push(updatedWindow)
             }
             windows = updatedWindows
-
-            updateFocusedWindow()
         } else {
-            // No active window in this workspace
-            focusedWindowId = ""
-            focusedWindowIndex = -1
-
-            // Create new windows array with cleared focus states for this workspace
-            let updatedWindows = []
+            const updatedWindows = []
             for (var i = 0; i < windows.length; i++) {
-                let w = windows[i]
-                let updatedWindow = {}
+                const w = windows[i]
+                const updatedWindow = {}
                 for (let prop in w) {
                     updatedWindow[prop] = w[prop]
                 }
-                updatedWindow.is_focused = w.workspace_id
-                        == data.workspace_id ? false : w.is_focused
+                updatedWindow.is_focused = w.workspace_id == data.workspace_id ? false : w.is_focused
                 updatedWindows.push(updatedWindow)
             }
             windows = updatedWindows
-
-            updateFocusedWindow()
         }
     }
 
     function handleWindowsChanged(data) {
         windows = sortWindowsByLayout(data.windows)
-
-        // Extract focused window from initial state
-        var focusedWindow = windows.find(w => w.is_focused)
-        if (focusedWindow) {
-            focusedWindowId = String(focusedWindow.id)
-            focusedWindowIndex = windows.findIndex(
-                        w => w.id === focusedWindow.id)
-        } else {
-            focusedWindowId = ""
-            focusedWindowIndex = -1
-        }
-
-        updateFocusedWindow()
     }
 
     function handleWindowClosed(data) {
         windows = windows.filter(w => w.id !== data.id)
-        updateFocusedWindow()
-    }
-
-    function handleWindowFocusChanged(data) {
-        if (data.id) {
-            focusedWindowId = data.id
-            focusedWindowIndex = windows.findIndex(w => w.id === data.id)
-        } else {
-            focusedWindowId = ""
-            focusedWindowIndex = -1
-        }
-        updateFocusedWindow()
     }
 
     function handleWindowOpenedOrChanged(data) {
-        if (!data.window)
+        if (!data.window) {
             return
+        }
 
         const window = data.window
         const existingIndex = windows.findIndex(w => w.id === window.id)
 
         if (existingIndex >= 0) {
-            let updatedWindows = [...windows]
+            const updatedWindows = [...windows]
             updatedWindows[existingIndex] = window
             windows = sortWindowsByLayout(updatedWindows)
         } else {
             windows = sortWindowsByLayout([...windows, window])
         }
-
-        if (window.is_focused) {
-            focusedWindowId = window.id
-            focusedWindowIndex = windows.findIndex(w => w.id === window.id)
-        }
-
-        updateFocusedWindow()
-
-        windowOpenedOrChanged(window)
     }
 
     function handleWindowLayoutsChanged(data) {
-        // Update layout positions for windows that have changed
-        if (!data.changes)
+        if (!data.changes) {
             return
+        }
 
-        let updatedWindows = [...windows]
+        const updatedWindows = [...windows]
         let hasChanges = false
 
         for (const change of data.changes) {
@@ -392,8 +309,7 @@ Singleton {
 
             const windowIndex = updatedWindows.findIndex(w => w.id === windowId)
             if (windowIndex >= 0) {
-                // Create a new object with updated layout
-                var updatedWindow = {}
+                const updatedWindow = {}
                 for (var prop in updatedWindows[windowIndex]) {
                     updatedWindow[prop] = updatedWindows[windowIndex][prop]
                 }
@@ -405,7 +321,6 @@ Singleton {
 
         if (hasChanges) {
             windows = sortWindowsByLayout(updatedWindows)
-            // Trigger update in dock and widgets
             windowsChanged()
         }
     }
@@ -413,7 +328,6 @@ Singleton {
     function handleOutputsChanged(data) {
         if (data.outputs) {
             outputs = data.outputs
-            // Re-sort windows with new monitor positions
             windows = sortWindowsByLayout(windows)
         }
     }
@@ -427,8 +341,7 @@ Singleton {
             validateProcess.running = true
         } else {
             configValidationOutput = ""
-            if (ToastService.toastVisible
-                    && ToastService.currentLevel === ToastService.levelError) {
+            if (ToastService.toastVisible && ToastService.currentLevel === ToastService.levelError) {
                 ToastService.hideToast()
             }
             if (hasInitialConnection) {
@@ -441,6 +354,15 @@ Singleton {
         }
     }
 
+    function handleKeyboardLayoutsChanged(data) {
+        keyboardLayoutNames = data.keyboard_layouts.names
+        currentKeyboardLayoutIndex = data.keyboard_layouts.current_idx
+    }
+
+    function handleKeyboardLayoutSwitched(data) {
+        currentKeyboardLayoutIndex = data.idx
+    }
+
     Process {
         id: validateProcess
         command: ["niri", "validate"]
@@ -449,13 +371,10 @@ Singleton {
         stderr: StdioCollector {
             onStreamFinished: {
                 const lines = text.split('\n')
-                const trimmedLines = lines.map(line => line.replace(/\s+$/,
-                                                                    '')).filter(
-                    line => line.length > 0)
+                const trimmedLines = lines.map(line => line.replace(/\s+$/, '')).filter(line => line.length > 0)
                 configValidationOutput = trimmedLines.join('\n').trim()
                 if (hasInitialConnection) {
-                    ToastService.showError("niri: failed to load config",
-                                           configValidationOutput)
+                    ToastService.showError("niri: failed to load config", configValidationOutput)
                 }
             }
         }
@@ -473,22 +392,14 @@ Singleton {
             return
         }
 
-        var outputWs = allWorkspaces.filter(w => w.output === currentOutput)
+        const outputWs = allWorkspaces.filter(w => w.output === currentOutput)
         currentOutputWorkspaces = outputWs
     }
 
-    function updateFocusedWindow() {
-        if (focusedWindowIndex >= 0 && focusedWindowIndex < windows.length) {
-            var focusedWin = windows[focusedWindowIndex]
-            focusedWindowTitle = focusedWin.title || "(Unnamed window)"
-        } else {
-            focusedWindowTitle = "(No active window)"
-        }
-    }
-
     function send(request) {
-        if (!niriAvailable || !requestSocket.connected)
+        if (!CompositorService.isNiri || !requestSocket.connected) {
             return false
+        }
         requestSocket.write(JSON.stringify(request) + "\n")
         return true
     }
@@ -505,19 +416,6 @@ Singleton {
                     })
     }
 
-    function getCurrentOutputWorkspaceNumbers() {
-        return currentOutputWorkspaces.map(
-                    w => w.idx + 1) // niri uses 0-based, UI shows 1-based
-    }
-
-    function getCurrentWorkspaceNumber() {
-        if (focusedWorkspaceIndex >= 0
-                && focusedWorkspaceIndex < allWorkspaces.length) {
-            return allWorkspaces[focusedWorkspaceIndex].idx + 1
-        }
-        return 1
-    }
-
     function focusWindow(windowId) {
         return send({
                         "Action": {
@@ -528,11 +426,30 @@ Singleton {
                     })
     }
 
-    function closeWindow(windowId) {
+    function getCurrentOutputWorkspaceNumbers() {
+        return currentOutputWorkspaces.map(w => w.idx + 1)
+    }
+
+    function getCurrentWorkspaceNumber() {
+        if (focusedWorkspaceIndex >= 0 && focusedWorkspaceIndex < allWorkspaces.length) {
+            return allWorkspaces[focusedWorkspaceIndex].idx + 1
+        }
+        return 1
+    }
+
+    function getCurrentKeyboardLayoutName() {
+        if (currentKeyboardLayoutIndex >= 0 && currentKeyboardLayoutIndex < keyboardLayoutNames.length) {
+            return keyboardLayoutNames[currentKeyboardLayoutIndex]
+        }
+
+        return ""
+    }
+
+    function cycleKeyboardLayout() {
         return send({
                         "Action": {
-                            "CloseWindow": {
-                                "id": windowId
+                            "SwitchLayout": {
+                                "layout": "Next"
                             }
                         }
                     })
@@ -548,58 +465,94 @@ Singleton {
                     })
     }
 
-    function getWindowsByAppId(appId) {
-        if (!appId)
-            return []
-        return windows.filter(w => w.app_id && w.app_id.toLowerCase(
-                                  ) === appId.toLowerCase())
+    function findNiriWindow(toplevel) {
+        if (!toplevel.appId) {
+            return null
+        }
+
+        for (var j = 0; j < windows.length; j++) {
+            const niriWindow = windows[j]
+            if (niriWindow.app_id === toplevel.appId) {
+                if (!niriWindow.title || niriWindow.title === toplevel.title) {
+                    return {
+                        "niriIndex": j,
+                        "niriWindow": niriWindow
+                    }
+                }
+            }
+        }
+        return null
     }
 
-    function getRunningAppIds() {
-        var appIds = new Set()
-        windows.forEach(w => {
-                            if (w.app_id) {
-                                appIds.add(w.app_id.toLowerCase())
-                            }
-                        })
-        return Array.from(appIds)
+    function sortToplevels(toplevels) {
+        if (!toplevels || toplevels.length === 0 || !CompositorService.isNiri || windows.length === 0) {
+            return [...toplevels]
+        }
+
+        return [...toplevels].sort((a, b) => {
+                                       const aNiri = findNiriWindow(a)
+                                       const bNiri = findNiriWindow(b)
+
+                                       if (!aNiri && !bNiri) {
+                                           return 0
+                                       }
+                                       if (!aNiri) {
+                                           return 1
+                                       }
+                                       if (!bNiri) {
+                                           return -1
+                                       }
+
+                                       const aWindow = aNiri.niriWindow
+                                       const bWindow = bNiri.niriWindow
+                                       const aWorkspace = allWorkspaces.find(ws => ws.id === aWindow.workspace_id)
+                                       const bWorkspace = allWorkspaces.find(ws => ws.id === bWindow.workspace_id)
+
+                                       if (aWorkspace && bWorkspace) {
+                                           if (aWorkspace.output !== bWorkspace.output) {
+                                               return aWorkspace.output.localeCompare(bWorkspace.output)
+                                           }
+
+                                           if (aWorkspace.output === bWorkspace.output && aWorkspace.idx !== bWorkspace.idx) {
+                                               return aWorkspace.idx - bWorkspace.idx
+                                           }
+                                       }
+
+                                       if (aWindow.workspace_id === bWindow.workspace_id && aWindow.layout && bWindow.layout && aWindow.layout.pos_in_scrolling_layout && bWindow.layout.pos_in_scrolling_layout) {
+                                           const aPos = aWindow.layout.pos_in_scrolling_layout
+                                           const bPos = bWindow.layout.pos_in_scrolling_layout
+
+                                           if (aPos.length > 1 && bPos.length > 1) {
+                                               if (aPos[0] !== bPos[0]) {
+                                                   return aPos[0] - bPos[0]
+                                               }
+                                               if (aPos[1] !== bPos[1]) {
+                                                   return aPos[1] - bPos[1]
+                                               }
+                                           }
+                                       }
+
+                                       return aWindow.id - bWindow.id
+                                   })
     }
 
-    function getRunningAppIdsOrdered() {
-        // Get unique app IDs in order they appear in the Niri layout
-        // Windows are sorted by workspace and then by position within the workspace
-        var sortedWindows = [...windows].sort((a, b) => {
-                                                  // If both have layout info, sort by position
-                                                  if (a.layout && b.layout
-                                                      && a.layout.pos_in_scrolling_layout
-                                                      && b.layout.pos_in_scrolling_layout) {
-                                                      var aPos = a.layout.pos_in_scrolling_layout
-                                                      var bPos = b.layout.pos_in_scrolling_layout
+    function filterCurrentWorkspace(toplevels, screenName) {
+        let currentWorkspaceId = null
+        for (var i = 0; i < allWorkspaces.length; i++) {
+            const ws = allWorkspaces[i]
+            if (ws.output === screenName && ws.is_active) {
+                currentWorkspaceId = ws.id
+                break
+            }
+        }
 
-                                                      // First compare workspace index
-                                                      if (aPos[0] !== bPos[0]) {
-                                                          return aPos[0] - bPos[0]
-                                                      }
-                                                      // Then compare position within workspace
-                                                      return aPos[1] - bPos[1]
-                                                  }
-                                                  // Fallback to window ID if no layout info
-                                                  return a.id - b.id
-                                              })
+        if (currentWorkspaceId === null) {
+            return toplevels
+        }
 
-        var appIds = []
-        var seenApps = new Set()
-
-        sortedWindows.forEach(w => {
-                                  if (w.app_id) {
-                                      var lowerAppId = w.app_id.toLowerCase()
-                                      if (!seenApps.has(lowerAppId)) {
-                                          appIds.push(lowerAppId)
-                                          seenApps.add(lowerAppId)
-                                      }
-                                  }
-                              })
-
-        return appIds
+        return toplevels.filter(toplevel => {
+                                    const niriMatch = findNiriWindow(toplevel)
+                                    return niriMatch && niriMatch.niriWindow.workspace_id === currentWorkspaceId
+                                })
     }
 }
