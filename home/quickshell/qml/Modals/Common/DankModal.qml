@@ -7,6 +7,8 @@ import qs.Common
 PanelWindow {
     id: root
 
+    WlrLayershell.namespace: "quickshell:modal"
+
     property alias content: contentLoader.sourceComponent
     property alias contentLoader: contentLoader
     property real width: 400
@@ -60,7 +62,7 @@ PanelWindow {
 
     visible: shouldBeVisible
     color: "transparent"
-    WlrLayershell.layer: WlrLayershell.Overlay
+    WlrLayershell.layer: WlrLayershell.Top // if set to overlay -> virtual keyboards can be stuck under modal
     WlrLayershell.exclusiveZone: -1
     WlrLayershell.keyboardFocus: shouldHaveFocus ? WlrKeyboardFocus.Exclusive : WlrKeyboardFocus.None
     onVisibleChanged: {

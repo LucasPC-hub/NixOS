@@ -56,7 +56,6 @@ DankPopout {
     triggerY: Theme.barHeight - 4 + SettingsData.topBarSpacing + Theme.spacingXS
     triggerWidth: 80
     positioning: "center"
-    WlrLayershell.namespace: "quickshell-controlcenter"
     screen: triggerScreen
     shouldBeVisible: false
     visible: shouldBeVisible
@@ -92,6 +91,7 @@ DankPopout {
                     border.width: 1
                     antialiasing: true
                     smooth: true
+                    z: 0
 
             Column {
                 id: mainColumn
@@ -526,12 +526,13 @@ DankPopout {
                         spacing: Theme.spacingM
 
                         AudioSliderRow {
-                            width: (parent.width - Theme.spacingM) / 2
+                            width: SettingsData.hideBrightnessSlider ? parent.width - Theme.spacingM : (parent.width - Theme.spacingM) / 2
                         }
 
                         Item {
                             width: (parent.width - Theme.spacingM) / 2
                             height: parent.height
+                            visible: !SettingsData.hideBrightnessSlider
                             
                             BrightnessSliderRow {
                                 width: parent.width

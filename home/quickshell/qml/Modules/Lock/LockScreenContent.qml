@@ -14,6 +14,7 @@ Item {
 
     property string passwordBuffer: ""
     property bool demoMode: false
+    property string screenName: ""
 
     signal unlockRequested
 
@@ -57,17 +58,25 @@ Item {
 
     Loader {
         anchors.fill: parent
-        active: !SessionData.wallpaperPath || (SessionData.wallpaperPath && SessionData.wallpaperPath.startsWith("#"))
+        active: {
+            var currentWallpaper = SessionData.getMonitorWallpaper(screenName)
+            return !currentWallpaper || (currentWallpaper && currentWallpaper.startsWith("#"))
+        }
         asynchronous: true
 
-        sourceComponent: DankBackdrop {}
+        sourceComponent: DankBackdrop {
+            screenName: root.screenName
+        }
     }
 
     Image {
         id: wallpaperBackground
 
         anchors.fill: parent
-        source: (SessionData.wallpaperPath && !SessionData.wallpaperPath.startsWith("#")) ? SessionData.wallpaperPath : ""
+        source: {
+            var currentWallpaper = SessionData.getMonitorWallpaper(screenName)
+            return (currentWallpaper && !currentWallpaper.startsWith("#")) ? currentWallpaper : ""
+        }
         fillMode: Image.PreserveAspectCrop
         smooth: true
         asynchronous: false
@@ -119,11 +128,8 @@ Item {
                 anchors.horizontalCenter: parent.horizontalCenter
                 anchors.top: parent.top
                 text: {
-                    if (SettingsData.use24HourClock) {
-                        return systemClock.date.toLocaleTimeString(Qt.locale(), "HH:mm")
-                    } else {
-                        return systemClock.date.toLocaleTimeString(Qt.locale(), "h:mm AP")
-                    }
+                    const format = SettingsData.use24HourClock ? "HH:mm" : "h:mm AP"
+                    return systemClock.date.toLocaleTimeString(Qt.locale(), format)
                 }
                 font.pixelSize: 120
                 font.weight: Font.Light
@@ -793,6 +799,7 @@ Item {
             anchors.left: parent.left
             anchors.margins: Theme.spacingXL
             spacing: Theme.spacingL
+            visible: SettingsData.lockScreenShowPowerActions
 
             DankActionButton {
                 iconName: "power_settings_new"

@@ -16,11 +16,17 @@ Singleton {
     property string wallpaperPath: ""
     property string wallpaperLastPath: ""
     property string profileLastPath: ""
+    property bool perMonitorWallpaper: false
+    property var monitorWallpapers: ({})
     property bool doNotDisturb: false
     property bool nightModeEnabled: false
     property int nightModeTemperature: 4500
     property bool nightModeAutoEnabled: false
     property string nightModeAutoMode: "time"
+    
+    property bool hasTriedDefaultSession: false
+    readonly property string _stateUrl: StandardPaths.writableLocation(StandardPaths.GenericStateLocation)
+    readonly property string _stateDir: _stateUrl.startsWith("file://") ? _stateUrl.substring(7) : _stateUrl
     property int nightModeStartHour: 18
     property int nightModeStartMinute: 0
     property int nightModeEndHour: 6
@@ -39,6 +45,9 @@ Singleton {
     property string wallpaperCyclingTime: "06:00" // HH:mm format
     property string lastBrightnessDevice: ""
     property string notepadContent: ""
+    property string notepadCurrentFileName: ""
+    property string notepadCurrentFileUrl: ""
+    property string notepadLastSavedContent: ""
 
     Component.onCompleted: {
         loadSettings()
@@ -56,6 +65,8 @@ Singleton {
                 wallpaperPath = settings.wallpaperPath !== undefined ? settings.wallpaperPath : ""
                 wallpaperLastPath = settings.wallpaperLastPath !== undefined ? settings.wallpaperLastPath : ""
                 profileLastPath = settings.profileLastPath !== undefined ? settings.profileLastPath : ""
+                perMonitorWallpaper = settings.perMonitorWallpaper !== undefined ? settings.perMonitorWallpaper : false
+                monitorWallpapers = settings.monitorWallpapers !== undefined ? settings.monitorWallpapers : {}
                 doNotDisturb = settings.doNotDisturb !== undefined ? settings.doNotDisturb : false
                 nightModeEnabled = settings.nightModeEnabled !== undefined ? settings.nightModeEnabled : false
                 nightModeTemperature = settings.nightModeTemperature !== undefined ? settings.nightModeTemperature : 4500
@@ -92,6 +103,20 @@ Singleton {
                 wallpaperCyclingTime = settings.wallpaperCyclingTime !== undefined ? settings.wallpaperCyclingTime : "06:00"
                 lastBrightnessDevice = settings.lastBrightnessDevice !== undefined ? settings.lastBrightnessDevice : ""
                 notepadContent = settings.notepadContent !== undefined ? settings.notepadContent : ""
+                
+                // Apply dynamic theming if wallpaper exists and dynamic theming is enabled
+                if (wallpaperPath && wallpaperPath !== "") {
+                    if (typeof Theme !== "undefined") {
+                        if (typeof SettingsData !== "undefined" && SettingsData.wallpaperDynamicTheming) {
+                            Theme.switchTheme("dynamic")
+                            Theme.extractColors()
+                        }
+                        Theme.generateSystemThemesFromCurrentTheme()
+                    }
+                }
+                notepadCurrentFileName = settings.notepadCurrentFileName !== undefined ? settings.notepadCurrentFileName : ""
+                notepadCurrentFileUrl = settings.notepadCurrentFileUrl !== undefined ? settings.notepadCurrentFileUrl : ""
+                notepadLastSavedContent = settings.notepadLastSavedContent !== undefined ? settings.notepadLastSavedContent : ""
             }
         } catch (e) {
 
@@ -104,6 +129,8 @@ Singleton {
                                                 "wallpaperPath": wallpaperPath,
                                                 "wallpaperLastPath": wallpaperLastPath,
                                                 "profileLastPath": profileLastPath,
+                                                "perMonitorWallpaper": perMonitorWallpaper,
+                                                "monitorWallpapers": monitorWallpapers,
                                                 "doNotDisturb": doNotDisturb,
                                                 "nightModeEnabled": nightModeEnabled,
                                                 "nightModeTemperature": nightModeTemperature,
@@ -126,7 +153,10 @@ Singleton {
                                                 "wallpaperCyclingInterval": wallpaperCyclingInterval,
                                                 "wallpaperCyclingTime": wallpaperCyclingTime,
                                                 "lastBrightnessDevice": lastBrightnessDevice,
-                                                "notepadContent": notepadContent
+                                                "notepadContent": notepadContent,
+                                                "notepadCurrentFileName": notepadCurrentFileName,
+                                                "notepadCurrentFileUrl": notepadCurrentFileUrl,
+                                                "notepadLastSavedContent": notepadLastSavedContent
                                             }, null, 2))
     }
 
@@ -318,6 +348,56 @@ Singleton {
         saveSettings()
     }
 
+    function setPerMonitorWallpaper(enabled) {
+        perMonitorWallpaper = enabled
+        
+        // Disable automatic cycling when per-monitor mode is enabled
+        if (enabled && wallpaperCyclingEnabled) {
+            wallpaperCyclingEnabled = false
+        }
+        
+        saveSettings()
+
+        // Refresh dynamic theming when per-monitor mode changes
+        if (typeof Theme !== "undefined") {
+            if (typeof SettingsData !== "undefined" && SettingsData.wallpaperDynamicTheming) {
+                Theme.switchTheme("dynamic")
+                Theme.extractColors()
+            }
+            Theme.generateSystemThemesFromCurrentTheme()
+        }
+    }
+
+    function setMonitorWallpaper(screenName, path) {
+        var newMonitorWallpapers = Object.assign({}, monitorWallpapers)
+        if (path && path !== "") {
+            newMonitorWallpapers[screenName] = path
+        } else {
+            delete newMonitorWallpapers[screenName]
+        }
+        monitorWallpapers = newMonitorWallpapers
+        saveSettings()
+
+        // Trigger dynamic theming if this is the first monitor and dynamic theming is enabled
+        if (typeof Theme !== "undefined" && typeof Quickshell !== "undefined") {
+            var screens = Quickshell.screens
+            if (screens.length > 0 && screenName === screens[0].name) {
+                if (typeof SettingsData !== "undefined" && SettingsData.wallpaperDynamicTheming) {
+                    Theme.switchTheme("dynamic")
+                    Theme.extractColors()
+                }
+                Theme.generateSystemThemesFromCurrentTheme()
+            }
+        }
+    }
+
+    function getMonitorWallpaper(screenName) {
+        if (!perMonitorWallpaper) {
+            return wallpaperPath
+        }
+        return monitorWallpapers[screenName] || wallpaperPath
+    }
+
     function setLastBrightnessDevice(device) {
         lastBrightnessDevice = device
         saveSettings()
@@ -332,18 +412,45 @@ Singleton {
         watchChanges: true
         onLoaded: {
             parseSettings(settingsFile.text())
+            hasTriedDefaultSession = false
         }
-        onLoadFailed: error => {}
+        onLoadFailed: error => {
+            if (!hasTriedDefaultSession) {
+                hasTriedDefaultSession = true
+                defaultSessionCheckProcess.running = true
+            }
+        }
+    }
+
+    Process {
+        id: defaultSessionCheckProcess
+
+        command: ["sh", "-c", "CONFIG_DIR=\"" + _stateDir
+            + "/DankMaterialShell\"; if [ -f \"$CONFIG_DIR/default-session.json\" ] && [ ! -f \"$CONFIG_DIR/session.json\" ]; then cp \"$CONFIG_DIR/default-session.json\" \"$CONFIG_DIR/session.json\" && echo 'copied'; else echo 'not_found'; fi"]
+        running: false
+        onExited: exitCode => {
+            if (exitCode === 0) {
+                console.log("Copied default-session.json to session.json")
+                settingsFile.reload()
+            }
+        }
     }
 
     IpcHandler {
         target: "wallpaper"
 
         function get(): string {
+            if (root.perMonitorWallpaper) {
+                return "ERROR: Per-monitor mode enabled. Use getFor(screenName) instead."
+            }
             return root.wallpaperPath || ""
         }
 
         function set(path: string): string {
+            if (root.perMonitorWallpaper) {
+                return "ERROR: Per-monitor mode enabled. Use setFor(screenName, path) instead."
+            }
+
             if (!path) {
                 return "ERROR: No path provided"
             }
@@ -360,10 +467,17 @@ Singleton {
 
         function clear(): string {
             root.setWallpaper("")
-            return "SUCCESS: Wallpaper cleared"
+            root.setPerMonitorWallpaper(false)
+            root.monitorWallpapers = {}
+            root.saveSettings()
+            return "SUCCESS: All wallpapers cleared"
         }
 
         function next(): string {
+            if (root.perMonitorWallpaper) {
+                return "ERROR: Per-monitor mode enabled. Use nextFor(screenName) instead."
+            }
+
             if (!root.wallpaperPath) {
                 return "ERROR: No wallpaper set"
             }
@@ -377,6 +491,10 @@ Singleton {
         }
 
         function prev(): string {
+            if (root.perMonitorWallpaper) {
+                return "ERROR: Per-monitor mode enabled. Use prevFor(screenName) instead."
+            }
+
             if (!root.wallpaperPath) {
                 return "ERROR: No wallpaper set"
             }
@@ -386,6 +504,71 @@ Singleton {
                 return "SUCCESS: Cycling to previous wallpaper"
             } catch (e) {
                 return "ERROR: Failed to cycle wallpaper: " + e.toString()
+            }
+        }
+
+        function getFor(screenName: string): string {
+            if (!screenName) {
+                return "ERROR: No screen name provided"
+            }
+            return root.getMonitorWallpaper(screenName) || ""
+        }
+
+        function setFor(screenName: string, path: string): string {
+            if (!screenName) {
+                return "ERROR: No screen name provided"
+            }
+
+            if (!path) {
+                return "ERROR: No path provided"
+            }
+
+            var absolutePath = path.startsWith("/") ? path : StandardPaths.writableLocation(StandardPaths.HomeLocation) + "/" + path
+
+            try {
+                if (!root.perMonitorWallpaper) {
+                    root.setPerMonitorWallpaper(true)
+                }
+                root.setMonitorWallpaper(screenName, absolutePath)
+                return "SUCCESS: Wallpaper set for " + screenName + " to " + absolutePath
+            } catch (e) {
+                return "ERROR: Failed to set wallpaper for " + screenName + ": " + e.toString()
+            }
+        }
+
+        function nextFor(screenName: string): string {
+            if (!screenName) {
+                return "ERROR: No screen name provided"
+            }
+
+            var currentWallpaper = root.getMonitorWallpaper(screenName)
+            if (!currentWallpaper) {
+                return "ERROR: No wallpaper set for " + screenName
+            }
+
+            try {
+                WallpaperCyclingService.cycleNextForMonitor(screenName)
+                return "SUCCESS: Cycling to next wallpaper for " + screenName
+            } catch (e) {
+                return "ERROR: Failed to cycle wallpaper for " + screenName + ": " + e.toString()
+            }
+        }
+
+        function prevFor(screenName: string): string {
+            if (!screenName) {
+                return "ERROR: No screen name provided"
+            }
+
+            var currentWallpaper = root.getMonitorWallpaper(screenName)
+            if (!currentWallpaper) {
+                return "ERROR: No wallpaper set for " + screenName
+            }
+
+            try {
+                WallpaperCyclingService.cyclePrevForMonitor(screenName)
+                return "SUCCESS: Cycling to previous wallpaper for " + screenName
+            } catch (e) {
+                return "ERROR: Failed to cycle wallpaper for " + screenName + ": " + e.toString()
             }
         }
     }

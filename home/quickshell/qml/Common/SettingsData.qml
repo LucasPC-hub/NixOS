@@ -48,6 +48,7 @@ Singleton {
     property bool showWorkspacePadding: false
     property bool showWorkspaceApps: false
     property int maxWorkspaceIcons: 3
+    property bool workspacesPerMonitor: true
     property var workspaceNameIcons: ({})
     property bool clockCompactMode: false
     property bool focusedWindowCompactMode: false
@@ -80,6 +81,7 @@ Singleton {
     property string fontFamily: "Inter Variable"
     property string monoFontFamily: "Fira Code"
     property int fontWeight: Font.Normal
+    property real fontScale: 1.0
     property bool gtkThemingEnabled: false
     property bool qtThemingEnabled: false
     property bool showDock: false
@@ -93,6 +95,8 @@ Singleton {
     property real topBarInnerPadding: 8
     property bool topBarSquareCorners: false
     property bool topBarNoBackground: false
+    property bool lockScreenShowPowerActions: true
+    property bool hideBrightnessSlider: false
     property int notificationTimeoutLow: 5000
     property int notificationTimeoutNormal: 5000
     property int notificationTimeoutCritical: 0
@@ -199,6 +203,7 @@ Singleton {
                 showWorkspaceApps = settings.showWorkspaceApps !== undefined ? settings.showWorkspaceApps : false
                 maxWorkspaceIcons = settings.maxWorkspaceIcons !== undefined ? settings.maxWorkspaceIcons : 3
                 workspaceNameIcons = settings.workspaceNameIcons !== undefined ? settings.workspaceNameIcons : ({})
+                workspacesPerMonitor = settings.workspacesPerMonitor !== undefined ? settings.workspacesPerMonitor : true
                 clockCompactMode = settings.clockCompactMode !== undefined ? settings.clockCompactMode : false
                 focusedWindowCompactMode = settings.focusedWindowCompactMode !== undefined ? settings.focusedWindowCompactMode : false
                 runningAppsCompactMode = settings.runningAppsCompactMode !== undefined ? settings.runningAppsCompactMode : true
@@ -239,6 +244,7 @@ Singleton {
                 fontFamily = settings.fontFamily !== undefined ? settings.fontFamily : defaultFontFamily
                 monoFontFamily = settings.monoFontFamily !== undefined ? settings.monoFontFamily : defaultMonoFontFamily
                 fontWeight = settings.fontWeight !== undefined ? settings.fontWeight : Font.Normal
+                fontScale = settings.fontScale !== undefined ? settings.fontScale : 1.0
                 gtkThemingEnabled = settings.gtkThemingEnabled !== undefined ? settings.gtkThemingEnabled : false
                 qtThemingEnabled = settings.qtThemingEnabled !== undefined ? settings.qtThemingEnabled : false
                 showDock = settings.showDock !== undefined ? settings.showDock : false
@@ -255,6 +261,8 @@ Singleton {
                 topBarInnerPadding = settings.topBarInnerPadding !== undefined ? settings.topBarInnerPadding : 8
                 topBarSquareCorners = settings.topBarSquareCorners !== undefined ? settings.topBarSquareCorners : false
                 topBarNoBackground = settings.topBarNoBackground !== undefined ? settings.topBarNoBackground : false
+                lockScreenShowPowerActions = settings.lockScreenShowPowerActions !== undefined ? settings.lockScreenShowPowerActions : true
+                hideBrightnessSlider = settings.hideBrightnessSlider !== undefined ? settings.hideBrightnessSlider : false
                 screenPreferences = settings.screenPreferences !== undefined ? settings.screenPreferences : ({})
                 applyStoredTheme()
                 detectAvailableIconThemes()
@@ -307,6 +315,8 @@ Singleton {
                                                 "showWorkspaceIndex": showWorkspaceIndex,
                                                 "showWorkspacePadding": showWorkspacePadding,
                                                 "showWorkspaceApps": showWorkspaceApps,
+                                                "maxWorkspaceIcons": maxWorkspaceIcons,
+                                                "workspacesPerMonitor": workspacesPerMonitor,
                                                 "workspaceNameIcons": workspaceNameIcons,
                                                 "clockCompactMode": clockCompactMode,
                                                 "focusedWindowCompactMode": focusedWindowCompactMode,
@@ -330,6 +340,7 @@ Singleton {
                                                 "fontFamily": fontFamily,
                                                 "monoFontFamily": monoFontFamily,
                                                 "fontWeight": fontWeight,
+                                                "fontScale": fontScale,
                                                 "gtkThemingEnabled": gtkThemingEnabled,
                                                 "qtThemingEnabled": qtThemingEnabled,
                                                 "showDock": showDock,
@@ -343,6 +354,8 @@ Singleton {
                                                 "topBarInnerPadding": topBarInnerPadding,
                                                 "topBarSquareCorners": topBarSquareCorners,
                                                 "topBarNoBackground": topBarNoBackground,
+                                                "lockScreenShowPowerActions": lockScreenShowPowerActions,
+                                                "hideBrightnessSlider": hideBrightnessSlider,
                                                 "notificationTimeoutLow": notificationTimeoutLow,
                                                 "notificationTimeoutNormal": notificationTimeoutNormal,
                                                 "notificationTimeoutCritical": notificationTimeoutCritical,
@@ -367,6 +380,11 @@ Singleton {
 
     function setMaxWorkspaceIcons(maxIcons) {
         maxWorkspaceIcons = maxIcons
+        saveSettings()
+    }
+
+    function setWorkspacesPerMonitor(enabled) {
+        workspacesPerMonitor = enabled
         saveSettings()
     }
 
@@ -812,6 +830,11 @@ Singleton {
         saveSettings()
     }
 
+    function setFontScale(scale) {
+        fontScale = scale
+        saveSettings()
+    }
+
     function setGtkThemingEnabled(enabled) {
         gtkThemingEnabled = enabled
         saveSettings()
@@ -900,6 +923,16 @@ Singleton {
 
     function setTopBarNoBackground(enabled) {
         topBarNoBackground = enabled
+        saveSettings()
+    }
+
+    function setLockScreenShowPowerActions(enabled) {
+        lockScreenShowPowerActions = enabled
+        saveSettings()
+    }
+
+    function setHideBrightnessSlider(enabled) {
+        hideBrightnessSlider = enabled
         saveSettings()
     }
 
@@ -1060,22 +1093,22 @@ Singleton {
     }
 
     IpcHandler {
-        function show() {
+        function reveal(): string {
             root.setTopBarVisible(true)
             return "BAR_SHOW_SUCCESS"
         }
 
-        function hide() {
+        function hide(): string {
             root.setTopBarVisible(false)
             return "BAR_HIDE_SUCCESS"
         }
 
-        function toggle() {
+        function toggle(): string {
             root.toggleTopBarVisible()
             return topBarVisible ? "BAR_SHOW_SUCCESS" : "BAR_HIDE_SUCCESS"
         }
 
-        function status() {
+        function status(): string {
             return topBarVisible ? "visible" : "hidden"
         }
 

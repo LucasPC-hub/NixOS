@@ -27,7 +27,20 @@ Singleton {
         return url.startsWith("file://") ? url.substring(7) : url
     }
     readonly property string shellDir: Qt.resolvedUrl(".").toString().replace("file://", "").replace("/Common/", "")
-    readonly property string wallpaperPath: typeof SessionData !== "undefined" ? SessionData.wallpaperPath : ""
+    readonly property string wallpaperPath: {
+        if (typeof SessionData === "undefined") return ""
+        
+        if (SessionData.perMonitorWallpaper) {
+            // Use first monitor's wallpaper for dynamic theming
+            var screens = Quickshell.screens
+            if (screens.length > 0) {
+                var firstMonitorWallpaper = SessionData.getMonitorWallpaper(screens[0].name)
+                return firstMonitorWallpaper || SessionData.wallpaperPath
+            }
+        }
+        
+        return SessionData.wallpaperPath
+    }
 
     property bool matugenAvailable: false
     property bool gtkThemingEnabled: typeof SettingsData !== "undefined" ? SettingsData.gtkAvailable : false
@@ -149,10 +162,10 @@ Singleton {
     property real spacingM: 12
     property real spacingL: 16
     property real spacingXL: 24
-    property real fontSizeSmall: 12
-    property real fontSizeMedium: 14
-    property real fontSizeLarge: 16
-    property real fontSizeXLarge: 20
+    property real fontSizeSmall: (typeof SettingsData !== "undefined" ? SettingsData.fontScale : 1.0) * 12
+    property real fontSizeMedium: (typeof SettingsData !== "undefined" ? SettingsData.fontScale : 1.0) * 14
+    property real fontSizeLarge: (typeof SettingsData !== "undefined" ? SettingsData.fontScale : 1.0) * 16
+    property real fontSizeXLarge: (typeof SettingsData !== "undefined" ? SettingsData.fontScale : 1.0) * 20
     property real barHeight: 48
     property real iconSize: 24
     property real iconSizeSmall: 16
