@@ -9,6 +9,7 @@
   environment.systemPackages = with pkgs; [
     wget
     ly
+    bun
     git
     pavucontrol
     pulseaudio

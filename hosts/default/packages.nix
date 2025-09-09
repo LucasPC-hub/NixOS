@@ -29,7 +29,7 @@ in
   nwg-look
   walker
   # Development
-  jetbrains.webstorm
+  jetbrains-toolbox
   rustup
   gcc
   gh
