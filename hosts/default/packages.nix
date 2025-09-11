@@ -24,7 +24,7 @@ in
   btop
   fish
   dgop
-  rmpc  # Add rmpc here
+  rmpc
   # Desktop
   nwg-look
   walker

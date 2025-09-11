@@ -10,6 +10,7 @@
     wget
     ly
     bun
+    yarn
     git
     pavucontrol
     pulseaudio
