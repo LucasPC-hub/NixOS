@@ -32,17 +32,19 @@
       nvim-tree = {
         enable = true;
         openOnSetup = true;
-        disableNetrw = true;
-        hijackNetrw = true;
-        updateFocusedFile.enable = true;
-        view = {
-          width = 30;
-          side = "left";
-        };
-        renderer = {
-          highlightGit = true;
-          icons.show.file = true;
-          icons.show.folder = true;
+        settings = {
+          disable_netrw = true;
+          hijack_netrw = true;
+          update_focused_file.enable = true;
+          view = {
+            width = 30;
+            side = "left";
+          };
+          renderer = {
+            highlight_git = true;
+            icons.show.file = true;
+            icons.show.folder = true;
+          };
         };
       };
 

@@ -12,7 +12,7 @@
     "${self}/system/environment.nix"
     "${self}/system/packages.nix"
     "${self}/system/filesystems.nix"
-
+    "${self}/system/programs/openfortivpn.nix"
     inputs.home-manager.nixosModules.default
   ];
 
@@ -278,6 +278,10 @@ fonts.packages = with pkgs; [
     glxinfo
     pciutils
     polkit_gnome
+    # Quickshell dependencies
+    glib
+    networkmanager
+    khal
   ];
 
   nixpkgs.config.allowUnfree = true;

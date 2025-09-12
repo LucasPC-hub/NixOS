@@ -17,6 +17,7 @@
           name = "dankMaterialShell";
           src = ./.;
           installPhase = ''
+            find . -type l ! -exec test -e {} \; -delete
             mkdir -p $out/etc/xdg/quickshell/DankMaterialShell
             cp -r . $out/etc/xdg/quickshell/DankMaterialShell
           '';

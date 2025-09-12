@@ -42,6 +42,8 @@ This is a Quickshell-based desktop shell implementation with Material Design 3 d
 
 **Architecture**: Modular design with clean separation between UI components (Modules), system services (Services), and shared utilities (Common).
 
+**Compositor Support**: Originally designed for niri, now also fully compatible with Hyprland. Both compositors are supported with their own configuration examples and keybind formats.
+
 ## Technology Stack
 
 - **QML (Qt Modeling Language)** - Primary language for all UI components
@@ -62,7 +64,7 @@ quickshell -p shell.qml
 qs -p .
 
 # Code formatting and linting
-qmlformat -i **/*.qml    # Format all QML files in place
+qmlfmt -t 4 -i 4 -b 250 -w /path/to/file.qml    # Format a QML file (requires qmlfmt, do not use qmlformat)
 qmllint **/*.qml         # Lint all QML files for syntax errors
 ```
 
@@ -74,27 +76,43 @@ The shell follows a clean modular architecture reduced from 4,830 lines to ~250 
 
 ```
 shell.qml           # Main entry point (minimal orchestration)
-├── Common/         # Shared resources
+├── Common/         # Shared resources (12 files)
 │   ├── Theme.qml   # Material Design 3 theme singleton
-│   └── Utilities.js # Shared utility functions
-├── Services/       # System integration singletons
+│   ├── SettingsData.qml # User preferences and configuration
+│   ├── SessionData.qml # Session state management
+│   ├── Colors.qml  # Dynamic color scheme
+│   └── [8 more utility files]
+├── Services/       # System integration singletons (20 files)
 │   ├── AudioService.qml
 │   ├── NetworkService.qml
-│   ├── BrightnessService.qml
-│   └── [9 total services]
-├── Modules/        # UI components
-│   ├── TopBar.qml
-│   ├── AppLauncher.qml
-│   ├── ControlCenter.qml
-│   └── [18 total modules]
-└── Widgets/        # Reusable UI controls
+│   ├── BluetoothService.qml
+│   ├── DisplayService.qml
+│   ├── NotificationService.qml
+│   ├── WeatherService.qml
+│   └── [14 more services]
+├── Modules/        # UI components (93 files)
+│   ├── TopBar/     # Panel components (13 files)
+│   ├── ControlCenter/ # System controls (13 files)
+│   ├── Notifications/ # Notification system (12 files)
+│   ├── AppDrawer/  # Application launcher (3 files)
+│   ├── Settings/   # Configuration interface (11 files)
+│   ├── ProcessList/ # System monitoring (8 files)
+│   ├── Dock/       # Application dock (6 files)
+│   ├── Lock/       # Screen lock system (4 files)
+│   └── [23 more module files]
+├── Modals/         # Full-screen overlays (10 files)
+│   ├── SettingsModal.qml
+│   ├── ClipboardHistoryModal.qml
+│   ├── ProcessListModal.qml
+│   └── [7 more modals]
+└── Widgets/        # Reusable UI controls (19 files)
     ├── DankIcon.qml
     ├── DankSlider.qml
     ├── DankToggle.qml
     ├── DankTabBar.qml
     ├── DankGridView.qml
     ├── DankListView.qml
-    └── [6 total widgets]
+    └── [13 more widgets]
 ```
 
 ### Component Organization
@@ -112,21 +130,39 @@ shell.qml           # Main entry point (minimal orchestration)
 3. **Services/** - System integration singletons
    - **Pattern**: All services use `Singleton` type with `id: root`
    - **Independence**: No cross-service dependencies
-   - **Examples**: AudioService, NetworkService, BrightnessService, WeatherService
+   - **Examples**: AudioService, NetworkService, BluetoothService, DisplayService, WeatherService, NotificationService, CalendarService, BatteryService, NiriService, MprisController
    - Services handle system commands, state management, and hardware integration
 
-4. **Modules/** - UI components
-   - **Full-screen components**: AppLauncher, ClipboardHistoryModal, ControlCenter
-   - **Panel components**: TopBar, SystemTray, NotificationPopup
-   - **Layout components**: WorkspaceSwitcher
+4. **Modules/** - UI components (93 files)
+   - **TopBar/**: Panel components with workspace switching, system indicators, media controls
+   - **ControlCenter/**: System controls for WiFi, Bluetooth, audio, display settings
+   - **Notifications/**: Complete notification system with center, popups, and keyboard navigation
+   - **AppDrawer/**: Application launcher with grid/list views and category filtering
+   - **Settings/**: Comprehensive configuration interface with multiple tabs
+   - **ProcessList/**: System monitoring with process management and performance metrics
+   - **Dock/**: Application dock with running apps and window management
+   - **Lock/**: Screen lock system with authentication
+   - **CentcomCenter/**: Calendar, weather, and media widgets
 
-5. **Widgets/** - Reusable UI controls
+5. **Modals/** - Full-screen overlays (10 files)
+   - Modal system for settings, clipboard history, file browser, network info, power menu
+   - Unified modal management with consistent styling and keyboard navigation
+
+6. **Widgets/** - Reusable UI controls (19 files)
    - **DankIcon**: Centralized icon component with Material Design font integration
    - **DankSlider**: Enhanced slider with animations and smart detection
    - **DankToggle**: Consistent toggle switch component
    - **DankTabBar**: Unified tab bar implementation
    - **DankGridView**: Reusable grid view with adaptive columns
    - **DankListView**: Reusable list view with configurable styling
+   - **DankTextField**: Styled text input with validation
+   - **DankDropdown**: Dropdown selection component
+   - **DankPopout**: Base popout component for overlays
+   - **StateLayer**: Material Design 3 interaction states
+   - **StyledRect/StyledText**: Themed base components
+   - **CachingImage**: Optimized image loading with caching
+   - **DankLocationSearch**: Location picker with search
+   - **SystemLogo**: Animated system branding component
 
 ### Key Architectural Patterns
 
@@ -183,7 +219,9 @@ shell.qml           # Main entry point (minimal orchestration)
    - `id` should be the first property
    - Properties before signal handlers before child components
    - Prefer property bindings over imperative code
-   - **IMPORTANT**: Be very conservative with comments - add comments only when absolutely necessary for understanding complex logic
+   - **CRITICAL**: NEVER add comments unless absolutely essential for complex logic understanding. Code should be self-documenting through clear naming and structure. Comments are a code smell indicating unclear implementation.
+   - Use guard statements, example `if (abc) { something() return;} somethingElse();`
+   - Don't use crazy ternary stuff, but use it for simple if else only. `propertyVal: a ? b : c`
 
 2. **Naming Conventions**:
    - **Services**: Use `Singleton` type with `id: root`
@@ -191,9 +229,7 @@ shell.qml           # Main entry point (minimal orchestration)
    - **Properties**: camelCase for properties, PascalCase for types
 
 3. **Null-Safe Operations**:
-   - **Do NOT use** `?.` operator (not supported by qmlformat)
-   - **Use** `object && object.property` instead of `object?.property`
-   - **Example**: `activePlayer && activePlayer.trackTitle` instead of `activePlayer?.trackTitle`
+   - **Use** `object?.property`
 
 4. **Component Structure**:
    ```qml
@@ -243,25 +279,32 @@ shell.qml           # Main entry point (minimal orchestration)
 
 ### Component Development Patterns
 
-1. **Smart Feature Detection**:
+1. **Code Reuse - Search Before Writing**:
+   - **ALWAYS** search the codebase for existing functions before writing new ones
+   - Use `Grep` or `Glob` tools to find existing implementations (e.g., search for "getWifiIcon", "getDeviceIcon")
+   - Many utility functions already exist in Services/ and Common/ - reuse them instead of duplicating
+   - Examples of existing utility functions: `Theme.getBatteryIcon()`, `BluetoothService.getDeviceIcon()`, `WeatherService.getWeatherIcon()`
+   - If similar functionality exists, extend or refactor rather than duplicate
+
+2. **Smart Feature Detection**:
    ```qml
    // In services - detect capabilities
    property bool brightnessAvailable: false
    
    // In modules - adapt UI accordingly
    DankSlider {
-       visible: BrightnessService.brightnessAvailable
-       enabled: BrightnessService.brightnessAvailable
-       value: BrightnessService.brightnessLevel
+       visible: DisplayService.brightnessAvailable
+       enabled: DisplayService.brightnessAvailable
+       value: DisplayService.brightnessLevel
    }
    ```
 
-2. **Reusable Components**:
+3. **Reusable Components**:
    - Create reusable widgets for common patterns (like DankSlider)
    - Use configurable properties for different use cases
    - Include proper signal handling with unique names (avoid `valueChanged`)
 
-3. **Service Integration**:
+4. **Service Integration**:
    - Services expose properties and functions
    - Modules and Widgets bind to service properties for reactive updates
    - Use service functions for actions: `ServiceName.performAction(value)`
@@ -295,9 +338,10 @@ shell.qml           # Main entry point (minimal orchestration)
 
 The shell uses Quickshell's `Variants` pattern for multi-monitor support:
 - Each connected monitor gets its own top bar instance
-- Workspace switchers are per-display and Niri-aware
+- Workspace switchers are compositor-aware (Niri and Hyprland)
 - Monitors are automatically detected by screen name (DP-1, DP-2, etc.)
-- Workspaces are dynamically synchronized with Niri's per-output workspaces
+- **Niri**: Workspaces are dynamically synchronized with Niri's per-output workspaces
+- **Hyprland**: Integrates with Hyprland's workspace system and multi-monitor handling
 
 ## Common Development Tasks
 
@@ -305,12 +349,13 @@ The shell uses Quickshell's `Variants` pattern for multi-monitor support:
 
 When modifying the shell:
 1. **Test changes**: `qs -p .` (automatic reload on file changes)
-2. **Code quality**: Run `qmlformat -i **/*.qml` and `qmllint **/*.qml` to ensure proper formatting and syntax
+2. **Code quality**: Run `./qmlformat-all.sh` or `qmlformat -i **/*.qml` and `qmllint **/*.qml` to ensure proper formatting and syntax
 3. **Performance**: Ensure animations remain smooth (60 FPS target)
 4. **Theming**: Use `Theme.propertyName` for Material Design 3 consistency
 5. **Wayland compatibility**: Test on Wayland session
 6. **Multi-monitor**: Verify behavior with multiple displays
-7. **Feature detection**: Test on systems with/without required tools
+7. **Compositor compatibility**: Test on both Niri and Hyprland when possible
+8. **Feature detection**: Test on systems with/without required tools
 
 ### Adding New Modules
 
@@ -396,6 +441,8 @@ When modifying the shell:
 
 ### Best Practices Summary
 
+- **Code Reuse**: ALWAYS search existing codebase before writing new functions - avoid duplication at all costs
+- **No Comments**: Code should be self-documenting - comments indicate poor naming/structure
 - **Modularity**: Keep components focused and independent
 - **Reusability**: Create reusable components for common patterns using Widgets/
 - **Responsiveness**: Use property bindings for reactive UI
@@ -405,6 +452,9 @@ When modifying the shell:
 - **Icon Management**: Use `DankIcon` for all icons instead of manual Text components
 - **Widget System**: Leverage existing widgets (DankSlider, DankToggle, etc.) for consistency
 - **NO WRAPPER HELL**: Avoid creating unnecessary wrapper functions - bind directly to underlying APIs for better reactivity and performance
+- **Function Discovery**: Use grep/search tools to find existing utility functions before implementing new ones
+- **Modern QML Patterns**: Leverage new widgets like DankTextField, DankDropdown, CachingImage
+- **Structured Organization**: Follow the established Services/Modules/Widgets/Modals separation
 
 ### Common Widget Patterns
 
@@ -414,3 +464,29 @@ When modifying the shell:
 4. **Tab Bars**: Use `DankTabBar` for tabbed interfaces
 5. **Lists**: Use `DankListView` for scrollable lists
 6. **Grids**: Use `DankGridView` for grid layouts
+7. **Text Fields**: Use `DankTextField` for text input with validation
+8. **Dropdowns**: Use `DankDropdown` for selection menus
+9. **Popouts**: Use `DankPopout` as base for overlay components
+10. **Images**: Use `CachingImage` for optimized image loading
+
+### Essential Utility Functions
+
+Before writing new utility functions, check these existing ones:
+
+**Theme.qml utilities:**
+- `getBatteryIcon(level, isCharging, batteryAvailable)` - Battery status icons
+- `getPowerProfileIcon(profile)` - Power profile indicators
+
+**Service utilities:**
+- `BluetoothService.getDeviceIcon(device)` - Bluetooth device type icons
+- `BluetoothService.getSignalIcon(device)` - Signal strength indicators
+- `WeatherService.getWeatherIcon(code)` - Weather condition icons
+- `AppSearchService.getCategoryIcon(category)` - Application category icons
+- `DgopService.getProcessIcon(command)` - Process type icons
+- `SettingsData.getWorkspaceNameIcon(workspaceName)` - Workspace icons
+
+**Always search for existing functions using:**
+```bash
+grep -r "function.*get.*Icon" Services/ Common/
+grep -r "function.*" path/to/relevant/directory/
+```

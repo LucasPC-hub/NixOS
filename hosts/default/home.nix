@@ -27,9 +27,10 @@ in
     ../../home/programs/firefox.nix
     ../../home/programs/swayidle.nix
     ../../system/shell/zsh.nix
+    ../../home/programs/rmpc.nix
     inputs.zen-browser.homeModules.twilight-official
     inputs.spicetify-nix.homeManagerModules.default
-    inputs.nixvim.homeManagerModules.nixvim
+    inputs.nixvim.homeModules.nixvim
   ];
   programs.zen-browser.enable = true;
   programs.dankMaterialShell.enable = true;
@@ -104,7 +105,12 @@ in
       "application/gzip" = "file-roller.desktop";
     };
   };
-
+    xdg.configFile."pipewire/pipewire.conf.d/10-clock-rate.conf".text = ''
+      context.properties = {
+        default.clock.rate = 96000
+        default.clock.allowed-rates = [ 44100 48000 88200 96000 176400 192000 352800 384000 ]
+      }
+    '';
   home.stateVersion = "24.11";
 
   services.cliphist = {
@@ -112,5 +118,34 @@ in
     allowImages = true;
   };
 
+  services.mpd = {
+    enable = true;
+    musicDirectory = "/mnt/windows/MUSIC"; # Adjust to your music directory
+    network.listenAddress = "any"; # if you want to allow non-localhost connections
+    network.startWhenNeeded = true; # systemd feature: only start MPD service upon connection to its socket# Adjust to your music directory
+    extraConfig = ''
+      # Audio outputs
+      audio_output {
+        type            "pipewire"
+        name            "PipeWire Sound Server"
+      }
+
+      # Network settings
+      bind_to_address "127.0.0.1"
+      port "6600"
+
+      # Other settings
+      restore_paused "yes"
+      auto_update "yes"
+    '';
+  };
   programs.home-manager.enable = true;
+  
+  # Force dark mode for GNOME applications
+  dconf.settings = {
+    "org/gnome/desktop/interface" = {
+      color-scheme = "prefer-dark";
+      # gtk-theme = "Adwaita-dark"; # Managed by stylix
+    };
+  };
 }

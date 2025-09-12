@@ -9,6 +9,8 @@
   environment.systemPackages = with pkgs; [
     wget
     ly
+    bun
+    yarn
     git
     pavucontrol
     pulseaudio
@@ -30,5 +32,6 @@
     base16-schemes
     ddcutil
     os-prober
+    layan-cursors
   ];
   }

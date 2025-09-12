@@ -1,6 +1,6 @@
 pragma Singleton
 
-pragma ComponentBehavior
+pragma ComponentBehavior: Bound
 
 import QtQuick
 import Quickshell
@@ -8,964 +8,1035 @@ import Quickshell.Io
 import qs.Common
 
 Singleton {
-  id: root
+    id: root
 
-  property int refCount: 0
-  property string networkStatus: "disconnected" // "ethernet", "wifi", "disconnected"
-  property string ethernetIP: ""
-  property string ethernetInterface: ""
-  property bool ethernetConnected: false
-  property string wifiIP: ""
-  property bool wifiAvailable: false
-  property bool wifiEnabled: true
-  property bool wifiToggling: false
-  property string userPreference: "auto" // "auto", "wifi", "ethernet"
-  property bool changingPreference: false
-  property string targetPreference: "" // Track what preference we're switching to
+    property int refCount: 0
+    property string networkStatus: "disconnected"
+    property string primaryConnection: ""
 
-  // WiFi-specific properties
-  property string currentWifiSSID: ""
-  property string wifiSignalStrength: "excellent" // "excellent", "good", "fair", "poor"
-  property var wifiNetworks: []
-  property var savedWifiNetworks: []
-  property bool isScanning: false
-  property string connectionStatus: "" // "connecting", "connected", "failed", "invalid_password", ""
-  property string connectingSSID: ""
-  property string lastConnectionError: ""
-  property bool passwordDialogShouldReopen: false
-  property bool autoRefreshEnabled: false
-  property string wifiPassword: ""
-  property string forgetSSID: ""
+    property string ethernetIP: ""
+    property string ethernetInterface: ""
+    property bool ethernetConnected: false
+    property string ethernetConnectionUuid: ""
 
-  // Network info properties
-  property string networkInfoSSID: ""
-  property string networkInfoDetails: ""
-  property bool networkInfoLoading: false
+    property string wifiIP: ""
+    property string wifiInterface: ""
+    property bool wifiConnected: false
+    property bool wifiEnabled: true
+    property string wifiConnectionUuid: ""
 
-  signal networksUpdated
+    property string currentWifiSSID: ""
+    property int wifiSignalStrength: 0
+    property var wifiNetworks: []
+    property var savedConnections: []
+    property var ssidToConnectionName: {
 
-  function addRef() {
-    refCount++
-  }
-
-  function removeRef() {
-    refCount = Math.max(0, refCount - 1)
-    if (refCount === 0) {
-      autoRefreshTimer.running = false
     }
-  }
-
-  Component.onCompleted: {
-    root.userPreference = SettingsData.networkPreference
-
-    if (root.networkStatus === "wifi" && root.wifiEnabled) {
-      updateCurrentWifiInfo()
+    property var wifiSignalIcon: {
+        if (!wifiConnected || networkStatus !== "wifi") {
+            return "signal_wifi_off"
+        }
+        if (wifiSignalStrength >= 70) {
+            return "signal_wifi_4_bar"
+        }
+        if (wifiSignalStrength >= 50) {
+            return "network_wifi_3_bar"
+        }
+        if (wifiSignalStrength >= 25) {
+            return "network_wifi_2_bar"
+        }
+        if (wifiSignalStrength >= 10) {
+            return "network_wifi_1_bar"
+        }
+        return "signal_wifi_bad"
     }
-  }
 
-  // Real Network Management
-  Process {
-    id: networkStatusChecker
-    command: ["sh", "-c", "nmcli -t -f DEVICE,TYPE,STATE device | grep -E '(ethernet|wifi)' && echo '---' && ip link show | grep -E '^[0-9]+:.*ethernet.*state UP'"]
-    running: true
+    property string userPreference: "auto" // "auto", "wifi", "ethernet"
+    property bool isConnecting: false
+    property string connectingSSID: ""
+    property string connectionError: ""
 
-    stdout: StdioCollector {
-      onStreamFinished: {
-        if (text.trim()) {
-          console.log("Network status full output:", text.trim())
+    property bool isScanning: false
+    property bool autoScan: false
 
-          let hasEthernet = text.includes("ethernet:connected")
-          let hasWifi = text.includes("wifi:connected")
-          let ethernetCableUp = text.includes("state UP")
+    property bool wifiAvailable: true
+    property bool wifiToggling: false
+    property bool changingPreference: false
+    property string targetPreference: ""
+    property var savedWifiNetworks: []
+    property string connectionStatus: ""
+    property string lastConnectionError: ""
+    property bool passwordDialogShouldReopen: false
+    property bool autoRefreshEnabled: false
+    property string wifiPassword: ""
+    property string forgetSSID: ""
 
-          // Update connection status properties
-          root.ethernetConnected = hasEthernet || ethernetCableUp
+    property string networkInfoSSID: ""
+    property string networkInfoDetails: ""
+    property bool networkInfoLoading: false
 
-          // Always check both IPs when available
-          if (hasWifi) {
-            wifiIPChecker.running = true
-          }
-          if (hasEthernet || ethernetCableUp) {
-            ethernetIPChecker.running = true
-          }
+    signal networksUpdated
+    signal connectionChanged
 
-          // Check connection priorities when both are active
-          if (hasWifi && hasEthernet) {
-            console.log("Both WiFi and Ethernet connected, user preference:",
-                        root.userPreference)
-
-            // Use user preference if set, otherwise check default route
-            if (root.userPreference === "wifi") {
-              root.networkStatus = "wifi"
-              console.log("User prefers WiFi, setting status to wifi")
-              if (root.wifiEnabled) {
-                updateCurrentWifiInfo()
-              }
-            } else if (root.userPreference === "ethernet") {
-              root.networkStatus = "ethernet"
-              console.log("User prefers Ethernet, setting status to ethernet")
+    function splitNmcliFields(line) {
+        const parts = []
+        let cur = ""
+        let escape = false
+        for (var i = 0; i < line.length; i++) {
+            const ch = line[i]
+            if (escape) {
+                cur += ch
+                escape = false
+            } else if (ch === '\\') {
+                escape = true
+            } else if (ch === ':') {
+                parts.push(cur)
+                cur = ""
             } else {
-              // Auto mode - check which interface has the default route
-              defaultRouteChecker.running = true
+                cur += ch
             }
-          } else if (hasWifi) {
-            root.networkStatus = "wifi"
-            console.log("Only WiFi connected, setting status to wifi")
-            // Trigger WiFi SSID update
-            if (root.wifiEnabled) {
-              updateCurrentWifiInfo()
+        }
+        parts.push(cur)
+        return parts
+    }
+
+    Component.onCompleted: {
+        root.userPreference = SettingsData.networkPreference
+        initializeDBusMonitors()
+    }
+
+    function addRef() {
+        refCount++
+        if (refCount === 1) {
+            startAutoScan()
+        }
+    }
+
+    function removeRef() {
+        refCount = Math.max(0, refCount - 1)
+        if (refCount === 0) {
+            stopAutoScan()
+        }
+    }
+
+    function initializeDBusMonitors() {
+        nmStateMonitor.running = true
+        doRefreshNetworkState()
+    }
+
+    Process {
+        id: nmStateMonitor
+        command: ["gdbus", "monitor", "--system", "--dest", "org.freedesktop.NetworkManager"]
+        running: false
+
+        stdout: SplitParser {
+            splitMarker: "\n"
+            onRead: line => {
+                if (line.includes("StateChanged") || line.includes("PrimaryConnectionChanged") || line.includes("WirelessEnabled") || line.includes("ActiveConnection") || line.includes("PropertiesChanged")) {
+                    refreshNetworkState()
+                }
             }
-          } else if (hasEthernet || ethernetCableUp) {
-            root.networkStatus = "ethernet"
-            console.log("Only Ethernet connected, setting status to ethernet")
-          } else {
-            root.networkStatus = "disconnected"
-            root.ethernetIP = ""
-            root.ethernetInterface = ""
-            root.ethernetConnected = false
-            root.wifiIP = ""
-            console.log("Setting network status to disconnected")
-          }
+        }
 
-          // Check if we're done changing preferences
-          if (root.changingPreference && root.targetPreference !== "") {
-            let preferenceComplete = false
-
-            if (root.targetPreference === "wifi"
-                && root.networkStatus === "wifi") {
-              preferenceComplete = true
-              console.log(
-                "WiFi preference change complete - network is now using WiFi")
-            } else if (root.targetPreference === "ethernet"
-                       && root.networkStatus === "ethernet") {
-              preferenceComplete = true
-              console.log(
-                "Ethernet preference change complete - network is now using Ethernet")
+        onExited: exitCode => {
+            if (exitCode !== 0 && !restartTimer.running) {
+                console.warn("NetworkManager monitor failed, restarting in 5s")
+                restartTimer.start()
             }
+        }
+    }
 
-            if (preferenceComplete) {
-              root.changingPreference = false
-              root.targetPreference = ""
-              console.log("Network preference change completed successfully")
+    Timer {
+        id: restartTimer
+        interval: 5000
+        running: false
+        onTriggered: nmStateMonitor.running = true
+    }
+
+    Timer {
+        id: refreshDebounceTimer
+        interval: 100
+        running: false
+        onTriggered: doRefreshNetworkState()
+    }
+
+    function refreshNetworkState() {
+        refreshDebounceTimer.restart()
+    }
+
+    function doRefreshNetworkState() {
+        updatePrimaryConnection()
+        updateDeviceStates()
+        updateActiveConnections()
+        updateWifiState()
+        if (root.refCount > 0 && root.wifiEnabled) {
+            scanWifiNetworks()
+        }
+    }
+
+    function updatePrimaryConnection() {
+        primaryConnectionQuery.running = true
+    }
+
+    Process {
+        id: primaryConnectionQuery
+        command: ["gdbus", "call", "--system", "--dest", "org.freedesktop.NetworkManager", "--object-path", "/org/freedesktop/NetworkManager", "--method", "org.freedesktop.DBus.Properties.Get", "org.freedesktop.NetworkManager", "PrimaryConnection"]
+        running: false
+
+        stdout: StdioCollector {
+            onStreamFinished: {
+                const match = text.match(/objectpath '([^']+)'/)
+                if (match && match[1] !== '/') {
+                    root.primaryConnection = match[1]
+                    getPrimaryConnectionType.running = true
+                } else {
+                    root.primaryConnection = ""
+                    root.networkStatus = "disconnected"
+                }
             }
-          }
-
-          // Always check WiFi radio status
-          wifiRadioChecker.running = true
-        } else {
-          root.networkStatus = "disconnected"
-          root.ethernetIP = ""
-          root.ethernetInterface = ""
-          root.ethernetConnected = false
-          root.wifiIP = ""
-          console.log("No network output, setting to disconnected")
         }
-      }
-    }
-  }
-
-  Process {
-    id: defaultRouteChecker
-    command: ["sh", "-c", "ip route show default | head -1 | cut -d' ' -f5"]
-    running: false
-
-    stdout: SplitParser {
-      splitMarker: "\n"
-      onRead: function (data) {
-        let defaultInterface = data.trim()
-        console.log("Default route interface:", defaultInterface)
-        // Check if the interface is wifi or ethernet
-        if (defaultInterface.startsWith("wl") || defaultInterface.includes(
-              "wifi")) {
-          root.networkStatus = "wifi"
-          console.log(
-                "WiFi interface has default route, setting status to wifi")
-          // Trigger WiFi SSID update
-          if (root.wifiEnabled) {
-            updateCurrentWifiInfo()
-          }
-        } else if (defaultInterface.startsWith("en")
-                   || defaultInterface.includes("eth")) {
-          root.networkStatus = "ethernet"
-          console.log(
-                "Ethernet interface has default route, setting status to ethernet")
-        } else {
-          root.networkStatus = "disconnected"
-          console.log("Unknown interface type:", defaultInterface)
-        }
-      }
-    }
-  }
-
-  Process {
-    id: wifiRadioChecker
-    command: ["nmcli", "radio", "wifi"]
-    running: false
-
-    stdout: SplitParser {
-      splitMarker: "\n"
-      onRead: function (data) {
-        let response = data.trim()
-        root.wifiAvailable = response === "enabled" || response === "disabled"
-        root.wifiEnabled = response === "enabled"
-        console.log("WiFi available:", root.wifiAvailable, "enabled:",
-                    root.wifiEnabled)
-      }
-    }
-  }
-
-  Process {
-    id: ethernetIPChecker
-    command: ["sh", "-c", "ETH_DEV=$(nmcli -t -f DEVICE,TYPE device | grep ethernet | grep connected | cut -d: -f1 | head -1); if [ -n \"$ETH_DEV\" ]; then nmcli -t -f IP4.ADDRESS dev show \"$ETH_DEV\" | cut -d: -f2 | cut -d/ -f1 | head -1; fi"]
-    running: false
-
-    stdout: SplitParser {
-      splitMarker: "\n"
-      onRead: function (data) {
-        if (data.trim()) {
-          root.ethernetIP = data.trim()
-          console.log("Ethernet IP:", root.ethernetIP)
-
-          // Get the ethernet interface name
-          ethernetInterfaceChecker.running = true
-        } else {
-          console.log("No ethernet IP found")
-          root.ethernetIP = ""
-          root.ethernetInterface = ""
-        }
-      }
-    }
-  }
-
-  Process {
-    id: ethernetInterfaceChecker
-    command: ["sh", "-c", "nmcli -t -f DEVICE,TYPE device | grep ethernet | grep connected | cut -d: -f1 | head -1"]
-    running: false
-
-    stdout: SplitParser {
-      splitMarker: "\n"
-      onRead: function (interfaceData) {
-        if (interfaceData.trim()) {
-          root.ethernetInterface = interfaceData.trim()
-          console.log("Ethernet Interface:", root.ethernetInterface)
-
-          // Ethernet interface detected - status will be determined by route checking
-          console.log("Ethernet interface detected:", root.ethernetInterface)
-        }
-      }
-    }
-  }
-
-  Process {
-    id: wifiIPChecker
-    command: ["sh", "-c", "WIFI_DEV=$(nmcli -t -f DEVICE,TYPE device | grep wifi | grep connected | cut -d: -f1 | head -1); if [ -n \"$WIFI_DEV\" ]; then nmcli -t -f IP4.ADDRESS dev show \"$WIFI_DEV\" | cut -d: -f2 | cut -d/ -f1 | head -1; fi"]
-    running: false
-
-    stdout: SplitParser {
-      splitMarker: "\n"
-      onRead: function (data) {
-        if (data.trim()) {
-          root.wifiIP = data.trim()
-          console.log("WiFi IP:", root.wifiIP)
-
-          // WiFi IP detected - status will be determined by route checking
-          console.log("WiFi has IP:", root.wifiIP)
-        } else {
-          console.log("No WiFi IP found")
-          root.wifiIP = ""
-        }
-      }
-    }
-  }
-
-  // Static processes for network operations
-  Process {
-    id: ethernetDisconnector
-    command: ["sh", "-c", "nmcli device disconnect $(nmcli -t -f DEVICE,TYPE device | grep ethernet | cut -d: -f1 | head -1)"]
-    running: false
-
-    onExited: function (exitCode) {
-      console.log("Ethernet disconnect result:", exitCode)
-      delayedRefreshNetworkStatus()
     }
 
-    stderr: SplitParser {
-      splitMarker: "\n"
-      onRead: function (data) {
-        console.log("Ethernet disconnect stderr:", data)
-      }
-    }
-  }
+    Process {
+        id: getPrimaryConnectionType
+        command: root.primaryConnection ? ["gdbus", "call", "--system", "--dest", "org.freedesktop.NetworkManager", "--object-path", root.primaryConnection, "--method", "org.freedesktop.DBus.Properties.Get", "org.freedesktop.NetworkManager.Connection.Active", "Type"] : []
+        running: false
 
-  Process {
-    id: ethernetConnector
-    command: ["sh", "-c", "ETH_DEV=$(nmcli -t -f DEVICE,TYPE device | grep ethernet | cut -d: -f1 | head -1); if [ -n \"$ETH_DEV\" ]; then nmcli device connect \"$ETH_DEV\"; ETH_CONN=$(nmcli -t -f NAME,DEVICE connection show --active | grep \"$ETH_DEV\" | cut -d: -f1); if [ -n \"$ETH_CONN\" ]; then nmcli connection modify \"$ETH_CONN\" connection.autoconnect-priority 100; nmcli connection down \"$ETH_CONN\"; nmcli connection up \"$ETH_CONN\"; fi; else echo \"No ethernet device found\"; exit 1; fi"]
-    running: false
-
-    onExited: function (exitCode) {
-      console.log("Ethernet connect result:", exitCode)
-      if (exitCode === 0) {
-        console.log("Ethernet connected successfully with higher priority")
-      } else {
-        console.log("Ethernet connection failed")
-      }
-      delayedRefreshNetworkStatus()
-    }
-
-    stderr: SplitParser {
-      splitMarker: "\n"
-      onRead: function (data) {
-        console.log("Ethernet connect stderr:", data)
-      }
-    }
-  }
-
-  Process {
-    id: ethernetSwitcher
-    command: ["sh", "-c", "WIFI_DEV=$(nmcli -t -f DEVICE,TYPE device | grep wifi | cut -d: -f1 | head -1); ETH_DEV=$(nmcli -t -f DEVICE,TYPE device | grep ethernet | cut -d: -f1 | head -1); [ -n \"$WIFI_DEV\" ] && nmcli device disconnect \"$WIFI_DEV\" 2>/dev/null; [ -n \"$ETH_DEV\" ] && nmcli device connect \"$ETH_DEV\" 2>/dev/null || true"]
-    running: false
-
-    onExited: function (exitCode) {
-      console.log("Switch to ethernet result:", exitCode)
-      delayedRefreshNetworkStatus()
-    }
-
-    stderr: SplitParser {
-      splitMarker: "\n"
-      onRead: function (data) {
-        console.log("Switch to ethernet stderr:", data)
-      }
-    }
-  }
-
-  Process {
-    id: wifiRadioToggler
-    command: ["nmcli", "radio", "wifi", root.wifiEnabled ? "off" : "on"]
-    running: false
-
-    onExited: {
-      root.wifiToggling = false
-      networkStatusChecker.running = true
-    }
-  }
-
-  Process {
-    id: wifiPriorityChanger
-    command: ["sh", "-c", "nmcli -t -f NAME,TYPE connection show | grep 802-11-wireless | cut -d: -f1 | while read conn; do nmcli connection modify \"$conn\" ipv4.route-metric 50; done; nmcli -t -f NAME,TYPE connection show | grep 802-3-ethernet | cut -d: -f1 | while read conn; do nmcli connection modify \"$conn\" ipv4.route-metric 200; done; nmcli -t -f NAME,TYPE connection show --active | grep -E \"(802-11-wireless|802-3-ethernet)\" | cut -d: -f1 | while read conn; do nmcli connection down \"$conn\" && nmcli connection up \"$conn\"; done"]
-    running: false
-
-    onExited: function (exitCode) {
-      console.log(
-            "WiFi route metric set to 50, ethernet to 200, connections restarted, exit code:",
-            exitCode)
-      // Don't reset changingPreference here - let network status check handle it
-      delayedRefreshNetworkStatus()
-    }
-  }
-
-  Process {
-    id: ethernetPriorityChanger
-    command: ["sh", "-c", "nmcli -t -f NAME,TYPE connection show | grep 802-3-ethernet | cut -d: -f1 | while read conn; do nmcli connection modify \"$conn\" ipv4.route-metric 50; done; nmcli -t -f NAME,TYPE connection show | grep 802-11-wireless | cut -d: -f1 | while read conn; do nmcli connection modify \"$conn\" ipv4.route-metric 200; done; nmcli -t -f NAME,TYPE connection show --active | grep -E \"(802-11-wireless|802-3-ethernet)\" | cut -d: -f1 | while read conn; do nmcli connection down \"$conn\" && nmcli connection up \"$conn\"; done"]
-    running: false
-
-    onExited: function (exitCode) {
-      console.log(
-            "Ethernet route metric set to 50, WiFi to 200, connections restarted, exit code:",
-            exitCode)
-      // Don't reset changingPreference here - let network status check handle it
-      delayedRefreshNetworkStatus()
-    }
-  }
-
-  function toggleNetworkConnection(type) {
-    if (type === "ethernet") {
-      // Toggle ethernet connection
-      if (root.networkStatus === "ethernet") {
-        // Disconnect ethernet
-        console.log("Disconnecting ethernet...")
-        ethernetDisconnector.running = true
-      } else {
-        // Connect ethernet and set higher priority
-        console.log("Connecting ethernet...")
-        ethernetConnector.running = true
-      }
-    }
-  }
-
-  function toggleWifiRadio() {
-    if (root.wifiToggling)
-      return
-
-    root.wifiToggling = true
-    wifiRadioToggler.command = ["nmcli", "radio", "wifi", root.wifiEnabled ? "off" : "on"]
-    wifiRadioToggler.running = true
-  }
-
-  function refreshNetworkStatus() {
-    console.log("Refreshing network status...")
-    networkStatusChecker.running = true
-  }
-
-  function delayedRefreshNetworkStatus() {
-    console.log("Refreshing network status immediately...")
-    refreshNetworkStatus()
-  }
-
-  function setNetworkPreference(preference) {
-    console.log("Setting network preference to:", preference)
-    root.userPreference = preference
-    root.changingPreference = true
-    root.targetPreference = preference
-    SettingsData.setNetworkPreference(preference)
-
-    if (preference === "wifi") {
-      // Set WiFi to low route metric (high priority), ethernet to high route metric (low priority)
-      wifiPriorityChanger.running = true
-    } else if (preference === "ethernet") {
-      // Set ethernet to low route metric (high priority), WiFi to high route metric (low priority)
-      ethernetPriorityChanger.running = true
-    }
-  }
-
-  // WiFi-specific functions
-  function scanWifi() {
-    if (root.isScanning)
-      return
-
-    root.isScanning = true
-    wifiScanner.running = true
-    savedWifiScanner.running = true
-    currentWifiInfo.running = true
-    fallbackTimer.start()
-  }
-
-  function connectToWifi(ssid) {
-    console.log("Connecting to WiFi:", ssid)
-    root.connectionStatus = "connecting"
-    root.connectingSSID = ssid
-    ToastService.showInfo("Connecting to " + ssid + "...")
-    wifiConnector.running = true
-  }
-
-  function connectToWifiWithPassword(ssid, password) {
-    console.log("Connecting to WiFi with password:", ssid)
-    root.connectionStatus = "connecting"
-    root.connectingSSID = ssid
-    root.wifiPassword = password
-    root.lastConnectionError = ""
-    root.passwordDialogShouldReopen = false
-    ToastService.showInfo("Connecting to " + ssid + "...")
-    wifiPasswordConnector.running = true
-  }
-
-  function disconnectWifi() {
-    console.log("Disconnecting from current WiFi network")
-    wifiDisconnector.running = true
-  }
-
-  function forgetWifiNetwork(ssid) {
-    console.log("Forgetting WiFi network:", ssid)
-    root.forgetSSID = ssid
-    wifiForget.running = true
-  }
-
-  function fetchNetworkInfo(ssid) {
-    console.log("Fetching network info for:", ssid)
-    root.networkInfoSSID = ssid
-    root.networkInfoLoading = true
-    root.networkInfoDetails = "Loading network information..."
-    wifiInfoFetcher.running = true
-  }
-
-  function updateCurrentWifiInfo() {
-    currentWifiInfo.running = true
-  }
-
-  function enableWifiDevice() {
-    console.log("Enabling WiFi device...")
-    wifiDeviceEnabler.running = true
-  }
-
-  function connectToWifiAndSetPreference(ssid, password) {
-    console.log("Connecting to WiFi and setting network preference:", ssid)
-    connectToWifiWithPassword(ssid, password)
-    setNetworkPreference("wifi")
-  }
-
-  // WiFi Process Components
-  Process {
-    id: currentWifiInfo
-    command: ["bash", "-c", "nmcli -t -f ACTIVE,SSID,SIGNAL dev wifi | grep '^yes' | head -1"]
-    running: false
-
-    stdout: SplitParser {
-      splitMarker: "\n"
-      onRead: data => {
-        if (data.trim()) {
-          let parts = data.split(":")
-          if (parts.length >= 3 && parts[1].trim() !== "") {
-            root.currentWifiSSID = parts[1].trim()
-            let signal = parseInt(parts[2]) || 100
-            if (signal >= 75)
-            root.wifiSignalStrength = "excellent"
-            else if (signal >= 50)
-            root.wifiSignalStrength = "good"
-            else if (signal >= 25)
-            root.wifiSignalStrength = "fair"
-            else
-            root.wifiSignalStrength = "poor"
-            console.log("Active WiFi:", root.currentWifiSSID, "Signal:",
-                        signal + "%")
-          }
-        }
-      }
-    }
-  }
-
-  Timer {
-    id: fallbackTimer
-    interval: 5000
-    onTriggered: {
-      root.isScanning = false
-    }
-  }
-
-  Timer {
-    id: statusResetTimer
-    interval: 3000
-    onTriggered: {
-      root.connectionStatus = ""
-      root.connectingSSID = ""
-    }
-  }
-
-  Timer {
-    id: autoRefreshTimer
-    interval: 20000
-    running: root.autoRefreshEnabled && root.refCount > 0
-    repeat: true
-    onTriggered: scanWifi()
-  }
-
-  Process {
-    id: wifiScanner
-
-    command: ["nmcli", "-t", "-f", "SSID,SIGNAL,SECURITY", "dev", "wifi"]
-    running: false
-
-    stdout: StdioCollector {
-      onStreamFinished: {
-        if (text.trim()) {
-          let networks = []
-          let lines = text.trim().split('\n')
-          for (let line of lines) {
-            let parts = line.split(':')
-            if (parts.length >= 3 && parts[0].trim() !== "") {
-              let ssid = parts[0].trim()
-              let signal = parseInt(parts[1]) || 0
-              let security = parts[2].trim()
-              // Skip duplicates
-              if (!networks.find(n => {
-                                   return n.ssid === ssid
-                                 })) {
-                // Check if this network is saved
-                let isSaved = root.savedWifiNetworks.some(saved => {
-                                                            return saved.ssid === ssid
-                                                          })
-                networks.push({
-                                "ssid": ssid,
-                                "signal": signal,
-                                "secured": security !== "",
-                                "connected": ssid === root.currentWifiSSID,
-                                "saved": isSaved,
-                                "signalStrength": signal >= 75 ? "excellent" : signal >= 50 ? "good" : signal >= 25 ? "fair" : "poor"
-                              })
-              }
+        stdout: StdioCollector {
+            onStreamFinished: {
+                if (text.includes("802-3-ethernet")) {
+                    root.networkStatus = "ethernet"
+                } else if (text.includes("802-11-wireless")) {
+                    root.networkStatus = "wifi"
+                }
+                root.connectionChanged()
             }
-          }
-          // Sort by signal strength
-          networks.sort((a, b) => {
-                          return b.signal - a.signal
-                        })
-          root.wifiNetworks = networks
+        }
+    }
 
-          // Stop scanning once we have results
-          if (networks.length > 0) {
+    function updateDeviceStates() {
+        getEthernetDevice.running = true
+        getWifiDevice.running = true
+    }
+
+    Process {
+        id: getEthernetDevice
+        command: ["nmcli", "-t", "-f", "DEVICE,TYPE", "device"]
+        running: false
+
+        stdout: StdioCollector {
+            onStreamFinished: {
+                const lines = text.trim().split('\n')
+                let ethernetInterface = ""
+
+                for (const line of lines) {
+                    const splitParts = line.split(':')
+                    const device = splitParts[0]
+                    const type = splitParts.length > 1 ? splitParts[1] : ""
+                    if (type === "ethernet") {
+                        ethernetInterface = device
+                        break
+                    }
+                }
+
+                if (ethernetInterface) {
+                    root.ethernetInterface = ethernetInterface
+                    getEthernetDevicePath.command = ["gdbus", "call", "--system", "--dest", "org.freedesktop.NetworkManager", "--object-path", "/org/freedesktop/NetworkManager", "--method", "org.freedesktop.NetworkManager.GetDeviceByIpIface", ethernetInterface]
+                    getEthernetDevicePath.running = true
+                } else {
+                    root.ethernetInterface = ""
+                    root.ethernetConnected = false
+                }
+            }
+        }
+    }
+
+    Process {
+        id: getEthernetDevicePath
+        running: false
+
+        stdout: StdioCollector {
+            onStreamFinished: {
+                const match = text.match(/objectpath '([^']+)'/)
+                if (match && match[1] !== '/') {
+                    checkEthernetState.command = ["gdbus", "call", "--system", "--dest", "org.freedesktop.NetworkManager", "--object-path", match[1], "--method", "org.freedesktop.DBus.Properties.Get", "org.freedesktop.NetworkManager.Device", "State"]
+                    checkEthernetState.running = true
+                } else {
+                    root.ethernetInterface = ""
+                    root.ethernetConnected = false
+                }
+            }
+        }
+
+        onExited: exitCode => {
+            if (exitCode !== 0) {
+                root.ethernetInterface = ""
+                root.ethernetConnected = false
+            }
+        }
+    }
+
+    Process {
+        id: checkEthernetState
+        running: false
+
+        stdout: StdioCollector {
+            onStreamFinished: {
+                const isConnected = text.includes("uint32 100")
+                root.ethernetConnected = isConnected
+                if (isConnected) {
+                    getEthernetIP.running = true
+                } else {
+                    root.ethernetIP = ""
+                    if (root.networkStatus === "ethernet") {
+                        updatePrimaryConnection()
+                    }
+                }
+            }
+        }
+    }
+
+    Process {
+        id: getEthernetIP
+        command: root.ethernetInterface ? ["ip", "-4", "addr", "show", root.ethernetInterface] : []
+        running: false
+
+        stdout: StdioCollector {
+            onStreamFinished: {
+                const match = text.match(/inet (\d+\.\d+\.\d+\.\d+)/)
+                if (match) {
+                    root.ethernetIP = match[1]
+                }
+            }
+        }
+    }
+
+    Process {
+        id: getWifiDevice
+        command: ["nmcli", "-t", "-f", "DEVICE,TYPE", "device"]
+        running: false
+
+        stdout: StdioCollector {
+            onStreamFinished: {
+                const lines = text.trim().split('\n')
+                let wifiInterface = ""
+
+                for (const line of lines) {
+                    const splitParts = line.split(':')
+                    const device = splitParts[0]
+                    const type = splitParts.length > 1 ? splitParts[1] : ""
+                    if (type === "wifi") {
+                        wifiInterface = device
+                        break
+                    }
+                }
+
+                if (wifiInterface) {
+                    root.wifiInterface = wifiInterface
+                    getWifiDevicePath.command = ["gdbus", "call", "--system", "--dest", "org.freedesktop.NetworkManager", "--object-path", "/org/freedesktop/NetworkManager", "--method", "org.freedesktop.NetworkManager.GetDeviceByIpIface", wifiInterface]
+                    getWifiDevicePath.running = true
+                } else {
+                    root.wifiInterface = ""
+                    root.wifiConnected = false
+                }
+            }
+        }
+    }
+
+    Process {
+        id: getWifiDevicePath
+        running: false
+
+        stdout: StdioCollector {
+            onStreamFinished: {
+                const match = text.match(/objectpath '([^']+)'/)
+                if (match && match[1] !== '/') {
+                    checkWifiState.command = ["gdbus", "call", "--system", "--dest", "org.freedesktop.NetworkManager", "--object-path", match[1], "--method", "org.freedesktop.DBus.Properties.Get", "org.freedesktop.NetworkManager.Device", "State"]
+                    checkWifiState.running = true
+                } else {
+                    root.wifiInterface = ""
+                    root.wifiConnected = false
+                }
+            }
+        }
+
+        onExited: exitCode => {
+            if (exitCode !== 0) {
+                root.wifiInterface = ""
+                root.wifiConnected = false
+            }
+        }
+    }
+
+    Process {
+        id: checkWifiState
+        running: false
+
+        stdout: StdioCollector {
+            onStreamFinished: {
+                root.wifiConnected = text.includes("uint32 100")
+                if (root.wifiConnected) {
+                    getWifiIP.running = true
+                    getCurrentWifiInfo.running = true
+                    // Ensure SSID is resolved even if scan output lacks ACTIVE marker
+                    if (root.currentWifiSSID === "") {
+                        if (root.wifiConnectionUuid) {
+                            resolveWifiSSID.running = true
+                        }
+                        if (root.wifiInterface) {
+                            resolveWifiSSIDFromDevice.running = true
+                        }
+                    }
+                } else {
+                    root.wifiIP = ""
+                    root.currentWifiSSID = ""
+                    root.wifiSignalStrength = 0
+                }
+            }
+        }
+    }
+
+    Process {
+        id: getWifiIP
+        command: root.wifiInterface ? ["ip", "-4", "addr", "show", root.wifiInterface] : []
+        running: false
+
+        stdout: StdioCollector {
+            onStreamFinished: {
+                const match = text.match(/inet (\d+\.\d+\.\d+\.\d+)/)
+                if (match) {
+                    root.wifiIP = match[1]
+                }
+            }
+        }
+    }
+
+    Process {
+        id: getCurrentWifiInfo
+        command: root.wifiInterface ? ["nmcli", "-t", "-f", "IN-USE,SIGNAL,SSID", "device", "wifi", "list", "ifname", root.wifiInterface] : []
+        running: false
+
+        stdout: SplitParser {
+            splitMarker: "\n"
+            onRead: line => {
+                if (line.startsWith("*:")) {
+                    const rest = line.substring(2)
+                    const parts = root.splitNmcliFields(rest)
+                    if (parts.length >= 2) {
+                        const signal = parseInt(parts[0])
+                        root.wifiSignalStrength = isNaN(signal) ? 0 : signal
+                        root.currentWifiSSID = parts.slice(1).join(":")
+                    }
+                    return
+                }
+                if (line.startsWith("yes:")) {
+                    const rest = line.substring(4)
+                    const parts = root.splitNmcliFields(rest)
+                    if (parts.length >= 2) {
+                        root.currentWifiSSID = parts[0]
+                        const signal = parseInt(parts[1])
+                        root.wifiSignalStrength = isNaN(signal) ? 0 : signal
+                    }
+                    return
+                }
+            }
+        }
+    }
+
+    function updateActiveConnections() {
+        getActiveConnections.running = true
+    }
+
+    Process {
+        id: getActiveConnections
+        command: ["nmcli", "-t", "-f", "UUID,TYPE,DEVICE,STATE", "connection", "show", "--active"]
+        running: false
+
+        stdout: StdioCollector {
+            onStreamFinished: {
+                const lines = text.trim().split('\n')
+                for (const line of lines) {
+                    const parts = line.split(':')
+                    if (parts.length >= 4) {
+                        const uuid = parts[0]
+                        const type = parts[1]
+                        const device = parts[2]
+                        const state = parts[3]
+                        if (type === "802-3-ethernet" && state === "activated") {
+                            root.ethernetConnectionUuid = uuid
+                        } else if (type === "802-11-wireless" && state === "activated") {
+                            root.wifiConnectionUuid = uuid
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    // Resolve SSID from active WiFi connection UUID when scans don't mark any row as ACTIVE.
+    Process {
+        id: resolveWifiSSID
+        command: root.wifiConnectionUuid ? ["nmcli", "-g", "802-11-wireless.ssid", "connection", "show", "uuid", root.wifiConnectionUuid] : []
+        running: false
+
+        stdout: StdioCollector {
+            onStreamFinished: {
+                const ssid = text.trim()
+                if (ssid) {
+                    root.currentWifiSSID = ssid
+                }
+            }
+        }
+    }
+
+    // Fallback 2: Resolve SSID from device info (GENERAL.CONNECTION usually matches SSID for WiFi)
+    Process {
+        id: resolveWifiSSIDFromDevice
+        command: root.wifiInterface ? ["nmcli", "-t", "-f", "GENERAL.CONNECTION", "device", "show", root.wifiInterface] : []
+        running: false
+
+        stdout: StdioCollector {
+            onStreamFinished: {
+                if (!root.currentWifiSSID) {
+                    const name = text.trim()
+                    if (name) {
+                        root.currentWifiSSID = name
+                    }
+                }
+            }
+        }
+    }
+
+    function updateWifiState() {
+        checkWifiEnabled.running = true
+    }
+
+    Process {
+        id: checkWifiEnabled
+        command: ["gdbus", "call", "--system", "--dest", "org.freedesktop.NetworkManager", "--object-path", "/org/freedesktop/NetworkManager", "--method", "org.freedesktop.DBus.Properties.Get", "org.freedesktop.NetworkManager", "WirelessEnabled"]
+        running: false
+
+        stdout: StdioCollector {
+            onStreamFinished: {
+                root.wifiEnabled = text.includes("true")
+                root.wifiAvailable = true // Always available if we can check it
+            }
+        }
+    }
+
+    function scanWifi() {
+        if (root.isScanning || !root.wifiEnabled) {
+            return
+        }
+
+        root.isScanning = true
+        requestWifiScan.running = true
+    }
+
+    Process {
+        id: requestWifiScan
+        command: root.wifiInterface ? ["nmcli", "dev", "wifi", "rescan", "ifname", root.wifiInterface] : []
+        running: false
+
+        onExited: exitCode => {
+            if (exitCode === 0) {
+                scanWifiNetworks()
+            } else {
+                console.warn("WiFi scan request failed")
+                root.isScanning = false
+            }
+        }
+    }
+
+    function scanWifiNetworks() {
+        if (!root.wifiInterface) {
             root.isScanning = false
-            fallbackTimer.stop()
-          }
-        }
-      }
-    }
-  }
-
-  Process {
-    id: savedWifiScanner
-
-    command: ["nmcli", "-t", "-f", "NAME", "connection", "show"]
-    running: false
-
-    stdout: StdioCollector {
-      onStreamFinished: {
-        if (text.trim()) {
-          let saved = []
-          let lines = text.trim().split('\n')
-          for (let line of lines) {
-            let connectionName = line.trim()
-            if (connectionName && !connectionName.includes("ethernet")
-                && !connectionName.includes("lo") && !connectionName.includes(
-                  "Wired") && !connectionName.toLowerCase().includes("eth"))
-            saved.push({
-                         "ssid": connectionName,
-                         "saved": true
-                       })
-          }
-          root.savedWifiNetworks = saved
-        }
-      }
-    }
-  }
-
-  // WiFi Connection Process
-  Process {
-    id: wifiConnector
-    command: ["bash", "-c", "timeout 30 nmcli dev wifi connect \""
-      + root.connectingSSID + "\" || nmcli connection up \"" + root.connectingSSID
-      + "\"; exit_code=$?; echo \"nmcli exit code: $exit_code\" >&2; if [ $exit_code -eq 0 ]; then nmcli connection modify \"" + root.connectingSSID
-      + "\" connection.autoconnect-priority 50; sleep 2; if nmcli -t -f ACTIVE,SSID dev wifi | grep -q \"^yes:" + root.connectingSSID
-      + "\"; then echo \"Connection verified\" >&2; exit 0; else echo \"Connection failed verification\" >&2; exit 4; fi; else exit $exit_code; fi"]
-    running: false
-
-    stderr: StdioCollector {
-      onStreamFinished: {
-        console.log("WiFi connection debug output:", text.trim())
-      }
-    }
-
-    onExited: exitCode => {
-      console.log("WiFi connection result:", exitCode)
-      if (exitCode === 0) {
-        root.connectionStatus = "connected"
-        root.passwordDialogShouldReopen = false
-        console.log("Connected to WiFi successfully")
-        ToastService.showInfo("Connected to " + root.connectingSSID)
-        setNetworkPreference("wifi")
-        delayedRefreshNetworkStatus()
-
-        // Immediately update savedWifiNetworks to include the new connection
-        if (!root.savedWifiNetworks.some(
-              saved => saved.ssid === root.connectingSSID)) {
-          let updatedSaved = [...root.savedWifiNetworks]
-          updatedSaved.push({
-                              "ssid": root.connectingSSID,
-                              "saved": true
-                            })
-          root.savedWifiNetworks = updatedSaved
+            return
         }
 
-        // Update wifiNetworks to reflect the change
-        let updatedNetworks = [...root.wifiNetworks]
-        for (var i = 0; i < updatedNetworks.length; i++) {
-          if (updatedNetworks[i].ssid === root.connectingSSID) {
-            updatedNetworks[i].saved = true
-            updatedNetworks[i].connected = true
-            break
-          }
-        }
-        root.wifiNetworks = updatedNetworks
-      } else if (exitCode === 4) {
-        // Connection failed - likely needs password for saved network
-        root.connectionStatus = "invalid_password"
-        root.passwordDialogShouldReopen = true
-        console.log("Saved network connection failed - password required")
-        ToastService.showError(
-          "Authentication failed for " + root.connectingSSID)
-      } else {
-        root.connectionStatus = "failed"
-        console.log("WiFi connection failed")
-        ToastService.showError("Failed to connect to " + root.connectingSSID)
-      }
-      scanWifi()
-      statusResetTimer.start()
-    }
-  }
-
-  // WiFi Connection with Password Process
-  Process {
-    id: wifiPasswordConnector
-    command: ["bash", "-c", "nmcli connection delete \"" + root.connectingSSID
-      + "\" 2>/dev/null || true; timeout 30 nmcli dev wifi connect \""
-      + root.connectingSSID + "\" password \"" + root.wifiPassword
-      + "\"; exit_code=$?; echo \"nmcli exit code: $exit_code\" >&2; if [ $exit_code -eq 0 ]; then nmcli connection modify \"" + root.connectingSSID
-      + "\" connection.autoconnect-priority 50; sleep 2; if nmcli -t -f ACTIVE,SSID dev wifi | grep -q \"^yes:" + root.connectingSSID
-      + "\"; then echo \"Connection verified\" >&2; exit 0; else echo \"Connection failed verification\" >&2; exit 4; fi; else exit $exit_code; fi"]
-    running: false
-
-    stdout: StdioCollector {
-      onStreamFinished: {
-        if (text.trim()) {
-          console.log("WiFi connection stdout:", text.trim())
-        }
-      }
+        getWifiNetworks.running = true
+        getSavedConnections.running = true
     }
 
-    stderr: StdioCollector {
-      onStreamFinished: {
-        root.lastConnectionError = text.trim()
-        console.log("WiFi connection debug output:", text.trim())
-      }
-    }
+    Process {
+        id: getWifiNetworks
+        command: ["nmcli", "-t", "-f", "SSID,SIGNAL,SECURITY,BSSID", "dev", "wifi", "list", "ifname", root.wifiInterface]
+        running: false
 
-    onExited: exitCode => {
-      console.log("WiFi connection with password result:", exitCode)
-      console.log("Error output:", root.lastConnectionError)
+        stdout: StdioCollector {
+            onStreamFinished: {
+                const networks = []
+                const lines = text.trim().split('\n')
+                const seen = new Set()
 
-      if (exitCode === 0) {
-        root.connectionStatus = "connected"
-        root.passwordDialogShouldReopen = false
-        console.log("Connected to WiFi with password successfully")
-        ToastService.showInfo("Connected to " + root.connectingSSID)
-        setNetworkPreference("wifi")
-        delayedRefreshNetworkStatus()
+                for (const line of lines) {
+                    const parts = root.splitNmcliFields(line)
+                    if (parts.length >= 4 && parts[0]) {
+                        const ssid = parts[0]
+                        if (!seen.has(ssid)) {
+                            seen.add(ssid)
+                            const signal = parseInt(parts[1]) || 0
 
-        // Immediately update savedWifiNetworks to include the new connection
-        if (!root.savedWifiNetworks.some(
-              saved => saved.ssid === root.connectingSSID)) {
-          let updatedSaved = [...root.savedWifiNetworks]
-          updatedSaved.push({
-                              "ssid": root.connectingSSID,
-                              "saved": true
-                            })
-          root.savedWifiNetworks = updatedSaved
-        }
+                            networks.push({
+                                              "ssid": ssid,
+                                              "signal": signal,
+                                              "secured": parts[2] !== "",
+                                              "bssid": parts[3],
+                                              "connected": ssid === root.currentWifiSSID,
+                                              "saved": false
+                                          })
+                        }
+                    }
+                }
 
-        // Update wifiNetworks to reflect the change
-        let updatedNetworks = [...root.wifiNetworks]
-        for (var i = 0; i < updatedNetworks.length; i++) {
-          if (updatedNetworks[i].ssid === root.connectingSSID) {
-            updatedNetworks[i].saved = true
-            updatedNetworks[i].connected = true
-            break
-          }
-        }
-        root.wifiNetworks = updatedNetworks
-      } else if (exitCode === 4) {
-        // Connection activation failed - likely invalid credentials
-        if (root.lastConnectionError.includes("Secrets were required")
-            || root.lastConnectionError.includes("authentication")
-            || root.lastConnectionError.includes("AUTH_TIMED_OUT")) {
-          root.connectionStatus = "invalid_password"
-          root.passwordDialogShouldReopen = true
-          console.log("Invalid password detected")
-          ToastService.showError("Invalid password for " + root.connectingSSID)
-        } else {
-          root.connectionStatus = "failed"
-          console.log("Connection failed - not password related")
-          ToastService.showError("Failed to connect to " + root.connectingSSID)
-        }
-      } else if (exitCode === 3 || exitCode === 124) {
-        root.connectionStatus = "failed"
-        console.log("Connection timed out")
-        ToastService.showError(
-          "Connection to " + root.connectingSSID + " timed out")
-      } else {
-        root.connectionStatus = "failed"
-        console.log("WiFi connection with password failed")
-        ToastService.showError("Failed to connect to " + root.connectingSSID)
-      }
-      root.wifiPassword = "" // Clear password
-      scanWifi()
-      statusResetTimer.start()
-    }
-  }
-
-  // WiFi Disconnect Process
-  Process {
-    id: wifiDisconnector
-    command: ["bash", "-c", "WIFI_DEV=$(nmcli -t -f DEVICE,TYPE device | grep wifi | cut -d: -f1 | head -1); [ -n \"$WIFI_DEV\" ] && nmcli device disconnect \"$WIFI_DEV\""]
-    running: false
-
-    onExited: exitCode => {
-      console.log("WiFi disconnect result:", exitCode)
-      if (exitCode === 0) {
-        console.log("Successfully disconnected from WiFi")
-        ToastService.showInfo("Disconnected from WiFi")
-        root.currentWifiSSID = ""
-        root.connectionStatus = ""
-        refreshNetworkStatus()
-      } else {
-        console.log("Failed to disconnect from WiFi")
-        ToastService.showError("Failed to disconnect from WiFi")
-      }
-    }
-
-    stderr: SplitParser {
-      splitMarker: "\\n"
-      onRead: data => {
-        console.log("WiFi disconnect stderr:", data)
-      }
-    }
-  }
-
-  // WiFi Forget Network Process
-  Process {
-    id: wifiForget
-    command: ["bash", "-c", "nmcli connection delete \"" + root.forgetSSID
-      + "\" || nmcli connection delete id \"" + root.forgetSSID + "\""]
-    running: false
-
-    onExited: exitCode => {
-      console.log("WiFi forget result:", exitCode)
-      if (exitCode === 0) {
-        console.log("Successfully forgot WiFi network:", root.forgetSSID)
-        ToastService.showInfo("Forgot network \"" + root.forgetSSID + "\"")
-
-        // If we forgot the currently connected network, clear connection status
-        if (root.forgetSSID === root.currentWifiSSID) {
-          root.currentWifiSSID = ""
-          root.connectionStatus = ""
-          refreshNetworkStatus()
-        }
-
-        // Update savedWifiNetworks to remove the forgotten network
-        root.savedWifiNetworks = root.savedWifiNetworks.filter(saved => {
-                                                                 return saved.ssid
-                                                                 !== root.forgetSSID
-                                                               })
-
-        // Update wifiNetworks - create new array with updated objects
-        let updatedNetworks = []
-        for (var i = 0; i < root.wifiNetworks.length; i++) {
-          let network = root.wifiNetworks[i]
-          if (network.ssid === root.forgetSSID) {
-            let updatedNetwork = Object.assign({}, network)
-            updatedNetwork.saved = false
-            updatedNetwork.connected = false
-            updatedNetworks.push(updatedNetwork)
-          } else {
-            updatedNetworks.push(network)
-          }
-        }
-        root.wifiNetworks = updatedNetworks
-        root.networksUpdated()
-      } else {
-        console.log("Failed to forget WiFi network:", root.forgetSSID)
-        ToastService.showError(
-          "Failed to forget network \"" + root.forgetSSID + "\"")
-      }
-      root.forgetSSID = "" // Clear SSID
-    }
-
-    stderr: SplitParser {
-      splitMarker: "\\n"
-      onRead: data => {
-        console.log("WiFi forget stderr:", data)
-      }
-    }
-  }
-
-  // WiFi Network Info Fetcher Process - Using detailed nmcli output
-  Process {
-    id: wifiInfoFetcher
-    command: ["nmcli", "-t", "-f", "SSID,SIGNAL,SECURITY,FREQ,RATE,MODE,CHAN,WPA-FLAGS,RSN-FLAGS", "dev", "wifi", "list"]
-    running: false
-
-    stdout: StdioCollector {
-      onStreamFinished: {
-        let details = ""
-        if (text.trim()) {
-          let lines = text.trim().split('\n')
-          for (let line of lines) {
-            let parts = line.split(':')
-            if (parts.length >= 9 && parts[0] === root.networkInfoSSID) {
-              let ssid = parts[0] || "Unknown"
-              let signal = parts[1] || "0"
-              let security = parts[2] || "Open"
-              let freq = parts[3] || "Unknown"
-              let rate = parts[4] || "Unknown"
-              let mode = parts[5] || "Unknown"
-              let channel = parts[6] || "Unknown"
-              let wpaFlags = parts[7] || ""
-              let rsnFlags = parts[8] || ""
-
-              // Determine band from frequency
-              let band = "Unknown"
-              let freqNum = parseInt(freq)
-              if (freqNum >= 2400 && freqNum <= 2500) {
-                band = "2.4 GHz"
-              } else if (freqNum >= 5000 && freqNum <= 6000) {
-                band = "5 GHz"
-              } else if (freqNum >= 6000) {
-                band = "6 GHz"
-              }
-
-              details = "Network Name: " + ssid + "\\n"
-              details += "Signal Strength: " + signal + "%\\n"
-              details += "Security: " + (security === "" ? "Open" : security) + "\\n"
-              details += "Frequency: " + freq + " MHz\\n"
-              details += "Band: " + band + "\\n"
-              details += "Channel: " + channel + "\\n"
-              details += "Mode: " + mode + "\\n"
-              details += "Max Rate: " + rate + " Mbit/s\\n"
-
-              if (wpaFlags !== "") {
-                details += "WPA Flags: " + wpaFlags + "\\n"
-              }
-              if (rsnFlags !== "") {
-                details += "RSN Flags: " + rsnFlags + "\\n"
-              }
-
-              break
+                networks.sort((a, b) => b.signal - a.signal)
+                root.wifiNetworks = networks
+                root.isScanning = false
+                root.networksUpdated()
             }
-          }
+        }
+    }
+
+    Process {
+        id: getSavedConnections
+        command: ["bash", "-c", "nmcli -t -f NAME,TYPE connection show | grep ':802-11-wireless$' | cut -d: -f1 | while read name; do ssid=$(nmcli -g 802-11-wireless.ssid connection show \"$name\"); echo \"$ssid:$name\"; done"]
+        running: false
+
+        stdout: StdioCollector {
+            onStreamFinished: {
+                const saved = []
+                const mapping = {}
+                const lines = text.trim().split('\n')
+
+                for (const line of lines) {
+                    const parts = line.trim().split(':')
+                    if (parts.length >= 2) {
+                        const ssid = parts[0]
+                        const connectionName = parts[1]
+                        if (ssid && ssid.length > 0 && connectionName && connectionName.length > 0) {
+                            saved.push({
+                                           "ssid": ssid,
+                                           "saved": true
+                                       })
+                            mapping[ssid] = connectionName
+                        }
+                    }
+                }
+
+                root.savedConnections = saved
+                root.savedWifiNetworks = saved
+                root.ssidToConnectionName = mapping
+
+                const updated = [...root.wifiNetworks]
+                for (const network of updated) {
+                    network.saved = saved.some(s => s.ssid === network.ssid)
+                }
+                root.wifiNetworks = updated
+            }
+        }
+    }
+
+    function connectToWifi(ssid, password = "") {
+        if (root.isConnecting) {
+            return
         }
 
-        if (details === "") {
-          details = "Network information not found or network not available."
+        root.isConnecting = true
+        root.connectingSSID = ssid
+        root.connectionError = ""
+        root.connectionStatus = "connecting"
+
+        if (!password && root.ssidToConnectionName[ssid]) {
+            const connectionName = root.ssidToConnectionName[ssid]
+            wifiConnector.command = ["nmcli", "connection", "up", connectionName]
+        } else if (password) {
+            wifiConnector.command = ["nmcli", "dev", "wifi", "connect", ssid, "password", password]
+        } else {
+            wifiConnector.command = ["nmcli", "dev", "wifi", "connect", ssid]
+        }
+        wifiConnector.running = true
+    }
+
+    Process {
+        id: wifiConnector
+        running: false
+
+        property bool connectionSucceeded: false
+
+        stdout: StdioCollector {
+            onStreamFinished: {
+                if (text.includes("successfully")) {
+                    wifiConnector.connectionSucceeded = true
+                    ToastService.showInfo(`Connected to ${root.connectingSSID}`)
+                    root.connectionError = ""
+                    root.connectionStatus = "connected"
+
+                    if (root.userPreference === "wifi" || root.userPreference === "auto") {
+                        setConnectionPriority("wifi")
+                    }
+                }
+            }
         }
 
-        root.networkInfoDetails = details
-        root.networkInfoLoading = false
-      }
+        stderr: StdioCollector {
+            onStreamFinished: {
+                root.connectionError = text
+                root.lastConnectionError = text
+                if (!wifiConnector.connectionSucceeded && text.trim() !== "") {
+                    if (text.includes("password") || text.includes("authentication")) {
+                        root.connectionStatus = "invalid_password"
+                        root.passwordDialogShouldReopen = true
+                    } else {
+                        root.connectionStatus = "failed"
+                    }
+                }
+            }
+        }
+
+        onExited: exitCode => {
+            if (exitCode === 0 || wifiConnector.connectionSucceeded) {
+                if (!wifiConnector.connectionSucceeded) {
+                    ToastService.showInfo(`Connected to ${root.connectingSSID}`)
+                    root.connectionStatus = "connected"
+                }
+            } else {
+                if (root.connectionStatus === "") {
+                    root.connectionStatus = "failed"
+                }
+                if (root.connectionStatus === "invalid_password") {
+                    ToastService.showError(`Invalid password for ${root.connectingSSID}`)
+                } else {
+                    ToastService.showError(`Failed to connect to ${root.connectingSSID}`)
+                }
+            }
+
+            wifiConnector.connectionSucceeded = false
+            root.isConnecting = false
+            root.connectingSSID = ""
+            refreshNetworkState()
+        }
     }
 
-    onExited: exitCode => {
-      root.networkInfoLoading = false
-      if (exitCode !== 0) {
+    function disconnectWifi() {
+        if (!root.wifiInterface) {
+            return
+        }
 
-        root.networkInfoDetails = "Failed to fetch network information"
-      }
+        wifiDisconnector.command = ["nmcli", "dev", "disconnect", root.wifiInterface]
+        wifiDisconnector.running = true
     }
 
-    stderr: SplitParser {
-      splitMarker: "\\n"
-      onRead: data => {}
-    }
-  }
+    Process {
+        id: wifiDisconnector
+        running: false
 
-  // WiFi Device Enabler Process
-  Process {
-    id: wifiDeviceEnabler
-    command: ["sh", "-c", "WIFI_DEV=$(nmcli -t -f DEVICE,TYPE device | grep wifi | cut -d: -f1 | head -1); if [ -n \"$WIFI_DEV\" ]; then nmcli device connect \"$WIFI_DEV\"; else echo \"No WiFi device found\"; exit 1; fi"]
-    running: false
-
-    onExited: exitCode => {
-      console.log("WiFi device enable result:", exitCode)
-      if (exitCode === 0) {
-        console.log("WiFi device enabled successfully")
-        ToastService.showInfo("WiFi enabled")
-      } else {
-        console.log("Failed to enable WiFi device")
-        ToastService.showError("Failed to enable WiFi")
-      }
-      delayedRefreshNetworkStatus()
+        onExited: exitCode => {
+            if (exitCode === 0) {
+                ToastService.showInfo("Disconnected from WiFi")
+                root.currentWifiSSID = ""
+                root.connectionStatus = ""
+            }
+            refreshNetworkState()
+        }
     }
 
-    stderr: SplitParser {
-      splitMarker: "\\n"
-      onRead: data => {
-        console.log("WiFi device enable stderr:", data)
-      }
+    function forgetWifiNetwork(ssid) {
+        root.forgetSSID = ssid
+        const connectionName = root.ssidToConnectionName[ssid] || ssid
+        networkForgetter.command = ["nmcli", "connection", "delete", connectionName]
+        networkForgetter.running = true
     }
-  }
+
+    Process {
+        id: networkForgetter
+        running: false
+
+        onExited: exitCode => {
+            if (exitCode === 0) {
+                ToastService.showInfo(`Forgot network ${root.forgetSSID}`)
+
+                root.savedConnections = root.savedConnections.filter(s => s.ssid !== root.forgetSSID)
+                root.savedWifiNetworks = root.savedWifiNetworks.filter(s => s.ssid !== root.forgetSSID)
+
+                const updated = [...root.wifiNetworks]
+                for (const network of updated) {
+                    if (network.ssid === root.forgetSSID) {
+                        network.saved = false
+                        if (network.connected) {
+                            network.connected = false
+                            root.currentWifiSSID = ""
+                        }
+                    }
+                }
+                root.wifiNetworks = updated
+                root.networksUpdated()
+                refreshNetworkState()
+            }
+            root.forgetSSID = ""
+        }
+    }
+
+    function toggleWifiRadio() {
+        if (root.wifiToggling) {
+            return
+        }
+
+        root.wifiToggling = true
+        const targetState = root.wifiEnabled ? "off" : "on"
+        wifiRadioToggler.targetState = targetState
+        wifiRadioToggler.command = ["nmcli", "radio", "wifi", targetState]
+        wifiRadioToggler.running = true
+    }
+
+    Process {
+        id: wifiRadioToggler
+        running: false
+
+        property string targetState: ""
+
+        onExited: exitCode => {
+            root.wifiToggling = false
+            if (exitCode === 0) {
+                ToastService.showInfo(targetState === "on" ? "WiFi enabled" : "WiFi disabled")
+            }
+            refreshNetworkState()
+        }
+    }
+
+    function setNetworkPreference(preference) {
+        root.userPreference = preference
+        root.changingPreference = true
+        root.targetPreference = preference
+        SettingsData.setNetworkPreference(preference)
+
+        if (preference === "wifi") {
+            setConnectionPriority("wifi")
+        } else if (preference === "ethernet") {
+            setConnectionPriority("ethernet")
+        }
+    }
+
+    function setConnectionPriority(type) {
+        if (type === "wifi") {
+            setRouteMetrics.command = ["bash", "-c", "nmcli -t -f NAME,TYPE connection show | grep 802-11-wireless | cut -d: -f1 | " + "xargs -I {} bash -c 'nmcli connection modify \"{}\" ipv4.route-metric 50 ipv6.route-metric 50'; " + "nmcli -t -f NAME,TYPE connection show | grep 802-3-ethernet | cut -d: -f1 | " + "xargs -I {} bash -c 'nmcli connection modify \"{}\" ipv4.route-metric 100 ipv6.route-metric 100'"]
+        } else if (type === "ethernet") {
+            setRouteMetrics.command = ["bash", "-c", "nmcli -t -f NAME,TYPE connection show | grep 802-3-ethernet | cut -d: -f1 | " + "xargs -I {} bash -c 'nmcli connection modify \"{}\" ipv4.route-metric 50 ipv6.route-metric 50'; " + "nmcli -t -f NAME,TYPE connection show | grep 802-11-wireless | cut -d: -f1 | " + "xargs -I {} bash -c 'nmcli connection modify \"{}\" ipv4.route-metric 100 ipv6.route-metric 100'"]
+        }
+        setRouteMetrics.running = true
+    }
+
+    Process {
+        id: setRouteMetrics
+        running: false
+
+        onExited: exitCode => {
+            console.log("Set route metrics process exited with code:", exitCode)
+            if (exitCode === 0) {
+                restartConnections.running = true
+            }
+        }
+    }
+
+    Process {
+        id: restartConnections
+        command: ["bash", "-c", "nmcli -t -f UUID,TYPE connection show --active | " + "grep -E '802-11-wireless|802-3-ethernet' | cut -d: -f1 | " + "xargs -I {} sh -c 'nmcli connection down {} && nmcli connection up {}'"]
+        running: false
+
+        onExited: {
+            root.changingPreference = false
+            root.targetPreference = ""
+            refreshNetworkState()
+        }
+    }
+
+    function startAutoScan() {
+        root.autoScan = true
+        root.autoRefreshEnabled = true
+        if (root.wifiEnabled) {
+            scanWifi()
+        }
+    }
+
+    function stopAutoScan() {
+        root.autoScan = false
+        root.autoRefreshEnabled = false
+    }
+
+    function fetchNetworkInfo(ssid) {
+        root.networkInfoSSID = ssid
+        root.networkInfoLoading = true
+        root.networkInfoDetails = "Loading network information..."
+        wifiInfoFetcher.running = true
+    }
+
+    Process {
+        id: wifiInfoFetcher
+        command: ["nmcli", "-t", "-f", "SSID,SIGNAL,SECURITY,FREQ,RATE,MODE,CHAN,WPA-FLAGS,RSN-FLAGS,ACTIVE,BSSID", "dev", "wifi", "list"]
+        running: false
+
+        stdout: StdioCollector {
+            onStreamFinished: {
+                let details = ""
+                if (text.trim()) {
+                    const lines = text.trim().split('\n')
+                    const bands = []
+
+                    for (const line of lines) {
+                        const parts = line.split(':')
+                        if (parts.length >= 11 && parts[0] === root.networkInfoSSID) {
+                            const signal = parts[1] || "0"
+                            const security = parts[2] || "Open"
+                            const freq = parts[3] || "Unknown"
+                            const rate = parts[4] || "Unknown"
+                            const channel = parts[6] || "Unknown"
+                            const isActive = parts[9] === "yes"
+                            let colonCount = 0
+                            let bssidStart = -1
+                            for (var i = 0; i < line.length; i++) {
+                                if (line[i] === ':') {
+                                    colonCount++
+                                    if (colonCount === 10) {
+                                        bssidStart = i + 1
+                                        break
+                                    }
+                                }
+                            }
+                            const bssid = bssidStart >= 0 ? line.substring(bssidStart).replace(/\\:/g, ":") : ""
+
+                            let band = "Unknown"
+                            const freqNum = parseInt(freq)
+                            if (freqNum >= 2400 && freqNum <= 2500) {
+                                band = "2.4 GHz"
+                            } else if (freqNum >= 5000 && freqNum <= 6000) {
+                                band = "5 GHz"
+                            } else if (freqNum >= 6000) {
+                                band = "6 GHz"
+                            }
+
+                            bands.push({
+                                           "band": band,
+                                           "freq": freq,
+                                           "channel": channel,
+                                           "signal": signal,
+                                           "rate": rate,
+                                           "security": security,
+                                           "isActive": isActive,
+                                           "bssid": bssid
+                                       })
+                        }
+                    }
+
+                    if (bands.length > 0) {
+                        bands.sort((a, b) => {
+                                       if (a.isActive && !b.isActive) {
+                                           return -1
+                                       }
+                                       if (!a.isActive && b.isActive) {
+                                           return 1
+                                       }
+                                       return parseInt(b.signal) - parseInt(a.signal)
+                                   })
+
+                        for (var i = 0; i < bands.length; i++) {
+                            const b = bands[i]
+                            if (b.isActive) {
+                                details += "● " + b.band + " (Connected) - " + b.signal + "%\\n"
+                            } else {
+                                details += "  " + b.band + " - " + b.signal + "%\\n"
+                            }
+                            details += "  Channel " + b.channel + " (" + b.freq + " MHz) • " + b.rate + " Mbit/s\\n"
+                            details += "  " + b.bssid
+                            if (i < bands.length - 1) {
+                                details += "\\n\\n"
+                            }
+                        }
+                    }
+                }
+
+                if (details === "") {
+                    details = "Network information not found or network not available."
+                }
+
+                root.networkInfoDetails = details
+                root.networkInfoLoading = false
+            }
+        }
+
+        onExited: exitCode => {
+            root.networkInfoLoading = false
+            if (exitCode !== 0) {
+                root.networkInfoDetails = "Failed to fetch network information"
+            }
+        }
+    }
+
+    function enableWifiDevice() {
+        wifiDeviceEnabler.running = true
+    }
+
+    Process {
+        id: wifiDeviceEnabler
+        command: ["sh", "-c", "WIFI_DEV=$(nmcli -t -f DEVICE,TYPE device | grep wifi | cut -d: -f1 | head -1); if [ -n \"$WIFI_DEV\" ]; then nmcli device connect \"$WIFI_DEV\"; else echo \"No WiFi device found\"; exit 1; fi"]
+        running: false
+
+        onExited: exitCode => {
+            if (exitCode === 0) {
+                ToastService.showInfo("WiFi enabled")
+            } else {
+                ToastService.showError("Failed to enable WiFi")
+            }
+            refreshNetworkState()
+        }
+    }
+
+    function connectToWifiAndSetPreference(ssid, password) {
+        connectToWifi(ssid, password)
+        setNetworkPreference("wifi")
+    }
+
+    function toggleNetworkConnection(type) {
+        if (type === "ethernet") {
+            if (root.networkStatus === "ethernet") {
+                ethernetDisconnector.running = true
+            } else {
+                ethernetConnector.running = true
+            }
+        }
+    }
+
+    Process {
+        id: ethernetDisconnector
+        command: ["sh", "-c", "nmcli device disconnect $(nmcli -t -f DEVICE,TYPE device | grep ethernet | cut -d: -f1 | head -1)"]
+        running: false
+
+        onExited: function (exitCode) {
+            refreshNetworkState()
+        }
+    }
+
+    Process {
+        id: ethernetConnector
+        command: ["sh", "-c", "ETH_DEV=$(nmcli -t -f DEVICE,TYPE device | grep ethernet | cut -d: -f1 | head -1); if [ -n \"$ETH_DEV\" ]; then nmcli device connect \"$ETH_DEV\"; else echo \"No ethernet device found\"; exit 1; fi"]
+        running: false
+
+        onExited: function (exitCode) {
+            refreshNetworkState()
+        }
+    }
+
+    function getNetworkInfo(ssid) {
+        const network = root.wifiNetworks.find(n => n.ssid === ssid)
+        if (!network) {
+            return null
+        }
+
+        return {
+            "ssid": network.ssid,
+            "signal": network.signal,
+            "secured": network.secured,
+            "saved": network.saved,
+            "connected": network.connected,
+            "bssid": network.bssid
+        }
+    }
 }
