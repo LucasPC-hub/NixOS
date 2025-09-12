@@ -48,6 +48,8 @@ Singleton {
     property string notepadCurrentFileName: ""
     property string notepadCurrentFileUrl: ""
     property string notepadLastSavedContent: ""
+    property var notepadTabs: []
+    property int notepadCurrentTabIndex: 0
 
     Component.onCompleted: {
         loadSettings()
@@ -104,19 +106,43 @@ Singleton {
                 lastBrightnessDevice = settings.lastBrightnessDevice !== undefined ? settings.lastBrightnessDevice : ""
                 notepadContent = settings.notepadContent !== undefined ? settings.notepadContent : ""
                 
-                // Apply dynamic theming if wallpaper exists and dynamic theming is enabled
-                if (wallpaperPath && wallpaperPath !== "") {
-                    if (typeof Theme !== "undefined") {
-                        if (typeof SettingsData !== "undefined" && SettingsData.wallpaperDynamicTheming) {
-                            Theme.switchTheme("dynamic")
-                            Theme.extractColors()
-                        }
-                        Theme.generateSystemThemesFromCurrentTheme()
-                    }
+                // Generate system themes but don't override user's theme choice
+                if (typeof Theme !== "undefined") {
+                    Theme.generateSystemThemesFromCurrentTheme()
                 }
                 notepadCurrentFileName = settings.notepadCurrentFileName !== undefined ? settings.notepadCurrentFileName : ""
                 notepadCurrentFileUrl = settings.notepadCurrentFileUrl !== undefined ? settings.notepadCurrentFileUrl : ""
                 notepadLastSavedContent = settings.notepadLastSavedContent !== undefined ? settings.notepadLastSavedContent : ""
+                notepadTabs = settings.notepadTabs !== undefined ? settings.notepadTabs : []
+                notepadCurrentTabIndex = settings.notepadCurrentTabIndex !== undefined ? settings.notepadCurrentTabIndex : 0
+                
+                // Migrate legacy single notepad to tabs if needed
+                if (notepadTabs.length === 0 && (notepadContent || notepadCurrentFileName)) {
+                    notepadTabs = [{
+                        id: Date.now(),
+                        title: notepadCurrentFileName || "Untitled",
+                        content: notepadContent,
+                        fileName: notepadCurrentFileName,
+                        fileUrl: notepadCurrentFileUrl,
+                        lastSavedContent: notepadLastSavedContent,
+                        hasUnsavedChanges: false
+                    }]
+                    notepadCurrentTabIndex = 0
+                }
+                
+                // Ensure at least one tab exists
+                if (notepadTabs.length === 0) {
+                    notepadTabs = [{
+                        id: Date.now(),
+                        title: "Untitled",
+                        content: "",
+                        fileName: "",
+                        fileUrl: "",
+                        lastSavedContent: "",
+                        hasUnsavedChanges: false
+                    }]
+                    notepadCurrentTabIndex = 0
+                }
             }
         } catch (e) {
 
@@ -156,7 +182,9 @@ Singleton {
                                                 "notepadContent": notepadContent,
                                                 "notepadCurrentFileName": notepadCurrentFileName,
                                                 "notepadCurrentFileUrl": notepadCurrentFileUrl,
-                                                "notepadLastSavedContent": notepadLastSavedContent
+                                                "notepadLastSavedContent": notepadLastSavedContent,
+                                                "notepadTabs": notepadTabs,
+                                                "notepadCurrentTabIndex": notepadCurrentTabIndex
                                             }, null, 2))
     }
 
@@ -238,8 +266,7 @@ Singleton {
         saveSettings()
 
         if (typeof Theme !== "undefined") {
-            if (typeof SettingsData !== "undefined" && SettingsData.wallpaperDynamicTheming) {
-                Theme.switchTheme("dynamic")
+            if (Theme.currentTheme === Theme.dynamic) {
                 Theme.extractColors()
             }
             Theme.generateSystemThemesFromCurrentTheme()
@@ -251,8 +278,7 @@ Singleton {
         saveSettings()
 
         if (typeof Theme !== "undefined") {
-            if (typeof SettingsData !== "undefined" && SettingsData.wallpaperDynamicTheming) {
-                Theme.switchTheme("dynamic")
+            if (Theme.currentTheme === Theme.dynamic) {
                 Theme.extractColors()
             }
             Theme.generateSystemThemesFromCurrentTheme()
@@ -360,10 +386,6 @@ Singleton {
 
         // Refresh dynamic theming when per-monitor mode changes
         if (typeof Theme !== "undefined") {
-            if (typeof SettingsData !== "undefined" && SettingsData.wallpaperDynamicTheming) {
-                Theme.switchTheme("dynamic")
-                Theme.extractColors()
-            }
             Theme.generateSystemThemesFromCurrentTheme()
         }
     }

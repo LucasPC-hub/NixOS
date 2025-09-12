@@ -18,7 +18,7 @@ A modern Wayland desktop shell built with [Quickshell](https://quickshell.org/) 
 <div align="center">
 <div style="max-width: 700px; margin: 0 auto;">
 
-https://github.com/user-attachments/assets/5ad934bb-e7aa-4c04-8d40-149181bd2d29
+https://github.com/user-attachments/assets/fd619c0e-6edc-457e-b3d6-5a5c3bae7173
 
 </div>
 </div>
@@ -33,9 +33,17 @@ https://github.com/user-attachments/assets/5ad934bb-e7aa-4c04-8d40-149181bd2d29
 
 <img src="https://github.com/user-attachments/assets/203a9678-c3b7-4720-bb97-853a511ac5c8" width="600" alt="DankMaterialShell Desktop" />
 
+### Dashboard
+
+<img width="600" alt="DankDash" src="https://github.com/user-attachments/assets/a937cf35-a43b-4558-8c39-5694ff5fcac4" />
+
 ### Application Launcher
 
 <img src="https://github.com/user-attachments/assets/2da00ea1-8921-4473-a2a9-44a44535a822" width="450" alt="Spotlight Launcher" />
+
+### Control Center
+
+<img width="600" alt="Control Center" src="https://github.com/user-attachments/assets/98889bd8-55d2-44c7-b278-75ca49c596fa" />
 
 ### System Monitor
 
@@ -51,7 +59,7 @@ https://github.com/user-attachments/assets/5ad934bb-e7aa-4c04-8d40-149181bd2d29
 
 ### Dynamic Theming
 
-<img src="https://github.com/user-attachments/assets/1994e616-f9d9-424a-9f60-6f06708bf12e" width="700" alt="Auto Theme" />
+<img src="https://github.com/user-attachments/assets/a81a68e3-4f7e-4246-8199-0fef1013d4cf" width="700" alt="Auto Theme" />
 
 ### Notification Center
 
@@ -152,74 +160,89 @@ For detailed Hyprland installation instructions, see the [Hyprland wiki](https:/
 
 *feel free to contribute steps for other distributions*
 
-**Dependencies:**
+#### Arch Linux - via AUR
 
-#### Arch Linux
 ```bash
-paru -S quickshell-git ttf-material-symbols-variable-git inter-font ttf-fira-code
+paru -S dms-shell-git
 ```
 
-#### Fedora
+#### nixOS - via flake
+
 ```bash
-sudo dnf copr enable errornointernet/quickshell && sudo dnf install quickshell-git rsms-inter-fonts fira-code-fonts
+nix profile install github:AvengeMedia/DankMaterialShell
 ```
 
-#### Install icon fonts manually
+#### Other Distributions - via manual installation
+
+**1. Install Quickshell (Varies by Distribution)**
 ```bash
-mkdir -p ~/.local/share/fonts
+# Arch
+paru -S quickshell-git
+# Fedora
+sudo dnf copr enable errornointernet/quickshell && sudo dnf install quickshell-git
+# ! TODO - document other distros
 ```
+
+**2. Install fonts**
+*Inter Variable* and *Fira Code* are not strictly required, but they are the default fonts of dms.
+
+**2.1 Install Material Symbols**
 ```bash
+mkdir -p ~/.local/share/fonts &&
 curl -L "https://github.com/google/material-design-icons/raw/master/variablefont/MaterialSymbolsRounded%5BFILL%2CGRAD%2Copsz%2Cwght%5D.ttf" -o ~/.local/share/fonts/MaterialSymbolsRounded.ttf
 ```
+**2.2 Install Inter Variable**
 ```bash
-fc-cache -f
+curl -L "https://github.com/rsms/inter/raw/refs/tags/v4.1/docs/font-files/InterVariable.ttf" -o ~/.local/share/fonts/InterVariable.ttf
 ```
 
-**Get the shell:**
-
-#### Arch linux available via AUR
+**2.3 Install Fira Code (monospace font)**
 ```bash
-paru -S dms-shell-git # Or dms-shell for latest tag
+curl -L "https://github.com/tonsky/FiraCode/releases/latest/download/FiraCode-Regular.ttf" -o ~/.local/share/fonts/FiraCode-Regular.ttf
 ```
 
-#### Manual install
+**2.4 Refresh font cache**
+```bash
+fc-cache -fv
+```
 
-### Install the shell & cli
+**3. Install the shell**
 
-1. Clone latest master
+**3.1. Clone latest master**
 ```bash
 mkdir ~/.config/quickshell && git clone https://github.com/AvengeMedia/DankMaterialShell.git ~/.config/quickshell/dms
 ```
 
-2. Install latest dms CLI
+**3.2. Install latest dms CLI**
 ```bash
-curl -L https://github.com/AvengeMedia/danklinux/releases/latest/download/dms-amd64.gz | gunzip | sudo tee /usr/local/bin/dms > /dev/null && sudo chmod +x /usr/local/bin/dms
+sudo sh -c "curl -L https://github.com/AvengeMedia/danklinux/releases/latest/download/dms-$(uname -m | sed 's/x86_64/amd64/;s/aarch64/arm64/').gz | gunzip | tee /usr/local/bin/dms > /dev/null && chmod +x /usr/local/bin/dms"
 ```
 
-### Enable System Monitor Widgets, Theming, & More
+**4. Optional Features (system monitoring, clipboard history, brightness controls, etc.)**
 
-#### Arch Linux
+**4.1 Core optional dependencies**
 ```bash
+# Arch Linux
 sudo pacman -S cava wl-clipboard cliphist brightnessctl
 paru -S matugen-bin dgop
-```
-#### Fedora
-```bash
+
+# Fedora
 sudo dnf install cava wl-clipboard brightnessctl
 sudo dnf copr enable wef/cliphist && sudo dnf install cliphist
 sudo dnf copr enable heus-sueh/packages && sudo dnf install matugen
 ```
 
-### Other Distros
+*Other distros will just need to find sources for the above packages*
 
-`dgop` can be installed on any distro:
+**4.2 - dgop manual installation**
+
+`dgop` is available via AUR and a nix flake, other distributions can install it manually.
 
 ```bash
-# Requires GO 1.23+
-curl -L https://github.com/AvengeMedia/danklinux/releases/latest/download/dms-amd64.gz | gunzip | sudo tee /usr/local/bin/dms > /dev/null && sudo chmod +x /usr/local/bin/dms
+sudo sh -c "curl -L https://github.com/AvengeMedia/dgop/releases/latest/download/dgop-linux-$(uname -m | sed 's/x86_64/amd64/;s/aarch64/arm64/').gz | gunzip | tee /usr/local/bin/dgop > /dev/null && chmod +x /usr/local/bin/dgop"
 ```
 
-**What you get:**
+**Optional Requirement Overview**
 
 - `dgop`: Ability to have system resource widgets, process list modal, and temperature monitoring.
 - `matugen`: Wallpaper-based dynamic theming
@@ -229,7 +252,9 @@ curl -L https://github.com/AvengeMedia/danklinux/releases/latest/download/dms-am
 - `cliphist`: Clipboard history
 - `gammastep`: Night mode support
 
-## Usage
+## Compositor Configuration
+
+A lot of options are subject to personal preference, but the below sets a good starting point for most features.
 
 ### Niri Integration
 
@@ -244,7 +269,7 @@ spawn-at-startup "/usr/lib/mate-polkit/polkit-mate-authentication-agent-1"
 // This may be a different path on different distributions, the above is for the arch linux mate-polkit package
 
 // Starts DankShell
-spawn-at-startup "qs" "-c" "dms"
+spawn-at-startup "dms" "run"
 
 // If using niri newer than 271534e115e5915231c99df287bbfe396185924d (~aug 17 2025)
 // you can add this to disable built in config load errors since dank shell provides this
@@ -259,51 +284,51 @@ config-notification {
 // 4. For the increment/decrement ones you can change the steps to whatever you like too
 binds {
    Mod+Space hotkey-overlay-title="Application Launcher" {
-      spawn "qs" "-c" "dms" "ipc" "call" "spotlight" "toggle";
+      spawn "dms" "ipc" "call" "spotlight" "toggle";
    }
    Mod+V hotkey-overlay-title="Clipboard Manager" {
-      spawn "qs" "-c" "dms" "ipc" "call" "clipboard" "toggle";
+      spawn "dms" "ipc" "call" "clipboard" "toggle";
    }
    Mod+M hotkey-overlay-title="Task Manager" {
-      spawn "qs" "-c" "dms" "ipc" "call" "processlist" "toggle";
+      spawn "dms" "ipc" "call" "processlist" "toggle";
    }
    Mod+N hotkey-overlay-title="Notification Center" {
-      spawn "qs" "-c" "dms" "ipc" "call" "notifications" "toggle";
+      spawn "dms" "ipc" "call" "notifications" "toggle";
    }
    Mod+Comma hotkey-overlay-title="Settings" {
-      spawn "qs" "-c" "dms" "ipc" "call" "settings" "toggle";
+      spawn "dms" "ipc" "call" "settings" "toggle";
    }
    Mod+P hotkey-overlay-title="Notepad" {
-      spawn "qs" "-c" "dms" "ipc" "call" "notepad" "toggle";
+      spawn "dms" "ipc" "call" "notepad" "toggle";
    }
    Super+Alt+L hotkey-overlay-title="Lock Screen" {
-      spawn "qs" "-c" "dms" "ipc" "call" "lock" "lock";
+      spawn "dms" "ipc" "call" "lock" "lock";
    }
    Mod+X hotkey-overlay-title="Power Menu" {
-      spawn "qs" "-c" "dms" "ipc" "call" "powermenu" "toggle";
+      spawn "dms" "ipc" "call" "powermenu" "toggle";
    }
    XF86AudioRaiseVolume allow-when-locked=true {
-      spawn "qs" "-c" "dms" "ipc" "call" "audio" "increment" "3";
+      spawn "dms" "ipc" "call" "audio" "increment" "3";
    }
    XF86AudioLowerVolume allow-when-locked=true {
-      spawn "qs" "-c" "dms" "ipc" "call" "audio" "decrement" "3";
+      spawn "dms" "ipc" "call" "audio" "decrement" "3";
    }
    XF86AudioMute allow-when-locked=true {
-      spawn "qs" "-c" "dms" "ipc" "call" "audio" "mute";
+      spawn "dms" "ipc" "call" "audio" "mute";
    }
    XF86AudioMicMute allow-when-locked=true {
-      spawn "qs" "-c" "dms" "ipc" "call" "audio" "micmute";
+      spawn "dms" "ipc" "call" "audio" "micmute";
    }
    XF86MonBrightnessUp allow-when-locked=true {
-      spawn "qs" "-c" "dms" "ipc" "call" "brightness" "increment" "5" "";
+      spawn "dms" "ipc" "call" "brightness" "increment" "5" "";
    }
    // You can override the default device for e.g. keyboards by adding the device name to the last param
    XF86MonBrightnessDown allow-when-locked=true {
-      spawn "qs" "-c" "dms" "ipc" "call" "brightness" "decrement" "5" "";
+      spawn "dms" "ipc" "call" "brightness" "decrement" "5" "";
    }
    // Night mode toggle
    Mod+Shift+N allow-when-locked=true {
-      spawn "qs" "-c" "dms" "ipc" "call" "night" "toggle";
+      spawn "dms" "ipc" "call" "night" "toggle";
    }
 }
 ```
@@ -321,7 +346,7 @@ exec-once = /usr/lib/mate-polkit/polkit-mate-authentication-agent-1
 # This may be a different path on different distributions, the above is for the arch linux mate-polkit package
 
 # Starts DankShell
-exec-once = qs -c dms
+exec-once = dms run
 
 # Dank keybinds
 # 1. These should not be in conflict with any pre-existing keybindings
@@ -330,28 +355,28 @@ exec-once = qs -c dms
 # 4. For the increment/decrement ones you can change the steps to whatever you like too
 
 # Application and system controls
-bind = SUPER, Space, exec, qs -c dms ipc call spotlight toggle
-bind = SUPER, V, exec, qs -c dms ipc call clipboard toggle
-bind = SUPER, M, exec, qs -c dms ipc call processlist toggle
-bind = SUPER, N, exec, qs -c dms ipc call notifications toggle
-bind = SUPER, comma, exec, qs -c dms ipc call settings toggle
-bind = SUPER, P, exec, qs -c dms ipc call notepad toggle
-bind = SUPERALT, L, exec, qs -c dms ipc call lock lock
-bind = SUPER, X, exec, qs -c dms ipc call powermenu toggle
+bind = SUPER, Space, exec, dms ipc call spotlight toggle
+bind = SUPER, V, exec, dms ipc call clipboard toggle
+bind = SUPER, M, exec, dms ipc call processlist toggle
+bind = SUPER, N, exec, dms ipc call notifications toggle
+bind = SUPER, comma, exec, dms ipc call settings toggle
+bind = SUPER, P, exec, dms ipc call notepad toggle
+bind = SUPERALT, L, exec, dms ipc call lock lock
+bind = SUPER, X, exec, dms ipc call powermenu toggle
 
 # Audio controls (function keys)
-bindl = , XF86AudioRaiseVolume, exec, qs -c dms ipc call audio increment 3
-bindl = , XF86AudioLowerVolume, exec, qs -c dms ipc call audio decrement 3
-bindl = , XF86AudioMute, exec, qs -c dms ipc call audio mute
-bindl = , XF86AudioMicMute, exec, qs -c dms ipc call audio micmute
+bindl = , XF86AudioRaiseVolume, exec, dms ipc call audio increment 3
+bindl = , XF86AudioLowerVolume, exec, dms ipc call audio decrement 3
+bindl = , XF86AudioMute, exec, dms ipc call audio mute
+bindl = , XF86AudioMicMute, exec, dms ipc call audio micmute
 
 # Brightness controls (function keys)
-bindl = , XF86MonBrightnessUp, exec, qs -c dms ipc call brightness increment 5 ""
+bindl = , XF86MonBrightnessUp, exec, dms ipc call brightness increment 5 ""
 # You can override the default device for e.g. keyboards by adding the device name to the last param
-bindl = , XF86MonBrightnessDown, exec, qs -c dms ipc call brightness decrement 5 ""
+bindl = , XF86MonBrightnessDown, exec, dms ipc call brightness decrement 5 ""
 
 # Night mode toggle
-bind = SUPERSHIFT, N, exec, qs -c dms ipc call night toggle
+bind = SUPERSHIFT, N, exec, dms ipc call night toggle
 ```
 
 ## IPC Commands
@@ -360,27 +385,27 @@ Control everything from the command line, or via keybinds. For comprehensive doc
 
 ### Audio control
 ```bash
-qs -c dms ipc call audio setvolume 50
-qs -c dms ipc call audio mute
+dms ipc call audio setvolume 50
+dms ipc call audio mute
 ```
 ### Launch applications
 ```bash
-qs -c dms ipc call spotlight toggle
-qs -c dms ipc call notepad toggle
-qs -c dms ipc call processlist toggle
-qs -c dms ipc call powermenu toggle
+dms ipc call spotlight toggle
+dms ipc call notepad toggle
+dms ipc call processlist toggle
+dms ipc call powermenu toggle
 ```
 ### System control
 ```
-qs -c dms ipc call wallpaper set /path/to/image.jpg
-qs -c dms ipc call theme toggle
-qs -c dms ipc call night toggle
-qs -c dms ipc call lock lock
+dms ipc call wallpaper set /path/to/image.jpg
+dms ipc call theme toggle
+dms ipc call night toggle
+dms ipc call lock lock
 ```
 ### Media control
 ```
-qs -c dms ipc call mpris playPause
-qs -c dms ipc call mpris next
+dms ipc call mpris playPause
+dms ipc call mpris next
 ```
 
 ## Theming
@@ -406,7 +431,7 @@ No matter what when matugen is enabled the files will be created on wallpaper ch
 
 If you do not like our theme path, you can integrate this with other GTK themes, matugen themes, etc.
 
-**GTK Apps:**
+#### GTK Apps
 
 1. Install [Colloid](https://github.com/vinceliuice/Colloid-gtk-theme)
 
@@ -426,9 +451,9 @@ Configure in `~/.config/gtk-3.0/settings.ini` and `~/.config/gtk-4.0/settings.in
 gtk-theme-name=Colloid
 ```
 
-**Qt Apps:**
+#### QT: basic gtk3 based theme (Option 1)
 
-You have **two** paths for QT theming, first path is to use **gtk3**. To do that, add the following to your niri config.
+If you mostly use gtk apps, you'll probably be happy to just set the QT platform theme to gtk3.
 
 ```kdl
 environment {
@@ -438,28 +463,28 @@ environment {
 }
 ```
 
-**Done** - if you're not happy with this and wish to use Breeze or another QT theme then continue on.
+#### QT: better theming (Option 2)
 
-1. Install qt6ct and qt5ct
+1. Install qt6ct-kde
 
-#### Arch
 ```bash
-sudo pacman -S qt5ct qt6ct
+# Arch
+paru -S qt6ct-kde
 ```
-#### Fedora
-```bash
-sudo dnf install qt5ct qt6ct
-```
+
+*I'm not sure what it is on other distros, but you can manually install via instructions provides on [qt6ct-kde github](https://www.opencode.net/trialuser/qt6ct)
 
 2. **Configure Environment in niri**
 
 ```kdl
   // Add to existing environment block
-  QT_QPA_PLATFORMTHEME "qt5ct"
+  QT_QPA_PLATFORMTHEME "qt6ct"
   QT_QPA_PLATFORMTHEME_QT6 "qt6ct"
 ```
 
 You'll have to restart your session for themes to take effect.
+
+Nevigate to dms settings -> themes & colors -> and click "Apply QT Themes"
 
 ### Terminal Integration
 
@@ -565,7 +590,7 @@ All settings are configurable in
 **Getting help:**
 
 - Check the [issues](https://github.com/AvengeMedia/DankMaterialShell/issues) for known problems
-- Share logs from `qs -c dms` for debugging
+- Re-run the shell with `dms kill && dms run` to capture logs.
 - Join the niri community for compositor-specific questions
 
 ## Contributing

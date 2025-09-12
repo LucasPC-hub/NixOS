@@ -1,3 +1,4 @@
+import QtCore
 import QtQuick
 import QtQuick.Controls
 import QtQuick.Effects
@@ -141,9 +142,31 @@ Item {
                             CachingImage {
                                 anchors.fill: parent
                                 anchors.margins: 1
+                                property var weExtensions: [".jpg", ".jpeg", ".png", ".webp", ".gif", ".bmp", ".tga"]
+                                property int weExtIndex: 0
                                 source: {
                                     var currentWallpaper = SessionData.perMonitorWallpaper ? SessionData.getMonitorWallpaper(selectedMonitorName) : SessionData.wallpaperPath
+                                    if (currentWallpaper && currentWallpaper.startsWith("we:")) {
+                                        var sceneId = currentWallpaper.substring(3)
+                                        return StandardPaths.writableLocation(StandardPaths.HomeLocation)
+                                            + "/.local/share/Steam/steamapps/workshop/content/431960/"
+                                            + sceneId + "/preview" + weExtensions[weExtIndex]
+                                    }
                                     return (currentWallpaper !== "" && !currentWallpaper.startsWith("#")) ? "file://" + currentWallpaper : ""
+                                }
+                                onStatusChanged: {
+                                    var currentWallpaper = SessionData.perMonitorWallpaper ? SessionData.getMonitorWallpaper(selectedMonitorName) : SessionData.wallpaperPath
+                                    if (currentWallpaper && currentWallpaper.startsWith("we:") && status === Image.Error) {
+                                        if (weExtIndex < weExtensions.length - 1) {
+                                            weExtIndex++
+                                            source = StandardPaths.writableLocation(StandardPaths.HomeLocation)
+                                                + "/.local/share/Steam/steamapps/workshop/content/431960/"
+                                                + currentWallpaper.substring(3)
+                                                + "/preview" + weExtensions[weExtIndex]
+                                        } else {
+                                            visible = false
+                                        }
+                                    }
                                 }
                                 fillMode: Image.PreserveAspectCrop
                                 visible: {
@@ -233,6 +256,7 @@ Item {
                                             }
                                         }
                                     }
+
 
                                     Rectangle {
                                         width: 32
@@ -347,11 +371,11 @@ Item {
                                     iconSize: Theme.iconSizeSmall
                                     enabled: {
                                         var currentWallpaper = SessionData.perMonitorWallpaper ? SessionData.getMonitorWallpaper(selectedMonitorName) : SessionData.wallpaperPath
-                                        return currentWallpaper && !currentWallpaper.startsWith("#")
+                                        return currentWallpaper && !currentWallpaper.startsWith("#") && !currentWallpaper.startsWith("we")
                                     }
                                     opacity: {
                                         var currentWallpaper = SessionData.perMonitorWallpaper ? SessionData.getMonitorWallpaper(selectedMonitorName) : SessionData.wallpaperPath
-                                        return (currentWallpaper && !currentWallpaper.startsWith("#")) ? 1 : 0.5
+                                        return (currentWallpaper && !currentWallpaper.startsWith("#") && !currentWallpaper.startsWith("we")) ? 1 : 0.5
                                     }
                                     backgroundColor: Qt.rgba(Theme.surfaceVariant.r, Theme.surfaceVariant.g, Theme.surfaceVariant.b, 0.5)
                                     iconColor: Theme.surfaceText
@@ -370,11 +394,11 @@ Item {
                                     iconSize: Theme.iconSizeSmall
                                     enabled: {
                                         var currentWallpaper = SessionData.perMonitorWallpaper ? SessionData.getMonitorWallpaper(selectedMonitorName) : SessionData.wallpaperPath
-                                        return currentWallpaper && !currentWallpaper.startsWith("#")
+                                        return currentWallpaper && !currentWallpaper.startsWith("#") && !currentWallpaper.startsWith("we")
                                     }
                                     opacity: {
                                         var currentWallpaper = SessionData.perMonitorWallpaper ? SessionData.getMonitorWallpaper(selectedMonitorName) : SessionData.wallpaperPath
-                                        return (currentWallpaper && !currentWallpaper.startsWith("#")) ? 1 : 0.5
+                                        return (currentWallpaper && !currentWallpaper.startsWith("#") && !currentWallpaper.startsWith("we")) ? 1 : 0.5
                                     }
                                     backgroundColor: Qt.rgba(Theme.surfaceVariant.r, Theme.surfaceVariant.g, Theme.surfaceVariant.b, 0.5)
                                     iconColor: Theme.surfaceText
@@ -556,22 +580,27 @@ Item {
                                     anchors.verticalCenter: parent.verticalCenter
                                 }
 
-                                DankTabBar {
-                                    id: modeTabBar
-
+                                Item {
                                     width: 200
-                                    height: 32
-                                    model: [{
-                                            "text": "Interval",
-                                            "icon": "schedule"
-                                        }, {
-                                            "text": "Time",
-                                            "icon": "access_time"
-                                        }]
-                                    currentIndex: SessionData.wallpaperCyclingMode === "time" ? 1 : 0
-                                    onTabClicked: index => {
-                                                      SessionData.setWallpaperCyclingMode(index === 1 ? "time" : "interval")
-                                                  }
+                                    height: 45 + Theme.spacingM
+                                    
+                                    DankTabBar {
+                                        id: modeTabBar
+
+                                        width: 200
+                                        height: 45
+                                        model: [{
+                                                "text": "Interval",
+                                                "icon": "schedule"
+                                            }, {
+                                                "text": "Time",
+                                                "icon": "access_time"
+                                            }]
+                                        currentIndex: SessionData.wallpaperCyclingMode === "time" ? 1 : 0
+                                        onTabClicked: index => {
+                                                          SessionData.setWallpaperCyclingMode(index === 1 ? "time" : "interval")
+                                                      }
+                                    }
                                 }
                             }
 
@@ -863,27 +892,41 @@ Item {
                             }
                         }
 
-                        DankTabBar {
-                            id: modeTabBarNight
+                        Item {
                             width: 200
-                            height: 32
-                            model: [{
-                                    "text": "Time",
-                                    "icon": "access_time"
-                                }, {
-                                    "text": "Location",
-                                    "icon": "place"
-                                }]
+                            height: 45 + Theme.spacingM
+                            
+                            DankTabBar {
+                                id: modeTabBarNight
+                                width: 200
+                                height: 45
+                                model: [{
+                                        "text": "Time",
+                                        "icon": "access_time"
+                                    }, {
+                                        "text": "Location",
+                                        "icon": "place"
+                                    }]
 
-                            Component.onCompleted: {
-                                currentIndex = SessionData.nightModeAutoMode === "location" ? 1 : 0
+                                Component.onCompleted: {
+                                    currentIndex = SessionData.nightModeAutoMode === "location" ? 1 : 0
+                                    Qt.callLater(updateIndicator)
+                                }
+
+                                onTabClicked: index => {
+                                                  console.log("Tab clicked:", index, "Setting mode to:", index === 1 ? "location" : "time")
+                                                  DisplayService.setNightModeAutomationMode(index === 1 ? "location" : "time")
+                                                  currentIndex = index
+                                              }
+                                              
+                                Connections {
+                                    target: SessionData
+                                    function onNightModeAutoModeChanged() {
+                                        modeTabBarNight.currentIndex = SessionData.nightModeAutoMode === "location" ? 1 : 0
+                                        Qt.callLater(modeTabBarNight.updateIndicator)
+                                    }
+                                }
                             }
-
-                            onTabClicked: index => {
-                                              console.log("Tab clicked:", index, "Setting mode to:", index === 1 ? "location" : "time")
-                                              DisplayService.setNightModeAutomationMode(index === 1 ? "location" : "time")
-                                              currentIndex = index
-                                          }
                         }
 
                         Column {
@@ -1404,6 +1447,7 @@ Item {
             }
         }
     }
+
 
     DankColorPicker {
         id: colorPicker

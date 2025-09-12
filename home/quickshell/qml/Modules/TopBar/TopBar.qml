@@ -139,7 +139,19 @@ PanelWindow {
 
         property real backgroundTransparency: SettingsData.topBarTransparency
         property bool autoHide: SettingsData.topBarAutoHide
-        property bool reveal: SettingsData.topBarVisible && (!autoHide || topBarMouseArea.containsMouse || hasActivePopout)
+        property bool reveal: {
+            // Handle Niri overview state first
+            if (CompositorService.isNiri && NiriService.inOverview) {
+                // If Show on Overview is enabled, show the bar
+                if (SettingsData.topBarOpenOnOverview) {
+                    return true
+                }
+                // If Show on Overview is disabled, hide the bar
+                return false
+            }
+            // Normal visibility logic when not in overview
+            return SettingsData.topBarVisible && (!autoHide || topBarMouseArea.containsMouse || hasActivePopout)
+        }
 
         property var notepadInstance: null
         property bool notepadInstanceVisible: notepadInstance?.notepadVisible ?? false
@@ -149,7 +161,7 @@ PanelWindow {
                                  "loader": appDrawerLoader,
                                  "prop": "shouldBeVisible"
                              }, {
-                                 "loader": centcomPopoutLoader,
+                                 "loader": dankDashPopoutLoader,
                                  "prop": "shouldBeVisible"
                              }, {
                                  "loader": processListPopoutLoader,
@@ -403,7 +415,7 @@ PanelWindow {
                             property var centerWidgets: []
                             property int totalWidgets: 0
                             property real totalWidth: 0
-                            property real spacing: SettingsData.topBarNoBackground ? 2 : Theme.spacingS
+                            property real spacing: SettingsData.topBarNoBackground ? 2 : Theme.spacingXS
 
                             function updateLayout() {
                                 if (width <= 0 || height <= 0 || !visible) {
@@ -666,14 +678,15 @@ PanelWindow {
                                 widgetHeight: root.widgetHeight
                                 section: topBarContent.getWidgetSection(parent) || "center"
                                 popupTarget: {
-                                    centcomPopoutLoader.active = true
-                                    return centcomPopoutLoader.item
+                                    dankDashPopoutLoader.active = true
+                                    return dankDashPopoutLoader.item
                                 }
                                 parentScreen: root.screen
                                 onClockClicked: {
-                                    centcomPopoutLoader.active = true
-                                    if (centcomPopoutLoader.item) {
-                                        centcomPopoutLoader.item.calendarVisible = !centcomPopoutLoader.item.calendarVisible
+                                    dankDashPopoutLoader.active = true
+                                    if (dankDashPopoutLoader.item) {
+                                        dankDashPopoutLoader.item.dashVisible = !dankDashPopoutLoader.item.dashVisible
+                                        dankDashPopoutLoader.item.currentTabIndex = 0 // Overview tab
                                     }
                                 }
                             }
@@ -688,14 +701,15 @@ PanelWindow {
                                 widgetHeight: root.widgetHeight
                                 section: topBarContent.getWidgetSection(parent) || "center"
                                 popupTarget: {
-                                    centcomPopoutLoader.active = true
-                                    return centcomPopoutLoader.item
+                                    dankDashPopoutLoader.active = true
+                                    return dankDashPopoutLoader.item
                                 }
                                 parentScreen: root.screen
                                 onClicked: {
-                                    centcomPopoutLoader.active = true
-                                    if (centcomPopoutLoader.item) {
-                                        centcomPopoutLoader.item.calendarVisible = !centcomPopoutLoader.item.calendarVisible
+                                    dankDashPopoutLoader.active = true
+                                    if (dankDashPopoutLoader.item) {
+                                        dankDashPopoutLoader.item.dashVisible = !dankDashPopoutLoader.item.dashVisible
+                                        dankDashPopoutLoader.item.currentTabIndex = 1 // Media tab
                                     }
                                 }
                             }
@@ -709,14 +723,15 @@ PanelWindow {
                                 widgetHeight: root.widgetHeight
                                 section: topBarContent.getWidgetSection(parent) || "center"
                                 popupTarget: {
-                                    centcomPopoutLoader.active = true
-                                    return centcomPopoutLoader.item
+                                    dankDashPopoutLoader.active = true
+                                    return dankDashPopoutLoader.item
                                 }
                                 parentScreen: root.screen
                                 onClicked: {
-                                    centcomPopoutLoader.active = true
-                                    if (centcomPopoutLoader.item) {
-                                        centcomPopoutLoader.item.calendarVisible = !centcomPopoutLoader.item.calendarVisible
+                                    dankDashPopoutLoader.active = true
+                                    if (dankDashPopoutLoader.item) {
+                                        dankDashPopoutLoader.item.dashVisible = !dankDashPopoutLoader.item.dashVisible
+                                        dankDashPopoutLoader.item.currentTabIndex = 2 // Weather tab
                                     }
                                 }
                             }
@@ -971,7 +986,7 @@ PanelWindow {
 
                             NotepadButton {
                                 property var notepadInstance: topBarCore.notepadInstance
-                                isActive: notepadInstance ? notepadInstance.notepadVisible : false
+                                isActive: notepadInstance?.notepadVisible ?? false
                                 widgetHeight: root.widgetHeight
                                 barHeight: root.effectiveBarHeight
                                 section: topBarContent.getWidgetSection(parent) || "right"

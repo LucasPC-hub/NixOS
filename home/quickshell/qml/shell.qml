@@ -1,3 +1,4 @@
+//@ pragma Env QSG_RENDER_LOOP=threaded
 //@ pragma UseQApplication
 import QtQuick
 import Quickshell
@@ -11,7 +12,7 @@ import qs.Modals.Settings
 import qs.Modals.Spotlight
 import qs.Modules
 import qs.Modules.AppDrawer
-import qs.Modules.CentcomCenter
+import qs.Modules.DankDash
 import qs.Modules.ControlCenter
 import qs.Modules.Dock
 import qs.Modules.Lock
@@ -62,13 +63,14 @@ ShellRoot {
     }
 
     Loader {
-        id: centcomPopoutLoader
+        id: dankDashPopoutLoader
 
         active: false
+        asynchronous: true
 
         sourceComponent: Component {
-            CentcomPopout {
-                id: centcomPopout
+            DankDashPopout {
+                id: dankDashPopout
             }
         }
     }
@@ -385,6 +387,64 @@ ShellRoot {
     }
 
     IpcHandler {
+        function open(tab: string): string {
+            dankDashPopoutLoader.active = true
+            if (dankDashPopoutLoader.item) {
+                switch (tab.toLowerCase()) {
+                case "media":
+                    dankDashPopoutLoader.item.currentTabIndex = 1
+                    break
+                case "weather":
+                    dankDashPopoutLoader.item.currentTabIndex = SettingsData.weatherEnabled ? 2 : 0
+                    break
+                default:
+                    dankDashPopoutLoader.item.currentTabIndex = 0
+                    break
+                }
+                dankDashPopoutLoader.item.setTriggerPosition(Screen.width / 2, Theme.barHeight + Theme.spacingS, 100, "center", Screen)
+                dankDashPopoutLoader.item.dashVisible = true
+                return "DASH_OPEN_SUCCESS"
+            }
+            return "DASH_OPEN_FAILED"
+        }
+
+        function close(): string {
+            if (dankDashPopoutLoader.item) {
+                dankDashPopoutLoader.item.dashVisible = false
+                return "DASH_CLOSE_SUCCESS"
+            }
+            return "DASH_CLOSE_FAILED"
+        }
+
+        function toggle(tab: string): string {
+            dankDashPopoutLoader.active = true
+            if (dankDashPopoutLoader.item) {
+                if (dankDashPopoutLoader.item.dashVisible) {
+                    dankDashPopoutLoader.item.dashVisible = false
+                } else {
+                    switch (tab.toLowerCase()) {
+                    case "media":
+                        dankDashPopoutLoader.item.currentTabIndex = 1
+                        break
+                    case "weather":
+                        dankDashPopoutLoader.item.currentTabIndex = SettingsData.weatherEnabled ? 2 : 0
+                        break
+                    default:
+                        dankDashPopoutLoader.item.currentTabIndex = 0
+                        break
+                    }
+                    dankDashPopoutLoader.item.setTriggerPosition(Screen.width / 2, Theme.barHeight + Theme.spacingS, 100, "center", Screen)
+                    dankDashPopoutLoader.item.dashVisible = true
+                }
+                return "DASH_TOGGLE_SUCCESS"
+            }
+            return "DASH_TOGGLE_FAILED"
+        }
+
+        target: "dash"
+    }
+
+    IpcHandler {
         function getFocusedScreenName() {
             if (CompositorService.isHyprland && Hyprland.focusedWorkspace && Hyprland.focusedWorkspace.monitor) {
                 return Hyprland.focusedWorkspace.monitor.name
@@ -397,16 +457,16 @@ ShellRoot {
 
         function getNotepadInstanceForScreen(screenName: string) {
             if (!screenName || notepadSlideoutVariants.instances.length === 0) {
-                return null
+                return
             }
             
             for (var i = 0; i < notepadSlideoutVariants.instances.length; i++) {
                 var loader = notepadSlideoutVariants.instances[i]
                 if (loader.modelData && loader.modelData.name === screenName) {
-                    return loader.ensureLoaded()
+                    loader.ensureLoaded()
+                    return
                 }
             }
-            return null
         }
 
         function getActiveNotepadInstance() {

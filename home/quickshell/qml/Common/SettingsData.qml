@@ -50,6 +50,7 @@ Singleton {
     property int maxWorkspaceIcons: 3
     property bool workspacesPerMonitor: true
     property var workspaceNameIcons: ({})
+    property bool waveProgressEnabled: true
     property bool clockCompactMode: false
     property bool focusedWindowCompactMode: false
     property bool runningAppsCompactMode: true
@@ -89,6 +90,7 @@ Singleton {
     property real cornerRadius: 12
     property bool notificationOverlayEnabled: false
     property bool topBarAutoHide: false
+    property bool topBarOpenOnOverview: false
     property bool topBarVisible: true
     property real topBarSpacing: 4
     property real topBarBottomGap: 0
@@ -204,6 +206,7 @@ Singleton {
                 maxWorkspaceIcons = settings.maxWorkspaceIcons !== undefined ? settings.maxWorkspaceIcons : 3
                 workspaceNameIcons = settings.workspaceNameIcons !== undefined ? settings.workspaceNameIcons : ({})
                 workspacesPerMonitor = settings.workspacesPerMonitor !== undefined ? settings.workspacesPerMonitor : true
+                waveProgressEnabled = settings.waveProgressEnabled !== undefined ? settings.waveProgressEnabled : true
                 clockCompactMode = settings.clockCompactMode !== undefined ? settings.clockCompactMode : false
                 focusedWindowCompactMode = settings.focusedWindowCompactMode !== undefined ? settings.focusedWindowCompactMode : false
                 runningAppsCompactMode = settings.runningAppsCompactMode !== undefined ? settings.runningAppsCompactMode : true
@@ -252,6 +255,7 @@ Singleton {
                 cornerRadius = settings.cornerRadius !== undefined ? settings.cornerRadius : 12
                 notificationOverlayEnabled = settings.notificationOverlayEnabled !== undefined ? settings.notificationOverlayEnabled : false
                 topBarAutoHide = settings.topBarAutoHide !== undefined ? settings.topBarAutoHide : false
+                topBarOpenOnOverview = settings.topBarOpenOnOverview !== undefined ? settings.topBarOpenOnOverview : false
                 topBarVisible = settings.topBarVisible !== undefined ? settings.topBarVisible : true
                 notificationTimeoutLow = settings.notificationTimeoutLow !== undefined ? settings.notificationTimeoutLow : 5000
                 notificationTimeoutNormal = settings.notificationTimeoutNormal !== undefined ? settings.notificationTimeoutNormal : 5000
@@ -318,6 +322,7 @@ Singleton {
                                                 "maxWorkspaceIcons": maxWorkspaceIcons,
                                                 "workspacesPerMonitor": workspacesPerMonitor,
                                                 "workspaceNameIcons": workspaceNameIcons,
+                                                "waveProgressEnabled": waveProgressEnabled,
                                                 "clockCompactMode": clockCompactMode,
                                                 "focusedWindowCompactMode": focusedWindowCompactMode,
                                                 "runningAppsCompactMode": runningAppsCompactMode,
@@ -348,6 +353,7 @@ Singleton {
                                                 "cornerRadius": cornerRadius,
                                                 "notificationOverlayEnabled": notificationOverlayEnabled,
                                                 "topBarAutoHide": topBarAutoHide,
+                                                "topBarOpenOnOverview": topBarOpenOnOverview,
                                                 "topBarVisible": topBarVisible,
                                                 "topBarSpacing": topBarSpacing,
                                                 "topBarBottomGap": topBarBottomGap,
@@ -385,6 +391,11 @@ Singleton {
 
     function setWorkspacesPerMonitor(enabled) {
         workspacesPerMonitor = enabled
+        saveSettings()
+    }
+
+    function setWaveProgressEnabled(enabled) {
+        waveProgressEnabled = enabled
         saveSettings()
     }
 
@@ -776,12 +787,10 @@ Singleton {
             // This preserves the user's existing qt6ct configuration
             return
         }
-        var script = "mkdir -p " + _configDir + "/qt5ct " + _configDir + "/qt6ct " + _configDir + "/environment.d 2>/dev/null || true\n" + "update_qt_config() {\n" + "  local config_file=\"$1\"\n"
-                + "  local theme_name=\"$2\"\n" + "  if [ -f \"$config_file\" ]; then\n" + "    if grep -q '^\\[Appearance\\]' \"$config_file\"; then\n" + "      awk -v theme=\"$theme_name\" '\n" + "        BEGIN { in_appearance = 0; icon_theme_added = 0 }\n" + "        /^\\[Appearance\\]/ { in_appearance = 1; print; next }\n" + "        /^\\[/ && !/^\\[Appearance\\]/ { \n" + "          if (in_appearance && !icon_theme_added) { \n"
-                + "            print \"icon_theme=\" theme; icon_theme_added = 1 \n" + "          } \n" + "          in_appearance = 0; print; next \n" + "        }\n" + "        in_appearance && /^icon_theme=/ { \n" + "          if (!icon_theme_added) { \n" + "            print \"icon_theme=\" theme; icon_theme_added = 1 \n" + "          } \n"
-                + "          next \n" + "        }\n" + "        { print }\n" + "        END { if (in_appearance && !icon_theme_added) print \"icon_theme=\" theme }\n" + "      ' \"$config_file\" > \"$config_file.tmp\" && mv \"$config_file.tmp\" \"$config_file\"\n" + "    else\n" + "      printf '\\n[Appearance]\\nicon_theme=%s\\n' \"$theme_name\" >> \"$config_file\"\n" + "    fi\n"
-                + "  else\n" + "    printf '[Appearance]\\nicon_theme=%s\\n' \"$theme_name\" > \"$config_file\"\n" + "  fi\n" + "}\n" + "update_qt_config " + _configDir + "/qt5ct/qt5ct.conf " + _shq(
-                    qtThemeName) + "\n" + "update_qt_config " + _configDir + "/qt6ct/qt6ct.conf " + _shq(qtThemeName) + "\n" + "rm -rf " + home + "/.cache/icon-cache " + home + "/.cache/thumbnails 2>/dev/null || true\n"
+        var script = "mkdir -p " + _configDir + "/qt5ct " + _configDir + "/qt6ct " + _configDir + "/environment.d 2>/dev/null || true\n" + "update_qt_icon_theme() {\n" + "  local config_file=\"$1\"\n"
+                + "  local theme_name=\"$2\"\n" + "  if [ -f \"$config_file\" ]; then\n" + "    if grep -q '^\\[Appearance\\]' \"$config_file\"; then\n" + "      if grep -q '^icon_theme=' \"$config_file\"; then\n" + "        sed -i \"s/^icon_theme=.*/icon_theme=$theme_name/\" \"$config_file\"\n" + "      else\n" + "        sed -i \"/^\\[Appearance\\]/a icon_theme=$theme_name\" \"$config_file\"\n" + "      fi\n"
+                + "    else\n" + "      printf '\\n[Appearance]\\nicon_theme=%s\\n' \"$theme_name\" >> \"$config_file\"\n" + "    fi\n" + "  else\n" + "    printf '[Appearance]\\nicon_theme=%s\\n' \"$theme_name\" > \"$config_file\"\n" + "  fi\n" + "}\n" + "update_qt_icon_theme " + _configDir + "/qt5ct/qt5ct.conf " + _shq(
+                    qtThemeName) + "\n" + "update_qt_icon_theme " + _configDir + "/qt6ct/qt6ct.conf " + _shq(qtThemeName) + "\n" + "rm -rf " + home + "/.cache/icon-cache " + home + "/.cache/thumbnails 2>/dev/null || true\n"
         Quickshell.execDetached(["sh", "-lc", script])
     }
 
@@ -873,6 +882,11 @@ Singleton {
 
     function setTopBarAutoHide(enabled) {
         topBarAutoHide = enabled
+        saveSettings()
+    }
+
+    function setTopBarOpenOnOverview(enabled) {
+        topBarOpenOnOverview = enabled
         saveSettings()
     }
 
