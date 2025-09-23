@@ -140,12 +140,5 @@ in
     '';
   };
   programs.home-manager.enable = true;
-  
-  # Force dark mode for GNOME applications
-  dconf.settings = {
-    "org/gnome/desktop/interface" = {
-      color-scheme = "prefer-dark";
-      # gtk-theme = "Adwaita-dark"; # Managed by stylix
-    };
-  };
+
 }

@@ -12,6 +12,7 @@ in
   # Applications
   protonplus
   lutris
+  zoom
   prismlauncher
   heroic
   nautilus

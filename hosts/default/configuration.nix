@@ -108,7 +108,9 @@ fonts.packages = with pkgs; [
       enable = false;
       userControlled.enable = false;
     };
-
+    firewall ={
+     allowedTCPPorts = [ 4200 ];
+    };
     networkmanager = {
       wifi.backend = "wpa_supplicant";
       wifi.powersave = false;
@@ -181,7 +183,7 @@ fonts.packages = with pkgs; [
   console.keyMap = "br-abnt2";
 
   xdg.portal.enable = true;
-
+# In your configuration.nix
   hardware.bluetooth = {
      enable = true;
      powerOnBoot = true;
@@ -287,7 +289,7 @@ fonts.packages = with pkgs; [
   nixpkgs.config.allowUnfree = true;
 
 
-  home-manager.backupFileExtension = "backup";
+  # home-manager.backupFileExtension = "backup";
 
   system.stateVersion = "25.05";
 

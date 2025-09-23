@@ -32,8 +32,6 @@
     ];
 
     window-rules = [
-
-      # Global window rule - updated corner radius to match old config
       {
         matches = [{}];
         geometry-corner-radius = {
@@ -43,6 +41,20 @@
           bottom-right = 10.0;
         };
         clip-to-geometry = true;
+      }
+      {
+        matches = [
+          { app-id = "jetbrains-webstorm"; }
+        ];
+        default-column-width = { proportion = 1.0; };
+        open-maximized = true;
+      }
+      {
+        matches = [
+          { app-id = "zen-twilight"; }
+        ];
+        default-column-width = { proportion = 1.0; };
+        open-maximized = true;
       }
     ];
   };
