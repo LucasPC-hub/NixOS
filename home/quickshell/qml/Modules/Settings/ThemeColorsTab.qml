@@ -1,5 +1,6 @@
 import QtQuick
 import QtQuick.Controls
+import QtQuick.Effects
 import Quickshell
 import Quickshell.Io
 import qs.Common
@@ -99,16 +100,16 @@ Item {
             width: parent.width
             spacing: Theme.spacingXL
 
+
             // Theme Color
             StyledRect {
                 width: parent.width
                 height: themeSection.implicitHeight + Theme.spacingL * 2
                 radius: Theme.cornerRadius
-                color: Qt.rgba(Theme.surfaceVariant.r, Theme.surfaceVariant.g,
-                               Theme.surfaceVariant.b, 0.3)
+                color: Theme.surfaceContainerHigh
                 border.color: Qt.rgba(Theme.outline.r, Theme.outline.g,
                                       Theme.outline.b, 0.2)
-                border.width: 1
+                border.width: 0
 
                 Column {
                     id: themeSection
@@ -135,6 +136,40 @@ Item {
                             color: Theme.surfaceText
                             anchors.verticalCenter: parent.verticalCenter
                         }
+
+                        Item {
+                            width: parent.width - parent.children[0].width - parent.children[1].width - surfaceBaseGroup.width - Theme.spacingM * 3
+                            height: 1
+                        }
+
+                        DankButtonGroup {
+                            id: surfaceBaseGroup
+                            property int currentSurfaceIndex: {
+                                switch (SettingsData.surfaceBase) {
+                                    case "sc": return 0
+                                    case "s": return 1
+                                    default: return 0
+                                }
+                            }
+
+                            model: ["Container", "Surface"]
+                            currentIndex: currentSurfaceIndex
+                            selectionMode: "single"
+                            anchors.verticalCenter: parent.verticalCenter
+
+                            buttonHeight: 20
+                            minButtonWidth: 48
+                            buttonPadding: Theme.spacingS
+                            checkIconSize: Theme.iconSizeSmall - 2
+                            textSize: Theme.fontSizeSmall - 2
+                            spacing: 1
+
+                            onSelectionChanged: (index, selected) => {
+                                if (!selected) return
+                                const surfaceOptions = ["sc", "s"]
+                                SettingsData.setSurfaceBase(surfaceOptions[index])
+                            }
+                        }
                     }
 
                     Column {
@@ -142,7 +177,15 @@ Item {
                         spacing: Theme.spacingS
 
                         StyledText {
-                            text: "Current Theme: " + (Theme.currentTheme === Theme.dynamic ? "Dynamic" : Theme.getThemeColors(Theme.currentThemeName).name)
+                            text: {
+                                if (Theme.currentTheme === Theme.dynamic) {
+                                    return "Current Theme: Dynamic"
+                                } else if (Theme.currentThemeCategory === "catppuccin") {
+                                    return "Current Theme: Catppuccin " + Theme.getThemeColors(Theme.currentThemeName).name
+                                } else {
+                                    return "Current Theme: " + Theme.getThemeColors(Theme.currentThemeName).name
+                                }
+                            }
                             font.pixelSize: Theme.fontSizeMedium
                             color: Theme.surfaceText
                             font.weight: Font.Medium
@@ -151,22 +194,16 @@ Item {
 
                         StyledText {
                             text: {
-                                if (Theme.currentTheme === Theme.dynamic)
-                                    return "Wallpaper-based dynamic colors"
-
-                                var descriptions = {
-                                    "blue": "Material blue inspired by modern interfaces",
-                                    "deepBlue": "Deep blue inspired by material 3",
-                                    "purple": "Rich purple tones for elegance",
-                                    "green": "Natural green for productivity",
-                                    "orange": "Energetic orange for creativity",
-                                    "red": "Bold red for impact",
-                                    "cyan": "Cool cyan for tranquility",
-                                    "pink": "Vibrant pink for expression",
-                                    "amber": "Warm amber for comfort",
-                                    "coral": "Soft coral for gentle warmth"
+                                if (Theme.currentTheme === Theme.dynamic) {
+                                    return "Material colors generated from wallpaper"
                                 }
-                                return descriptions[Theme.currentThemeName] || "Select a theme"
+                                if (Theme.currentThemeCategory === "catppuccin") {
+                                    return "Soothing pastel theme based on Catppuccin"
+                                }
+                                if (Theme.currentTheme === Theme.custom) {
+                                    return "Custom theme loaded from JSON file"
+                                }
+                                return "Material Design inspired color themes"
                             }
                             font.pixelSize: Theme.fontSizeSmall
                             color: Theme.surfaceVariantText
@@ -177,393 +214,510 @@ Item {
                         }
                     }
 
+
                     Column {
-                        spacing: Theme.spacingS
+                        spacing: Theme.spacingM
                         anchors.horizontalCenter: parent.horizontalCenter
 
-                        Row {
-                            spacing: Theme.spacingM
-
-                            Repeater {
-                                model: Theme.availableThemeNames.slice(0, 5)
-
-                                Rectangle {
-                                    property string themeName: modelData
-                                    width: 32
-                                    height: 32
-                                    radius: 16
-                                    color: Theme.getThemeColors(themeName).primary
-                                    border.color: Theme.outline
-                                    border.width: (Theme.currentThemeName === themeName
-                                                   && Theme.currentTheme !== Theme.dynamic) ? 2 : 1
-                                    scale: (Theme.currentThemeName === themeName
-                                            && Theme.currentTheme !== Theme.dynamic) ? 1.1 : 1
-
-                                    Rectangle {
-                                        width: nameText.contentWidth + Theme.spacingS * 2
-                                        height: nameText.contentHeight + Theme.spacingXS * 2
-                                        color: Theme.surfaceContainer
-                                        border.color: Theme.outline
-                                        border.width: 1
-                                        radius: Theme.cornerRadius
-                                        anchors.bottom: parent.top
-                                        anchors.bottomMargin: Theme.spacingXS
-                                        anchors.horizontalCenter: parent.horizontalCenter
-                                        visible: mouseArea.containsMouse
-
-                                        StyledText {
-                                            id: nameText
-
-                                            text: Theme.getThemeColors(themeName).name
-                                            font.pixelSize: Theme.fontSizeSmall
-                                            color: Theme.surfaceText
-                                            anchors.centerIn: parent
-                                        }
-                                    }
-
-                                    MouseArea {
-                                        id: mouseArea
-
-                                        anchors.fill: parent
-                                        hoverEnabled: true
-                                        cursorShape: Qt.PointingHandCursor
-                                        onClicked: {
-                                            Theme.switchTheme(themeName)
-                                        }
-                                    }
-
-                                    Behavior on scale {
-                                        NumberAnimation {
-                                            duration: Theme.shortDuration
-                                            easing.type: Theme.emphasizedEasing
-                                        }
-                                    }
-
-                                    Behavior on border.width {
-                                        NumberAnimation {
-                                            duration: Theme.shortDuration
-                                            easing.type: Theme.emphasizedEasing
-                                        }
-                                    }
-                                }
+                        DankButtonGroup {
+                            property int currentThemeIndex: {
+                                if (Theme.currentTheme === Theme.dynamic) return 2
+                                if (Theme.currentThemeName === "custom") return 3
+                                if (Theme.currentThemeCategory === "catppuccin") return 1
+                                return 0
                             }
-                        }
 
-                        Row {
-                            spacing: Theme.spacingM
-
-                            Repeater {
-                                model: Theme.availableThemeNames.slice(5, 10)
-
-                                Rectangle {
-                                    property string themeName: modelData
-
-                                    width: 32
-                                    height: 32
-                                    radius: 16
-                                    color: Theme.getThemeColors(themeName).primary
-                                    border.color: Theme.outline
-                                    border.width: Theme.currentThemeName === themeName ? 2 : 1
-                                    visible: true
-                                    scale: Theme.currentThemeName === themeName ? 1.1 : 1
-
-                                    Rectangle {
-                                        width: nameText2.contentWidth + Theme.spacingS * 2
-                                        height: nameText2.contentHeight + Theme.spacingXS * 2
-                                        color: Theme.surfaceContainer
-                                        border.color: Theme.outline
-                                        border.width: 1
-                                        radius: Theme.cornerRadius
-                                        anchors.bottom: parent.top
-                                        anchors.bottomMargin: Theme.spacingXS
-                                        anchors.horizontalCenter: parent.horizontalCenter
-                                        visible: mouseArea2.containsMouse
-
-                                        StyledText {
-                                            id: nameText2
-
-                                            text: Theme.getThemeColors(themeName).name
-                                            font.pixelSize: Theme.fontSizeSmall
-                                            color: Theme.surfaceText
-                                            anchors.centerIn: parent
-                                        }
-                                    }
-
-                                    MouseArea {
-                                        id: mouseArea2
-
-                                        anchors.fill: parent
-                                        hoverEnabled: true
-                                        cursorShape: Qt.PointingHandCursor
-                                        onClicked: {
-                                            Theme.switchTheme(themeName)
-                                        }
-                                    }
-
-                                    Behavior on scale {
-                                        NumberAnimation {
-                                            duration: Theme.shortDuration
-                                            easing.type: Theme.emphasizedEasing
-                                        }
-                                    }
-
-                                    Behavior on border.width {
-                                        NumberAnimation {
-                                            duration: Theme.shortDuration
-                                            easing.type: Theme.emphasizedEasing
-                                        }
-                                    }
-                                }
-                            }
-                        }
-
-                        Item {
-                            width: 1
-                            height: Theme.spacingM
-                        }
-
-                        Row {
+                            model: ["Generic", "Catppuccin", "Auto", "Custom"]
+                            currentIndex: currentThemeIndex
+                            selectionMode: "single"
                             anchors.horizontalCenter: parent.horizontalCenter
-                            spacing: Theme.spacingL
-
-                            Rectangle {
-                                width: 120
-                                height: 40
-                                radius: 20
-                                color: {
-                                    if (ToastService.wallpaperErrorStatus === "error"
-                                            || ToastService.wallpaperErrorStatus === "matugen_missing")
-                                        return Qt.rgba(Theme.error.r,
-                                                       Theme.error.g,
-                                                       Theme.error.b, 0.12)
-                                    else
-                                        return Qt.rgba(Theme.surfaceVariant.r,
-                                                       Theme.surfaceVariant.g,
-                                                       Theme.surfaceVariant.b, 0.3)
-                                }
-                                border.color: {
-                                    if (ToastService.wallpaperErrorStatus === "error"
-                                            || ToastService.wallpaperErrorStatus === "matugen_missing")
-                                        return Qt.rgba(Theme.error.r,
-                                                       Theme.error.g,
-                                                       Theme.error.b, 0.5)
-                                    else if (Theme.currentThemeName === "dynamic")
-                                        return Theme.primary
-                                    else
-                                        return Theme.outline
-                                }
-                                border.width: (Theme.currentThemeName === "dynamic") ? 2 : 1
-                                scale: (Theme.currentThemeName === "dynamic") ? 1.1 : (autoMouseArea.containsMouse ? 1.02 : 1)
-
-                                Row {
-                                    anchors.centerIn: parent
-                                    spacing: Theme.spacingS
-
-                                    DankIcon {
-                                    name: {
-                                        if (ToastService.wallpaperErrorStatus === "error"
-                                                || ToastService.wallpaperErrorStatus
-                                                === "matugen_missing")
-                                            return "error"
-                                        else
-                                            return "palette"
-                                    }
-                                    size: 16
-                                    color: {
-                                        if (ToastService.wallpaperErrorStatus === "error"
-                                                || ToastService.wallpaperErrorStatus
-                                                === "matugen_missing")
-                                            return Theme.error
-                                        else
-                                            return Theme.surfaceText
-                                    }
-                                    anchors.verticalCenter: parent.verticalCenter
-                                }
-
-                                StyledText {
-                                    text: {
-                                        if (ToastService.wallpaperErrorStatus === "error")
-                                            return "Error"
-                                        else if (ToastService.wallpaperErrorStatus
-                                                 === "matugen_missing")
-                                            return "No matugen"
-                                        else
-                                            return "Auto"
-                                    }
-                                    font.pixelSize: Theme.fontSizeMedium
-                                    color: {
-                                        if (ToastService.wallpaperErrorStatus === "error"
-                                                || ToastService.wallpaperErrorStatus
-                                                === "matugen_missing")
-                                            return Theme.error
-                                        else
-                                            return Theme.surfaceText
-                                    }
-                                    font.weight: Font.Medium
-                                    anchors.verticalCenter: parent.verticalCenter
-                                }
-                            }
-
-                            MouseArea {
-                                id: autoMouseArea
-
-                                anchors.fill: parent
-                                hoverEnabled: true
-                                cursorShape: Qt.PointingHandCursor
-                                onClicked: {
-                                    if (ToastService.wallpaperErrorStatus === "matugen_missing")
-                                        ToastService.showError(
-                                                    "matugen not found - install matugen package for dynamic theming")
-                                    else if (ToastService.wallpaperErrorStatus === "error")
-                                        ToastService.showError(
-                                                    "Wallpaper processing failed - check wallpaper path")
-                                    else
-                                        Theme.switchTheme(Theme.dynamic)
-                                }
-                            }
-
-                            Rectangle {
-                                width: autoTooltipText.contentWidth + Theme.spacingM * 2
-                                height: autoTooltipText.contentHeight + Theme.spacingS * 2
-                                color: Theme.surfaceContainer
-                                border.color: Theme.outline
-                                border.width: 1
-                                radius: Theme.cornerRadius
-                                anchors.bottom: parent.top
-                                anchors.bottomMargin: Theme.spacingS
-                                anchors.horizontalCenter: parent.horizontalCenter
-                                visible: autoMouseArea.containsMouse
-                                         && (Theme.currentTheme !== Theme.dynamic
-                                             || ToastService.wallpaperErrorStatus === "error"
-                                             || ToastService.wallpaperErrorStatus
-                                             === "matugen_missing")
-
-                                StyledText {
-                                    id: autoTooltipText
-
-                                    text: {
+                            onSelectionChanged: (index, selected) => {
+                                if (!selected) return
+                                switch (index) {
+                                    case 0: Theme.switchThemeCategory("generic", "blue"); break
+                                    case 1: Theme.switchThemeCategory("catppuccin", "cat-mauve"); break
+                                    case 2:
                                         if (ToastService.wallpaperErrorStatus === "matugen_missing")
-                                            return "Install matugen package for dynamic themes"
+                                            ToastService.showError("matugen not found - install matugen package for dynamic theming")
+                                        else if (ToastService.wallpaperErrorStatus === "error")
+                                            ToastService.showError("Wallpaper processing failed - check wallpaper path")
                                         else
-                                            return "Dynamic wallpaper-based colors"
-                                    }
-                                    font.pixelSize: Theme.fontSizeSmall
-                                    color: (ToastService.wallpaperErrorStatus === "error"
-                                            || ToastService.wallpaperErrorStatus
-                                            === "matugen_missing") ? Theme.error : Theme.surfaceText
-                                    anchors.centerIn: parent
-                                    wrapMode: Text.WordWrap
-                                    width: Math.min(implicitWidth, 250)
-                                    horizontalAlignment: Text.AlignHCenter
-                                }
-                            }
-
-                            Behavior on scale {
-                                NumberAnimation {
-                                    duration: Theme.shortDuration
-                                    easing.type: Theme.emphasizedEasing
-                                }
-                            }
-
-                            Behavior on color {
-                                ColorAnimation {
-                                    duration: Theme.mediumDuration
-                                    easing.type: Theme.standardEasing
-                                }
-                            }
-
-                            Behavior on border.color {
-                                ColorAnimation {
-                                    duration: Theme.mediumDuration
-                                    easing.type: Theme.standardEasing
+                                            Theme.switchTheme(Theme.dynamic, true, false)
+                                        break
+                                    case 3:
+                                        if (Theme.currentThemeName !== "custom") {
+                                            Theme.switchTheme("custom", true, false)
+                                        }
+                                        break
                                 }
                             }
                         }
 
-                        Rectangle {
-                            width: 120
-                            height: 40
-                            radius: 20
-                            color: Qt.rgba(Theme.surfaceVariant.r, Theme.surfaceVariant.g, Theme.surfaceVariant.b, 0.3)
-                            border.color: (Theme.currentThemeName === "custom") ? Theme.primary : Theme.outline
-                            border.width: (Theme.currentThemeName === "custom") ? 2 : 1
-                            scale: (Theme.currentThemeName === "custom") ? 1.1 : (customMouseArea.containsMouse ? 1.02 : 1)
+                        Column {
+                            spacing: Theme.spacingS
+                            anchors.horizontalCenter: parent.horizontalCenter
+                            visible: Theme.currentThemeCategory === "generic" && Theme.currentTheme !== Theme.dynamic && Theme.currentThemeName !== "custom"
 
                             Row {
-                                anchors.centerIn: parent
-                                spacing: Theme.spacingS
-
-                                DankIcon {
-                                    name: "folder_open"
-                                    size: 16
-                                    color: Theme.surfaceText
-                                    anchors.verticalCenter: parent.verticalCenter
-                                }
-
-                                StyledText {
-                                    text: "Custom"
-                                    font.pixelSize: Theme.fontSizeMedium
-                                    color: Theme.surfaceText
-                                    font.weight: Font.Medium
-                                    anchors.verticalCenter: parent.verticalCenter
-                                }
-                            }
-
-                            MouseArea {
-                                id: customMouseArea
-
-                                anchors.fill: parent
-                                hoverEnabled: true
-                                cursorShape: Qt.PointingHandCursor
-                                onClicked: {
-                                    fileBrowserModal.open()
-                                }
-                            }
-
-                            Rectangle {
-                                width: customTooltipText.contentWidth + Theme.spacingM * 2
-                                height: customTooltipText.contentHeight + Theme.spacingS * 2
-                                color: Theme.surfaceContainer
-                                border.color: Theme.outline
-                                border.width: 1
-                                radius: Theme.cornerRadius
-                                anchors.bottom: parent.top
-                                anchors.bottomMargin: Theme.spacingS
+                                spacing: Theme.spacingM
                                 anchors.horizontalCenter: parent.horizontalCenter
-                                visible: customMouseArea.containsMouse
 
-                                StyledText {
-                                    id: customTooltipText
-                                    text: {
-                                        if (Theme.currentThemeName === "custom")
-                                            return SettingsData.customThemeFile || "Custom theme loaded"
-                                        else
-                                            return "Load custom theme from JSON file"
+                                Repeater {
+                                    model: ["blue", "purple", "green", "orange", "red"]
+
+                                    Rectangle {
+                                        property string themeName: modelData
+                                        width: 32
+                                        height: 32
+                                        radius: 16
+                                        color: Theme.getThemeColors(themeName).primary
+                                        border.color: Theme.outline
+                                        border.width: (Theme.currentThemeName === themeName && Theme.currentTheme !== Theme.dynamic) ? 2 : 1
+                                        scale: (Theme.currentThemeName === themeName && Theme.currentTheme !== Theme.dynamic) ? 1.1 : 1
+
+                                        Rectangle {
+                                            width: nameText.contentWidth + Theme.spacingS * 2
+                                            height: nameText.contentHeight + Theme.spacingXS * 2
+                                            color: Theme.surfaceContainer
+                                            border.color: Theme.outline
+                                            border.width: 0
+                                            radius: Theme.cornerRadius
+                                            anchors.bottom: parent.top
+                                            anchors.bottomMargin: Theme.spacingXS
+                                            anchors.horizontalCenter: parent.horizontalCenter
+                                            visible: mouseArea.containsMouse
+
+                                            StyledText {
+                                                id: nameText
+                                                text: Theme.getThemeColors(themeName).name
+                                                font.pixelSize: Theme.fontSizeSmall
+                                                color: Theme.surfaceText
+                                                anchors.centerIn: parent
+                                            }
+                                        }
+
+                                        MouseArea {
+                                            id: mouseArea
+                                            anchors.fill: parent
+                                            hoverEnabled: true
+                                            cursorShape: Qt.PointingHandCursor
+                                            onClicked: {
+                                                Theme.switchTheme(themeName)
+                                            }
+                                        }
+
+                                        Behavior on scale {
+                                            NumberAnimation {
+                                                duration: Theme.shortDuration
+                                                easing.type: Theme.emphasizedEasing
+                                            }
+                                        }
+
+                                        Behavior on border.width {
+                                            NumberAnimation {
+                                                duration: Theme.shortDuration
+                                                easing.type: Theme.emphasizedEasing
+                                            }
+                                        }
                                     }
-                                    font.pixelSize: Theme.fontSizeSmall
-                                    color: Theme.surfaceText
-                                    anchors.centerIn: parent
-                                    wrapMode: Text.WordWrap
-                                    width: Math.min(implicitWidth, 250)
-                                    horizontalAlignment: Text.AlignHCenter
                                 }
                             }
 
-                            Behavior on scale {
-                                NumberAnimation {
-                                    duration: Theme.shortDuration
-                                    easing.type: Theme.emphasizedEasing
-                                }
-                            }
+                            Row {
+                                spacing: Theme.spacingM
+                                anchors.horizontalCenter: parent.horizontalCenter
 
-                            Behavior on border.width {
-                                NumberAnimation {
-                                    duration: Theme.shortDuration
-                                    easing.type: Theme.emphasizedEasing
+                                Repeater {
+                                    model: ["cyan", "pink", "amber", "coral", "monochrome"]
+
+                                    Rectangle {
+                                        property string themeName: modelData
+                                        width: 32
+                                        height: 32
+                                        radius: 16
+                                        color: Theme.getThemeColors(themeName).primary
+                                        border.color: Theme.outline
+                                        border.width: (Theme.currentThemeName === themeName && Theme.currentTheme !== Theme.dynamic) ? 2 : 1
+                                        scale: (Theme.currentThemeName === themeName && Theme.currentTheme !== Theme.dynamic) ? 1.1 : 1
+
+                                        Rectangle {
+                                            width: nameText2.contentWidth + Theme.spacingS * 2
+                                            height: nameText2.contentHeight + Theme.spacingXS * 2
+                                            color: Theme.surfaceContainer
+                                            border.color: Theme.outline
+                                            border.width: 0
+                                            radius: Theme.cornerRadius
+                                            anchors.bottom: parent.top
+                                            anchors.bottomMargin: Theme.spacingXS
+                                            anchors.horizontalCenter: parent.horizontalCenter
+                                            visible: mouseArea2.containsMouse
+
+                                            StyledText {
+                                                id: nameText2
+                                                text: Theme.getThemeColors(themeName).name
+                                                font.pixelSize: Theme.fontSizeSmall
+                                                color: Theme.surfaceText
+                                                anchors.centerIn: parent
+                                            }
+                                        }
+
+                                        MouseArea {
+                                            id: mouseArea2
+                                            anchors.fill: parent
+                                            hoverEnabled: true
+                                            cursorShape: Qt.PointingHandCursor
+                                            onClicked: {
+                                                Theme.switchTheme(themeName)
+                                            }
+                                        }
+
+                                        Behavior on scale {
+                                            NumberAnimation {
+                                                duration: Theme.shortDuration
+                                                easing.type: Theme.emphasizedEasing
+                                            }
+                                        }
+
+                                        Behavior on border.width {
+                                            NumberAnimation {
+                                                duration: Theme.shortDuration
+                                                easing.type: Theme.emphasizedEasing
+                                            }
+                                        }
+                                    }
                                 }
                             }
                         }
-                        } // Close Row
+
+                        Column {
+                            spacing: Theme.spacingS
+                            anchors.horizontalCenter: parent.horizontalCenter
+                            visible: Theme.currentThemeCategory === "catppuccin" && Theme.currentTheme !== Theme.dynamic && Theme.currentThemeName !== "custom"
+
+                            Row {
+                                spacing: Theme.spacingM
+                                anchors.horizontalCenter: parent.horizontalCenter
+
+                                Repeater {
+                                    model: ["cat-rosewater", "cat-flamingo", "cat-pink", "cat-mauve", "cat-red", "cat-maroon", "cat-peach"]
+
+                                    Rectangle {
+                                        property string themeName: modelData
+                                        width: 32
+                                        height: 32
+                                        radius: 16
+                                        color: Theme.getCatppuccinColor(themeName)
+                                        border.color: Theme.outline
+                                        border.width: (Theme.currentThemeName === themeName && Theme.currentTheme !== Theme.dynamic) ? 2 : 1
+                                        scale: (Theme.currentThemeName === themeName && Theme.currentTheme !== Theme.dynamic) ? 1.1 : 1
+
+                                        Rectangle {
+                                            width: nameTextCat.contentWidth + Theme.spacingS * 2
+                                            height: nameTextCat.contentHeight + Theme.spacingXS * 2
+                                            color: Theme.surfaceContainer
+                                            border.color: Theme.outline
+                                            border.width: 0
+                                            radius: Theme.cornerRadius
+                                            anchors.bottom: parent.top
+                                            anchors.bottomMargin: Theme.spacingXS
+                                            anchors.horizontalCenter: parent.horizontalCenter
+                                            visible: mouseAreaCat.containsMouse
+
+                                            StyledText {
+                                                id: nameTextCat
+                                                text: Theme.getCatppuccinVariantName(themeName)
+                                                font.pixelSize: Theme.fontSizeSmall
+                                                color: Theme.surfaceText
+                                                anchors.centerIn: parent
+                                            }
+                                        }
+
+                                        MouseArea {
+                                            id: mouseAreaCat
+                                            anchors.fill: parent
+                                            hoverEnabled: true
+                                            cursorShape: Qt.PointingHandCursor
+                                            onClicked: {
+                                                Theme.switchTheme(themeName)
+                                            }
+                                        }
+
+                                        Behavior on scale {
+                                            NumberAnimation {
+                                                duration: Theme.shortDuration
+                                                easing.type: Theme.emphasizedEasing
+                                            }
+                                        }
+
+                                        Behavior on border.width {
+                                            NumberAnimation {
+                                                duration: Theme.shortDuration
+                                                easing.type: Theme.emphasizedEasing
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+
+                            Row {
+                                spacing: Theme.spacingM
+                                anchors.horizontalCenter: parent.horizontalCenter
+
+                                Repeater {
+                                    model: ["cat-yellow", "cat-green", "cat-teal", "cat-sky", "cat-sapphire", "cat-blue", "cat-lavender"]
+
+                                    Rectangle {
+                                        property string themeName: modelData
+                                        width: 32
+                                        height: 32
+                                        radius: 16
+                                        color: Theme.getCatppuccinColor(themeName)
+                                        border.color: Theme.outline
+                                        border.width: (Theme.currentThemeName === themeName && Theme.currentTheme !== Theme.dynamic) ? 2 : 1
+                                        scale: (Theme.currentThemeName === themeName && Theme.currentTheme !== Theme.dynamic) ? 1.1 : 1
+
+                                        Rectangle {
+                                            width: nameTextCat2.contentWidth + Theme.spacingS * 2
+                                            height: nameTextCat2.contentHeight + Theme.spacingXS * 2
+                                            color: Theme.surfaceContainer
+                                            border.color: Theme.outline
+                                            border.width: 0
+                                            radius: Theme.cornerRadius
+                                            anchors.bottom: parent.top
+                                            anchors.bottomMargin: Theme.spacingXS
+                                            anchors.horizontalCenter: parent.horizontalCenter
+                                            visible: mouseAreaCat2.containsMouse
+
+                                            StyledText {
+                                                id: nameTextCat2
+                                                text: Theme.getCatppuccinVariantName(themeName)
+                                                font.pixelSize: Theme.fontSizeSmall
+                                                color: Theme.surfaceText
+                                                anchors.centerIn: parent
+                                            }
+                                        }
+
+                                        MouseArea {
+                                            id: mouseAreaCat2
+                                            anchors.fill: parent
+                                            hoverEnabled: true
+                                            cursorShape: Qt.PointingHandCursor
+                                            onClicked: {
+                                                Theme.switchTheme(themeName)
+                                            }
+                                        }
+
+                                        Behavior on scale {
+                                            NumberAnimation {
+                                                duration: Theme.shortDuration
+                                                easing.type: Theme.emphasizedEasing
+                                            }
+                                        }
+
+                                        Behavior on border.width {
+                                            NumberAnimation {
+                                                duration: Theme.shortDuration
+                                                easing.type: Theme.emphasizedEasing
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+
+                        Column {
+                            width: parent.width
+                            spacing: Theme.spacingM
+                            visible: Theme.currentTheme === Theme.dynamic
+
+                            Row {
+                                width: parent.width
+                                spacing: Theme.spacingM
+
+                                StyledRect {
+                                    width: 120
+                                    height: 90
+                                    radius: Theme.cornerRadius
+                                    color: Theme.surfaceVariant
+                                    border.color: Theme.outline
+                                    border.width: 0
+
+                                    CachingImage {
+                                        anchors.fill: parent
+                                        anchors.margins: 1
+                                        source: Theme.wallpaperPath ? "file://" + Theme.wallpaperPath : ""
+                                        fillMode: Image.PreserveAspectCrop
+                                        visible: Theme.wallpaperPath && !Theme.wallpaperPath.startsWith("#")
+                                        layer.enabled: true
+                                        layer.effect: MultiEffect {
+                                            maskEnabled: true
+                                            maskSource: autoWallpaperMask
+                                            maskThresholdMin: 0.5
+                                            maskSpreadAtMin: 1
+                                        }
+                                    }
+
+                                    Rectangle {
+                                        anchors.fill: parent
+                                        anchors.margins: 1
+                                        radius: Theme.cornerRadius - 1
+                                        color: Theme.wallpaperPath && Theme.wallpaperPath.startsWith("#") ? Theme.wallpaperPath : "transparent"
+                                        visible: Theme.wallpaperPath && Theme.wallpaperPath.startsWith("#")
+                                    }
+
+                                    Rectangle {
+                                        id: autoWallpaperMask
+                                        anchors.fill: parent
+                                        anchors.margins: 1
+                                        radius: Theme.cornerRadius - 1
+                                        color: "black"
+                                        visible: false
+                                        layer.enabled: true
+                                    }
+
+                                    DankIcon {
+                                        anchors.centerIn: parent
+                                        name: {
+                                            if (ToastService.wallpaperErrorStatus === "error" || ToastService.wallpaperErrorStatus === "matugen_missing")
+                                                return "error"
+                                            else
+                                                return "palette"
+                                        }
+                                        size: Theme.iconSizeLarge
+                                        color: {
+                                            if (ToastService.wallpaperErrorStatus === "error" || ToastService.wallpaperErrorStatus === "matugen_missing")
+                                                return Theme.error
+                                            else
+                                                return Theme.surfaceVariantText
+                                        }
+                                        visible: !Theme.wallpaperPath
+                                    }
+                                }
+
+                                Column {
+                                    width: parent.width - 120 - Theme.spacingM
+                                    spacing: Theme.spacingS
+                                    anchors.verticalCenter: parent.verticalCenter
+
+                                    StyledText {
+                                        text: {
+                                            if (ToastService.wallpaperErrorStatus === "error")
+                                                return "Wallpaper Error"
+                                            else if (ToastService.wallpaperErrorStatus === "matugen_missing")
+                                                return "Matugen Missing"
+                                            else if (Theme.wallpaperPath)
+                                                return Theme.wallpaperPath.split('/').pop()
+                                            else
+                                                return "No wallpaper selected"
+                                        }
+                                        font.pixelSize: Theme.fontSizeLarge
+                                        color: Theme.surfaceText
+                                        elide: Text.ElideMiddle
+                                        maximumLineCount: 1
+                                        width: parent.width
+                                    }
+
+                                    StyledText {
+                                        text: {
+                                            if (ToastService.wallpaperErrorStatus === "error")
+                                                return "Wallpaper processing failed"
+                                            else if (ToastService.wallpaperErrorStatus === "matugen_missing")
+                                                return "Install matugen package for dynamic theming"
+                                            else if (Theme.wallpaperPath)
+                                                return Theme.wallpaperPath
+                                            else
+                                                return "Dynamic colors from wallpaper"
+                                        }
+                                        font.pixelSize: Theme.fontSizeSmall
+                                        color: {
+                                            if (ToastService.wallpaperErrorStatus === "error" || ToastService.wallpaperErrorStatus === "matugen_missing")
+                                                return Theme.error
+                                            else
+                                                return Theme.surfaceVariantText
+                                        }
+                                        elide: Text.ElideMiddle
+                                        maximumLineCount: 2
+                                        width: parent.width
+                                        wrapMode: Text.WordWrap
+                                    }
+                                }
+                            }
+
+                            DankDropdown {
+                                id: matugenPaletteDropdown
+                                width: parent.width
+                                text: "Matugen Palette"
+                                description: "Select the palette algorithm used for wallpaper-based colors"
+                                options: Theme.availableMatugenSchemes.map(function (option) { return option.label })
+                                currentValue: Theme.getMatugenScheme(SettingsData.matugenScheme).label
+                                enabled: Theme.matugenAvailable
+                                opacity: enabled ? 1 : 0.4
+                                onValueChanged: value => {
+                                    for (var i = 0; i < Theme.availableMatugenSchemes.length; i++) {
+                                        var option = Theme.availableMatugenSchemes[i]
+                                        if (option.label === value) {
+                                            SettingsData.setMatugenScheme(option.value)
+                                            break
+                                        }
+                                    }
+                                }
+                            }
+
+                            StyledText {
+                                text: {
+                                    var scheme = Theme.getMatugenScheme(SettingsData.matugenScheme)
+                                    return scheme.description + " (" + scheme.value + ")"
+                                }
+                                font.pixelSize: Theme.fontSizeSmall
+                                color: Theme.surfaceVariantText
+                                wrapMode: Text.WordWrap
+                                width: parent.width
+                            }
+                        }
+
+                        Column {
+                            width: parent.width
+                            spacing: Theme.spacingM
+                            visible: Theme.currentThemeName === "custom"
+
+                            Row {
+                                width: parent.width
+                                spacing: Theme.spacingM
+
+                                DankActionButton {
+                                    buttonSize: 48
+                                    iconName: "folder_open"
+                                    iconSize: Theme.iconSize
+                                    backgroundColor: Qt.rgba(Theme.primary.r, Theme.primary.g, Theme.primary.b, 0.12)
+                                    iconColor: Theme.primary
+                                    onClicked: fileBrowserModal.open()
+                                }
+
+                                Column {
+                                    width: parent.width - 48 - Theme.spacingM
+                                    spacing: Theme.spacingXS
+                                    anchors.verticalCenter: parent.verticalCenter
+
+                                    StyledText {
+                                        text: SettingsData.customThemeFile ? SettingsData.customThemeFile.split('/').pop() : "No custom theme file"
+                                        font.pixelSize: Theme.fontSizeLarge
+                                        color: Theme.surfaceText
+                                        elide: Text.ElideMiddle
+                                        maximumLineCount: 1
+                                        width: parent.width
+                                    }
+
+                                    StyledText {
+                                        text: SettingsData.customThemeFile || "Click to select a custom theme JSON file"
+                                        font.pixelSize: Theme.fontSizeSmall
+                                        color: Theme.surfaceVariantText
+                                        elide: Text.ElideMiddle
+                                        maximumLineCount: 1
+                                        width: parent.width
+                                    }
+                                }
+                            }
+                        }
                     }
                 }
             }
@@ -573,11 +727,10 @@ Item {
                 width: parent.width
                 height: transparencySection.implicitHeight + Theme.spacingL * 2
                 radius: Theme.cornerRadius
-                color: Qt.rgba(Theme.surfaceVariant.r, Theme.surfaceVariant.g,
-                               Theme.surfaceVariant.b, 0.3)
+                color: Theme.surfaceContainerHigh
                 border.color: Qt.rgba(Theme.outline.r, Theme.outline.g,
                                       Theme.outline.b, 0.2)
-                border.width: 1
+                border.width: 0
 
                 Column {
                     id: transparencySection
@@ -598,7 +751,7 @@ Item {
                         }
 
                         StyledText {
-                            text: "Transparency Settings"
+                            text: "Widget Styling"
                             font.pixelSize: Theme.fontSizeLarge
                             font.weight: Font.Medium
                             color: Theme.surfaceText
@@ -611,7 +764,7 @@ Item {
                         spacing: Theme.spacingS
 
                         StyledText {
-                            text: "Top Bar Transparency"
+                            text: "Dank Bar Transparency"
                             font.pixelSize: Theme.fontSizeSmall
                             color: Theme.surfaceText
                             font.weight: Font.Medium
@@ -621,14 +774,15 @@ Item {
                             width: parent.width
                             height: 24
                             value: Math.round(
-                                       SettingsData.topBarTransparency * 100)
+                                       SettingsData.dankBarTransparency * 100)
                             minimum: 0
                             maximum: 100
                             unit: ""
                             showValue: true
                             wheelEnabled: false
+                            thumbOutlineColor: Theme.surfaceContainerHigh
                             onSliderValueChanged: newValue => {
-                                                      SettingsData.setTopBarTransparency(
+                                                      SettingsData.setDankBarTransparency(
                                                           newValue / 100)
                                                   }
                         }
@@ -638,25 +792,66 @@ Item {
                         width: parent.width
                         spacing: Theme.spacingS
 
-                        StyledText {
-                            text: "Top Bar Widget Transparency"
-                            font.pixelSize: Theme.fontSizeSmall
-                            color: Theme.surfaceText
-                            font.weight: Font.Medium
+                        Item {
+                            width: parent.width
+                            height: Math.max(transparencyLabel.height, widgetColorGroup.height)
+
+                            StyledText {
+                                id: transparencyLabel
+                                text: "Dank Bar Widget Transparency"
+                                font.pixelSize: Theme.fontSizeSmall
+                                color: Theme.surfaceText
+                                font.weight: Font.Medium
+                                anchors.left: parent.left
+                                anchors.verticalCenter: parent.verticalCenter
+                            }
+
+                            DankButtonGroup {
+                                id: widgetColorGroup
+                                property int currentColorIndex: {
+                                    switch (SettingsData.widgetBackgroundColor) {
+                                        case "sth": return 0
+                                        case "s": return 1
+                                        case "sc": return 2
+                                        case "sch": return 3
+                                        default: return 0
+                                    }
+                                }
+
+                                model: ["sth", "s", "sc", "sch"]
+                                currentIndex: currentColorIndex
+                                selectionMode: "single"
+                                anchors.right: parent.right
+                                anchors.verticalCenter: parent.verticalCenter
+
+                                buttonHeight: 20
+                                minButtonWidth: 32
+                                buttonPadding: Theme.spacingS
+                                checkIconSize: Theme.iconSizeSmall - 2
+                                textSize: Theme.fontSizeSmall - 2
+                                spacing: 1
+
+                                onSelectionChanged: (index, selected) => {
+                                    if (!selected) return
+                                    const colorOptions = ["sth", "s", "sc", "sch"]
+                                    SettingsData.setWidgetBackgroundColor(colorOptions[index])
+                                }
+                            }
                         }
 
                         DankSlider {
                             width: parent.width
                             height: 24
                             value: Math.round(
-                                       SettingsData.topBarWidgetTransparency * 100)
+                                       SettingsData.dankBarWidgetTransparency * 100)
                             minimum: 0
                             maximum: 100
                             unit: ""
                             showValue: true
                             wheelEnabled: false
+                            thumbOutlineColor: Theme.surfaceContainerHigh
                             onSliderValueChanged: newValue => {
-                                                      SettingsData.setTopBarWidgetTransparency(
+                                                      SettingsData.setDankBarWidgetTransparency(
                                                           newValue / 100)
                                                   }
                         }
@@ -683,9 +878,46 @@ Item {
                             unit: ""
                             showValue: true
                             wheelEnabled: false
+                            thumbOutlineColor: Theme.surfaceContainerHigh
                             onSliderValueChanged: newValue => {
                                                       SettingsData.setPopupTransparency(
                                                           newValue / 100)
+                                                  }
+                        }
+                    }
+
+
+                    Rectangle {
+                        width: parent.width
+                        height: 1
+                        color: Theme.outline
+                        opacity: 0.2
+                    }
+
+                    Column {
+                        width: parent.width
+                        spacing: Theme.spacingS
+
+                        StyledText {
+                            text: "Corner Radius (0 = square corners)"
+                            font.pixelSize: Theme.fontSizeSmall
+                            color: Theme.surfaceText
+                            font.weight: Font.Medium
+                        }
+
+                        DankSlider {
+                            width: parent.width
+                            height: 24
+                            value: SettingsData.cornerRadius
+                            minimum: 0
+                            maximum: 32
+                            unit: ""
+                            showValue: true
+                            wheelEnabled: false
+                            thumbOutlineColor: Theme.surfaceContainerHigh
+                            onSliderValueChanged: newValue => {
+                                                      SettingsData.setCornerRadius(
+                                                          newValue)
                                                   }
                         }
                     }
@@ -701,7 +933,7 @@ Item {
                                Theme.warning.b, 0.12)
                 border.color: Qt.rgba(Theme.warning.r, Theme.warning.g,
                                       Theme.warning.b, 0.3)
-                border.width: 1
+                border.width: 0
 
                 Row {
                     anchors.fill: parent
@@ -731,11 +963,10 @@ Item {
                 width: parent.width
                 height: iconThemeSection.implicitHeight + Theme.spacingL * 2
                 radius: Theme.cornerRadius
-                color: Qt.rgba(Theme.surfaceVariant.r, Theme.surfaceVariant.g,
-                               Theme.surfaceVariant.b, 0.3)
+                color: Theme.surfaceContainerHigh
                 border.color: Qt.rgba(Theme.outline.r, Theme.outline.g,
                                       Theme.outline.b, 0.2)
-                border.width: 1
+                border.width: 0
 
                 Column {
                     id: iconThemeSection
@@ -786,11 +1017,10 @@ Item {
                 width: parent.width
                 height: systemThemingSection.implicitHeight + Theme.spacingL * 2
                 radius: Theme.cornerRadius
-                color: Qt.rgba(Theme.surfaceVariant.r, Theme.surfaceVariant.g,
-                               Theme.surfaceVariant.b, 0.3)
+                color: Theme.surfaceContainerHigh
                 border.color: Qt.rgba(Theme.outline.r, Theme.outline.g,
                                       Theme.outline.b, 0.2)
-                border.width: 1
+                border.width: 0
                 visible: Theme.matugenAvailable
 
                 Column {
@@ -830,7 +1060,7 @@ Item {
                             radius: Theme.cornerRadius
                             color: Qt.rgba(Theme.primary.r, Theme.primary.g, Theme.primary.b, 0.12)
                             border.color: Theme.primary
-                            border.width: 1
+                            border.width: 0
 
                             Row {
                                 anchors.centerIn: parent
@@ -866,7 +1096,7 @@ Item {
                             radius: Theme.cornerRadius
                             color: Qt.rgba(Theme.primary.r, Theme.primary.g, Theme.primary.b, 0.12)
                             border.color: Theme.primary
-                            border.width: 1
+                            border.width: 0
 
                             Row {
                                 anchors.centerIn: parent

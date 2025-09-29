@@ -82,8 +82,6 @@ curl -fsSL https://install.danklinux.com | sh
 
 <details><summary><strong>Features</strong></summary>
 
-**tl;dr** dms can serve as AIO replacement for lock screen, notification daemon, wallpaper service, app launchers, dock, and more.
-
 **Core Widgets:**
 - **TopBar**: fully customizable bar where widgets can be added, removed, and re-arranged.
   - **App Launcher** with fuzzy search, categories, and auto-sorting by most used apps.
@@ -109,18 +107,23 @@ curl -fsSL https://install.danklinux.com | sh
 - **Lock Screen** Using quickshell's WlSessionLock with embedded virtual keyboard for Niri (Niri doesn't support placing virtual keyboard above lockscreen natively: [issue](https://github.com/YaLTeR/niri/issues/2201))
 - **Notepad** A simple text notepad/scratchpad with auto-save to session data and file export/import functionality.
 
-**Highlights:**
-
-- Dynamic wallpaper-based theming with matugen integration
-- Numerous IPCs to trigger actions and open various modals.
-- Calendar integration with [khal](https://github.com/pimutils/khal)
-- Audio/media controls
-- Grouped notifications
-- Brightness control for internal and external displays
-- Automated night mode with time-based and location-based scheduling
-- Qt and GTK app theming synchronization, as well as [Ghostty](https://ghostty.org/) auto-theme support.
-
 </details>
+
+## Highlights
+
+- Auto-theming GTK, QT, Terminal apps, and more with [matugen](https://github.com/InioX/matugen) + optional theme generation from wallpaper.
+- 20+ widgets that can be added and re-arranged on the bar.
+- Process list, temperature monitoring, and resource monitoring with [dgop](https://github.com/AvengeMedia/dgop)
+- Notification service with support for grouping and richtext
+- App launcher + Spotlighht launcher with fuzzy search
+- Control center with mpris player, weather, and calendar integration.
+- Clipboard history view with image previews.
+- A dock for running apps + pinned apps
+- Configure bluetooth, wifi, and audio input+output devices.
+- A lock screen
+- Idle monitoring - configure auto lock, screen off, suspend, and hibernate with different knobs for battery + AC power.
+
+**TL;DR** *dms replaces your waybar, swaylock, swayidle, hypridle, hyprlock, fuzzels, walker, mako, and basically everything you use to stitch a desktop together*
 
 ## Installation
 
@@ -171,6 +174,60 @@ paru -S dms-shell-git
 ```bash
 nix profile install github:AvengeMedia/DankMaterialShell
 ```
+
+#### nixOS - via home-manager
+
+To install using home-manager, you need to add this repo into your flake inputs:
+
+``` nix
+dankMaterialShell = {
+  url = "github:AvengeMedia/DankMaterialShell";
+  inputs.nixpkgs.follows = "nixpkgs";
+};
+```
+
+Then somewhere in your home-manager config, add this to the imports:
+
+``` nix
+imports = [
+  inputs.dankMaterialShell.homeModules.dankMaterialShell.default
+];
+```
+
+If you use Niri, the `niri` homeModule provides additional options for Niri integration, such as key bindings and spawn:
+
+``` nix
+imports = [
+  inputs.dankMaterialShell.homeModules.dankMaterialShell.default
+  inputs.dankMaterialShell.homeModules.dankMaterialShell.niri
+];
+```
+
+> [!IMPORTANT]
+> To use the `niri` homeModule, you must have `sobidoo/niri-flake` in your inputs:
+
+``` nix
+niri = {
+  url = "github:sodiboo/niri-flake";
+  inputs.nixpkgs.follows = "nixpkgs";
+};
+```
+
+And import it in home-manager:
+
+``` nix
+imports = [
+  inputs.niri.homeModules.niri
+];
+```
+
+Now you can enable it with:
+
+``` nix
+programs.dankMaterialShell.enable = true;
+```
+
+There are a lot of possible configurations that you can enable/disable in the flake, check [nix/default.nix](nix/default.nix) and [nix/niri.nix](nix/niri.nix) to see them all.
 
 #### Other Distributions - via manual installation
 
@@ -307,6 +364,9 @@ binds {
    Mod+X hotkey-overlay-title="Power Menu" {
       spawn "dms" "ipc" "call" "powermenu" "toggle";
    }
+   Mod+C hotkey-overlay-title="Control Center" {
+      spawn "dms" "ipc" "call" "control-center" "toggle";
+   }
    XF86AudioRaiseVolume allow-when-locked=true {
       spawn "dms" "ipc" "call" "audio" "increment" "3";
    }
@@ -363,6 +423,7 @@ bind = SUPER, comma, exec, dms ipc call settings toggle
 bind = SUPER, P, exec, dms ipc call notepad toggle
 bind = SUPERALT, L, exec, dms ipc call lock lock
 bind = SUPER, X, exec, dms ipc call powermenu toggle
+bind = SUPER, C, exec, dms ipc call control-center toggle 
 
 # Audio controls (function keys)
 bindl = , XF86AudioRaiseVolume, exec, dms ipc call audio increment 3
@@ -409,6 +470,8 @@ dms ipc call mpris next
 ```
 
 ## Theming
+
+dms will spawn a matugen process on theme changes to generate color palettes for installed and supported apps. If you do not want these files generated, you can set the env variable `DMS_DISABLE_MATUGEN=1` to disable it entirely.
 
 ### Custom Themes
 
@@ -486,6 +549,55 @@ You'll have to restart your session for themes to take effect.
 
 Nevigate to dms settings -> themes & colors -> and click "Apply QT Themes"
 
+#### Firefox
+
+There are two theme paths for Firefox, using with [pywalfox](https://github.com/Frewacom/pywalfox) or [material fox](https://github.com/edelvarden/material-fox-updated)
+
+**(Option 1) - pywalfox**
+
+1. **Install [pywalfox](https://github.com/Frewacom/pywalfox)** on system.
+- Available in AUR via `paru -S python-pywalfox`
+
+2. **Install [pywalfox extension](https://addons.mozilla.org/firefox/addon/pywalfox/)** in firefox.
+
+3. **Restart dms and create symlink** to generate palette and then enable dank colors.
+- Run `ln -sf ~/.cache/wal/dank-pywalfox.json ~/.cache/wal/colors.json`
+
+
+**(Option 2) - Chrome-like theme with dynamic colors**
+
+Firefox does use the GTK3 theme, but it doesn't look that good on the stock theme IMO. A separate matugen css is generated for the [material fox](https://github.com/edelvarden/material-fox-updated) theme, you can configure that theme with dynamic colors by following the steps below.
+
+1. **In firefox, navigate to `about:config`**
+- set `toolkit.legacyuserprofilecustomizations.stylesheets` to `true`
+- set `svg.context-properties.content.enabled` to `true`
+- Create a new property called `userChrome.theme-material` and type `boolean`
+  - set to `true`
+
+<details><summary><strong>Expand for firefox screenshots</strong></summary>
+<img width="1262" height="104" alt="image" src="https://github.com/user-attachments/assets/4bca43d1-5735-4401-9b91-5ee4f0b1e357" />
+<img width="1262" height="104" alt="image" src="https://github.com/user-attachments/assets/348d37e0-5c6c-4db8-b7c9-89cabf282c25" />
+<img width="1244" height="106" alt="image" src="https://github.com/user-attachments/assets/75fd4972-bc4a-4657-b756-b31ef8061b3b" />
+</details>
+
+2. **Install material fox theme**
+```bash
+# Find Firefox profile directory
+export PROFILE_DIR=$(find ~/.mozilla/firefox -maxdepth 1 -type d -name "*.default-release" | head -n 1)
+
+# Download, extract to profile dir, and cleanup
+curl -L -o "$PROFILE_DIR/chrome.zip" https://github.com/edelvarden/material-fox-updated/releases/download/v2.0.0/chrome.zip
+unzip -o "$PROFILE_DIR/chrome.zip" -d "$PROFILE_DIR"
+rm "$PROFILE_DIR/chrome.zip"
+```
+
+3. **Configure dynamic colors for material fox theme**
+```bash
+export PROFILE_DIR=$(find ~/.mozilla/firefox -maxdepth 1 -type d -name "*.default-release" | head -n 1)
+rm -f "$PROFILE_DIR/chrome/theme-material-blue.css"
+ln -sf ~/.config/DankMaterialShell/firefox.css "$PROFILE_DIR/chrome/theme-material-blue.css"
+```
+
 ### Terminal Integration
 
 The matugen integration will automatically generate new colors for certain apps only if they are installed.
@@ -496,6 +608,13 @@ You can enable the dynamic color schemes in supported terminal apps by modifying
 
 ```bash
 echo "config-file = ./config-dankcolors" >> ~/.config/ghostty/config
+```
+
+If you want to disable excessive config reloaded popup sin ghostty, you may wish to also add this:
+
+```bash
+# These are the default danklinux options, if you still want config reloaded and copied to clipboard popups you can skip it.
+echo "app-notifications = no-clipboard-copy,no-config-reload" >> ~/.config/ghostty/config
 ```
 
 **kitty**:
@@ -608,5 +727,6 @@ DankMaterialShell welcomes contributions! Whether it's bug fixes, new widgets, t
 
 - [quickshell](https://quickshell.org/) the core of what makes a shell like this possible.
 - [niri](https://github.com/YaLTeR/niri) for the awesome scrolling compositor.
+- [Ly-sec](http://github.com/ly-sec) for awesome wallpaper effects among other things from [Noctalia](https://github.com/noctalia-dev/noctalia-shell)
 - [soramanew](https://github.com/soramanew) who built [caelestia](https://github.com/caelestia-dots/shell) which served as inspiration and guidance for many dank widgets.
 - [end-4](https://github.com/end-4) for [dots-hyprland](https://github.com/end-4/dots-hyprland) which also served as inspiration and guidance for many dank widgets.

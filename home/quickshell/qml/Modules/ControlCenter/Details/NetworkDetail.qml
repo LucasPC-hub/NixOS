@@ -17,9 +17,9 @@ Rectangle {
         return headerRow.height + wifiOffContent.height + Theme.spacingM
     }
     radius: Theme.cornerRadius
-    color: Qt.rgba(Theme.surfaceVariant.r, Theme.surfaceVariant.g, Theme.surfaceVariant.b, Theme.getContentBackgroundAlpha() * 0.6)
+    color: Theme.surfaceContainerHigh
     border.color: Qt.rgba(Theme.outline.r, Theme.outline.g, Theme.outline.b, 0.08)
-    border.width: 1
+    border.width: 0
     
     Component.onCompleted: {
         NetworkService.addRef()
@@ -27,18 +27,9 @@ Rectangle {
             NetworkService.scanWifi()
         }
     }
-    
+
     Component.onDestruction: {
         NetworkService.removeRef()
-    }
-    
-    property var wifiPasswordModalRef: {
-        wifiPasswordModalLoader.active = true
-        return wifiPasswordModalLoader.item
-    }
-    property var networkInfoModalRef: {
-        networkInfoModalLoader.active = true
-        return networkInfoModalLoader.item
     }
     
     Row {
@@ -65,74 +56,19 @@ Rectangle {
             height: parent.height
         }
         
-        Row {
+        DankButtonGroup {
             id: preferenceControls
-            spacing: Theme.spacingS
             anchors.verticalCenter: parent.verticalCenter
             visible: NetworkService.ethernetConnected && NetworkService.wifiConnected
-            
-            Rectangle {
-                property bool isActive: NetworkService.userPreference === "ethernet"
-                
-                width: 90
-                height: 36
-                radius: 18
-                color: isActive ? Theme.surfaceContainerHigh : ethernetMouseArea.containsMouse ? Theme.surfaceHover : "transparent"
-                
-                StyledText {
-                    anchors.centerIn: parent
-                    text: "Ethernet"
-                    color: parent.isActive ? Theme.primary : Theme.surfaceText
-                    font.pixelSize: Theme.fontSizeMedium
-                    font.weight: parent.isActive ? Font.Medium : Font.Normal
-                }
-                
-                MouseArea {
-                    id: ethernetMouseArea
-                    anchors.fill: parent
-                    hoverEnabled: true
-                    onClicked: NetworkService.setNetworkPreference("ethernet")
-                    cursorShape: Qt.PointingHandCursor
-                }
-                
-                Behavior on color {
-                    ColorAnimation {
-                        duration: Theme.shortDuration
-                        easing.type: Theme.standardEasing
-                    }
-                }
-            }
-            
-            Rectangle {
-                property bool isActive: NetworkService.userPreference === "wifi"
-                
-                width: 70
-                height: 36
-                radius: 18
-                color: isActive ? Theme.surfaceContainerHigh : wifiMouseArea.containsMouse ? Theme.surfaceHover : "transparent"
-                
-                StyledText {
-                    anchors.centerIn: parent
-                    text: "WiFi"
-                    color: parent.isActive ? Theme.primary : Theme.surfaceText
-                    font.pixelSize: Theme.fontSizeMedium
-                    font.weight: parent.isActive ? Font.Medium : Font.Normal
-                }
-                
-                MouseArea {
-                    id: wifiMouseArea
-                    anchors.fill: parent
-                    hoverEnabled: true
-                    onClicked: NetworkService.setNetworkPreference("wifi")
-                    cursorShape: Qt.PointingHandCursor
-                }
-                
-                Behavior on color {
-                    ColorAnimation {
-                        duration: Theme.shortDuration
-                        easing.type: Theme.standardEasing
-                    }
-                }
+
+            property int currentPreferenceIndex: NetworkService.userPreference === "ethernet" ? 0 : 1
+
+            model: ["Ethernet", "WiFi"]
+            currentIndex: currentPreferenceIndex
+            selectionMode: "single"
+            onSelectionChanged: (index, selected) => {
+                if (!selected) return
+                NetworkService.setNetworkPreference(index === 0 ? "ethernet" : "wifi")
             }
         }
     }
@@ -213,7 +149,7 @@ Rectangle {
                 height: 36
                 radius: 18
                 color: enableWifiButton.containsMouse ? Qt.rgba(Theme.primary.r, Theme.primary.g, Theme.primary.b, 0.12) : Qt.rgba(Theme.primary.r, Theme.primary.g, Theme.primary.b, 0.08)
-                border.width: 1
+                border.width: 0
                 border.color: Theme.primary
                 
                 StyledText {
@@ -232,12 +168,6 @@ Rectangle {
                     onClicked: NetworkService.toggleWifiRadio()
                 }
                 
-                Behavior on color {
-                    ColorAnimation {
-                        duration: Theme.shortDuration
-                        easing.type: Theme.standardEasing
-                    }
-                }
             }
         }
     }
@@ -297,9 +227,9 @@ Rectangle {
                     width: parent.width
                     height: 50
                     radius: Theme.cornerRadius
-                    color: networkMouseArea.containsMouse ? Qt.rgba(Theme.primary.r, Theme.primary.g, Theme.primary.b, 0.08) : Qt.rgba(Theme.surfaceVariant.r, Theme.surfaceVariant.g, Theme.surfaceVariant.b, index % 2 === 0 ? 0.3 : 0.2)
+                    color: networkMouseArea.containsMouse ? Qt.rgba(Theme.primary.r, Theme.primary.g, Theme.primary.b, 0.08) : Theme.surfaceContainerHighest
                     border.color: modelData.ssid === NetworkService.currentWifiSSID ? Theme.primary : Qt.rgba(Theme.outline.r, Theme.outline.g, Theme.outline.b, 0.12)
-                    border.width: modelData.ssid === NetworkService.currentWifiSSID ? 2 : 1
+                    border.width: 0
                     
                     Row {
                         anchors.left: parent.left
@@ -310,11 +240,9 @@ Rectangle {
                         DankIcon {
                             name: {
                                 let strength = modelData.signal || 0
-                                if (strength >= 70) return "signal_wifi_4_bar"
-                                if (strength >= 50) return "network_wifi_3_bar"
-                                if (strength >= 25) return "network_wifi_2_bar"
-                                if (strength >= 10) return "network_wifi_1_bar"
-                                return "signal_wifi_bad"
+                                if (strength >= 50) return "wifi"
+                                if (strength >= 25) return "wifi_2_bar"
+                                return "wifi_1_bar"
                             }
                             size: Theme.iconSize - 4
                             color: modelData.ssid === NetworkService.currentWifiSSID ? Theme.primary : Theme.surfaceText
@@ -389,9 +317,7 @@ Rectangle {
                         onClicked: function(event) {
                             if (modelData.ssid !== NetworkService.currentWifiSSID) {
                                 if (modelData.secured && !modelData.saved) {
-                                    if (wifiPasswordModalRef) {
-                                        wifiPasswordModalRef.show(modelData.ssid)
-                                    }
+                                    wifiPasswordModal.show(modelData.ssid)
                                 } else {
                                     NetworkService.connectToWifi(modelData.ssid)
                                 }
@@ -400,13 +326,6 @@ Rectangle {
                         }
                     }
                     
-                    Behavior on color {
-                        ColorAnimation { duration: Theme.shortDuration }
-                    }
-                    
-                    Behavior on border.color {
-                        ColorAnimation { duration: Theme.shortDuration }
-                    }
                 }
             }
         }
@@ -426,7 +345,7 @@ Rectangle {
         background: Rectangle {
             color: Theme.popupBackground()
             radius: Theme.cornerRadius
-            border.width: 1
+            border.width: 0
             border.color: Qt.rgba(Theme.outline.r, Theme.outline.g, Theme.outline.b, 0.12)
         }
         
@@ -452,9 +371,7 @@ Rectangle {
                     NetworkService.disconnectWifi()
                 } else {
                     if (networkContextMenu.currentSecured && !networkContextMenu.currentSaved) {
-                        if (wifiPasswordModalRef) {
-                            wifiPasswordModalRef.show(networkContextMenu.currentSSID)
-                        }
+                        wifiPasswordModal.show(networkContextMenu.currentSSID)
                     } else {
                         NetworkService.connectToWifi(networkContextMenu.currentSSID)
                     }
@@ -480,10 +397,8 @@ Rectangle {
             }
             
             onTriggered: {
-                if (networkInfoModalRef) {
-                    let networkData = NetworkService.getNetworkInfo(networkContextMenu.currentSSID)
-                    networkInfoModalRef.showNetworkInfo(networkContextMenu.currentSSID, networkData)
-                }
+                let networkData = NetworkService.getNetworkInfo(networkContextMenu.currentSSID)
+                networkInfoModal.showNetworkInfo(networkContextMenu.currentSSID, networkData)
             }
         }
         
@@ -511,22 +426,12 @@ Rectangle {
         }
     }
     
-    LazyLoader {
-        id: wifiPasswordModalLoader
-        active: false
-        
-        WifiPasswordModal {
-            id: wifiPasswordModal
-        }
+    WifiPasswordModal {
+        id: wifiPasswordModal
     }
-    
-    LazyLoader {
-        id: networkInfoModalLoader
-        active: false
-        
-        NetworkInfoModal {
-            id: networkInfoModal
-        }
+
+    NetworkInfoModal {
+        id: networkInfoModal
     }
 
 

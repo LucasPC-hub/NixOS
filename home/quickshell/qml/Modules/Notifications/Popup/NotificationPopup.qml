@@ -1,5 +1,6 @@
 import QtQuick
 import QtQuick.Controls
+import QtQuick.Effects
 import Quickshell
 import Quickshell.Wayland
 import Quickshell.Widgets
@@ -75,7 +76,13 @@ PanelWindow {
     color: "transparent"
     implicitWidth: 400
     implicitHeight: 122
-    onScreenYChanged: margins.top = Theme.barHeight - 4 + SettingsData.topBarSpacing + 4 + screenY
+    onScreenYChanged: {
+        if (SettingsData.dankBarAtBottom) {
+            margins.bottom = Theme.barHeight - 4 + SettingsData.dankBarSpacing + 4 + screenY
+        } else {
+            margins.top = Theme.barHeight - 4 + SettingsData.dankBarSpacing + 4 + screenY
+        }
+    }
     onHasValidDataChanged: {
         if (!hasValidData && !exiting && !_isDestroying) {
             forceExit()
@@ -108,12 +115,14 @@ PanelWindow {
     }
 
     anchors {
-        top: true
+        top: !SettingsData.dankBarAtBottom
+        bottom: SettingsData.dankBarAtBottom
         right: true
     }
 
     margins {
-        top: Theme.barHeight - 4 + SettingsData.topBarSpacing + 4
+        top: SettingsData.dankBarAtBottom ? 0 : (Theme.barHeight - 4 + SettingsData.dankBarSpacing + 4)
+        bottom: SettingsData.dankBarAtBottom ? (Theme.barHeight - 4 + SettingsData.dankBarSpacing + 4) : 0
         right: 12
     }
 
@@ -133,7 +142,7 @@ PanelWindow {
             radius: Theme.cornerRadius
             color: Theme.popupBackground()
             border.color: notificationData && notificationData.urgency === NotificationUrgency.Critical ? Qt.rgba(Theme.primary.r, Theme.primary.g, Theme.primary.b, 0.3) : Qt.rgba(Theme.outline.r, Theme.outline.g, Theme.outline.b, 0.08)
-            border.width: notificationData && notificationData.urgency === NotificationUrgency.Critical ? 2 : 1
+            border.width: notificationData && notificationData.urgency === NotificationUrgency.Critical ? 2 : 0
             clip: true
 
             Rectangle {
@@ -208,55 +217,40 @@ PanelWindow {
                 anchors.rightMargin: 56
                 height: 98
 
-                Rectangle {
+                DankCircularImage {
                     id: iconContainer
 
                     readonly property bool hasNotificationImage: notificationData && notificationData.image && notificationData.image !== ""
 
-                    width: 55
-                    height: 55
-                    radius: 27.5
-                    color: Qt.rgba(Theme.primary.r, Theme.primary.g, Theme.primary.b, 0.1)
-                    border.color: "transparent"
-                    border.width: 0
+                    width: 63
+                    height: 63
                     anchors.left: parent.left
                     anchors.verticalCenter: parent.verticalCenter
 
-                    IconImage {
-                        id: iconImage
-
-                        anchors.fill: parent
-                        anchors.margins: 2
-                        asynchronous: true
-                        source: {
-                            if (!notificationData)
-                                return ""
-
-                            if (parent.hasNotificationImage)
-                                return notificationData.cleanImage || ""
-
-                            if (notificationData.appIcon) {
-                                const appIcon = notificationData.appIcon
-                                if (appIcon.startsWith("file://") || appIcon.startsWith("http://") || appIcon.startsWith("https://"))
-                                    return appIcon
-
-                                return Quickshell.iconPath(appIcon, true)
-                            }
+                    imageSource: {
+                        if (!notificationData)
                             return ""
+
+                        if (hasNotificationImage)
+                            return notificationData.cleanImage || ""
+
+                        if (notificationData.appIcon) {
+                            const appIcon = notificationData.appIcon
+                            if (appIcon.startsWith("file://") || appIcon.startsWith("http://") || appIcon.startsWith("https://"))
+                                return appIcon
+
+                            return Quickshell.iconPath(appIcon, true)
                         }
-                        visible: status === Image.Ready
+                        return ""
                     }
 
-                    StyledText {
-                        anchors.centerIn: parent
-                        visible: !parent.hasNotificationImage && (!notificationData || !notificationData.appIcon || notificationData.appIcon === "")
-                        text: {
-                            const appName = notificationData && notificationData.appName ? notificationData.appName : "?"
-                            return appName.charAt(0).toUpperCase()
-                        }
-                        font.pixelSize: 20
-                        font.weight: Font.Bold
-                        color: Theme.primaryText
+                    hasImage: hasNotificationImage
+                    fallbackIcon: notificationData?.appIcon || "notifications"
+                    fallbackText: {
+                        if (hasNotificationImage || (notificationData?.appIcon && notificationData.appIcon !== ""))
+                            return ""
+                        const appName = notificationData?.appName || "?"
+                        return appName.charAt(0).toUpperCase()
                     }
                 }
 

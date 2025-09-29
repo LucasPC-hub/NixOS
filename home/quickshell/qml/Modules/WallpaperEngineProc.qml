@@ -2,6 +2,7 @@ import QtCore
 import QtQuick
 import Quickshell.Io
 import Quickshell
+import qs.Common
 
 Item {
     id: root
@@ -22,9 +23,9 @@ Item {
         onExited: (code) => {
             if (pendingSceneId !== "") {
                 const cacheHome = StandardPaths.writableLocation(StandardPaths.CacheLocation).toString()
-                const baseDir = cacheHome.startsWith("file://") ? cacheHome.substring(7) : cacheHome
+                const baseDir = Paths.strip(cacheHome)
                 const outDir = baseDir + "/dankshell/we_screenshots" 
-                const outPath = outDir + "/" + pendingSceneId + ".jpeg"
+                const outPath = outDir + "/" + pendingSceneId + ".jpg"
 
                 Quickshell.execDetached(["mkdir", "-p", outDir])
                 weProcess.command = [

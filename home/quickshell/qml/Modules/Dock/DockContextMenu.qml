@@ -15,11 +15,13 @@ PanelWindow {
     property var anchorItem: null
     property real dockVisibleHeight: 40
     property int margin: 10
+    property bool hidePin: false
 
-    function showForButton(button, data, dockHeight) {
+    function showForButton(button, data, dockHeight, hidePinOption) {
         anchorItem = button
         appData = data
         dockVisibleHeight = dockHeight || 40
+        hidePin = hidePinOption || false
 
         const dockWindow = button.Window.window
         if (dockWindow) {
@@ -94,8 +96,15 @@ PanelWindow {
             actualDockHeight = dockBackground.height
         }
 
+        const isDockAtBottom = SettingsData.dockPosition === SettingsData.Position.Bottom
         const dockBottomMargin = 16
-        const buttonScreenY = root.screen.height - actualDockHeight - dockBottomMargin - 20
+        let buttonScreenY
+
+        if (isDockAtBottom) {
+            buttonScreenY = root.screen.height - actualDockHeight - dockBottomMargin - 20
+        } else {
+            buttonScreenY = actualDockHeight + dockBottomMargin + 20
+        }
 
         const dockContentWidth = dockWindow.width
         const screenWidth = root.screen.width
@@ -117,7 +126,14 @@ PanelWindow {
             const want = root.anchorPos.x - width / 2
             return Math.max(left, Math.min(right, want))
         }
-        y: Math.max(10, root.anchorPos.y - height + 30)
+        y: {
+            const isDockAtBottom = SettingsData.dockPosition === SettingsData.Position.Bottom
+            if (isDockAtBottom) {
+                return Math.max(10, root.anchorPos.y - height + 30)
+            } else {
+                return Math.min(root.height - height - 10, root.anchorPos.y - 30)
+            }
+        }
         color: Theme.popupBackground()
         radius: Theme.cornerRadius
         border.color: Qt.rgba(Theme.outline.r, Theme.outline.g, Theme.outline.b, 0.08)
@@ -144,7 +160,102 @@ PanelWindow {
             anchors.topMargin: Theme.spacingS
             spacing: 1
 
+            // Window list for grouped apps
+            Repeater {
+                model: {
+                    if (!root.appData || root.appData.type !== "grouped") return []
+
+                    const toplevels = []
+                    const allToplevels = ToplevelManager.toplevels.values
+                    for (let i = 0; i < allToplevels.length; i++) {
+                        const toplevel = allToplevels[i]
+                        if (toplevel.appId === root.appData.appId) {
+                            toplevels.push(toplevel)
+                        }
+                    }
+                    return toplevels
+                }
+
+                Rectangle {
+                    width: parent.width
+                    height: 28
+                    radius: Theme.cornerRadius
+                    color: windowArea.containsMouse ? Qt.rgba(Theme.primary.r, Theme.primary.g, Theme.primary.b, 0.12) : "transparent"
+
+                    StyledText {
+                        anchors.left: parent.left
+                        anchors.leftMargin: Theme.spacingS
+                        anchors.right: closeButton.left
+                        anchors.rightMargin: Theme.spacingXS
+                        anchors.verticalCenter: parent.verticalCenter
+                        text: (modelData && modelData.title) ? modelData.title : "(Unnamed)"
+                        font.pixelSize: Theme.fontSizeSmall
+                        color: Theme.surfaceText
+                        font.weight: Font.Normal
+                        elide: Text.ElideRight
+                        wrapMode: Text.NoWrap
+                    }
+
+                    Rectangle {
+                        id: closeButton
+                        anchors.right: parent.right
+                        anchors.rightMargin: Theme.spacingXS
+                        anchors.verticalCenter: parent.verticalCenter
+                        width: 20
+                        height: 20
+                        radius: 10
+                        color: closeMouseArea.containsMouse ? Qt.rgba(Theme.error.r, Theme.error.g, Theme.error.b, 0.2) : "transparent"
+
+                        DankIcon {
+                            anchors.centerIn: parent
+                            name: "close"
+                            size: 12
+                            color: closeMouseArea.containsMouse ? Theme.error : Theme.surfaceText
+                        }
+
+                        MouseArea {
+                            id: closeMouseArea
+                            anchors.fill: parent
+                            hoverEnabled: true
+                            cursorShape: Qt.PointingHandCursor
+                            onClicked: {
+                                if (modelData && modelData.close) {
+                                    modelData.close()
+                                }
+                                root.close()
+                            }
+                        }
+                    }
+
+                    MouseArea {
+                        id: windowArea
+                        anchors.fill: parent
+                        anchors.rightMargin: 24
+                        hoverEnabled: true
+                        cursorShape: Qt.PointingHandCursor
+                        onClicked: {
+                            if (modelData && modelData.activate) {
+                                modelData.activate()
+                            }
+                            root.close()
+                        }
+                    }
+                }
+            }
+
             Rectangle {
+                visible: {
+                    if (!root.appData) return false
+                    if (root.appData.type !== "grouped") return false
+                    return root.appData.windowCount > 0
+                }
+                width: parent.width
+                height: 1
+                color: Qt.rgba(Theme.outline.r, Theme.outline.g, Theme.outline.b, 0.2)
+            }
+
+            Rectangle {
+                visible: !root.hidePin
                 width: parent.width
                 height: 28
                 radius: Theme.cornerRadius
@@ -198,7 +309,7 @@ PanelWindow {
             }
 
             Rectangle {
-                visible: root.appData && root.appData.type === "window"
+                visible: root.appData && (root.appData.type === "window" || (root.appData.type === "grouped" && root.appData.windowCount > 0))
                 width: parent.width
                 height: 28
                 radius: Theme.cornerRadius
@@ -210,7 +321,12 @@ PanelWindow {
                     anchors.right: parent.right
                     anchors.rightMargin: Theme.spacingS
                     anchors.verticalCenter: parent.verticalCenter
-                    text: "Close Window"
+                    text: {
+                        if (root.appData && root.appData.type === "grouped") {
+                            return "Close All Windows"
+                        }
+                        return "Close Window"
+                    }
                     font.pixelSize: Theme.fontSizeSmall
                     color: closeArea.containsMouse ? Theme.error : Theme.surfaceText
                     font.weight: Font.Normal
@@ -224,8 +340,26 @@ PanelWindow {
                     hoverEnabled: true
                     cursorShape: Qt.PointingHandCursor
                     onClicked: {
-                        if (root.appData && root.appData.toplevelObject) {
-                            root.appData.toplevelObject.close()
+                        const sortedToplevels = CompositorService.sortedToplevels
+                        if (root.appData && root.appData.type === "window") {
+                            // Find and close the specific window
+                            for (var i = 0; i < sortedToplevels.length; i++) {
+                                const toplevel = sortedToplevels[i]
+                                const checkId = toplevel.title + "|" + (toplevel.appId || "") + "|" + i
+                                if (checkId === root.appData.uniqueId) {
+                                    toplevel.close()
+                                    break
+                                }
+                            }
+                        } else if (root.appData && root.appData.type === "grouped") {
+                            // Close all windows for this app
+                            const allToplevels = ToplevelManager.toplevels.values
+                            for (let i = 0; i < allToplevels.length; i++) {
+                                const toplevel = allToplevels[i]
+                                if (toplevel.appId === root.appData.appId) {
+                                    toplevel.close()
+                                }
+                            }
                         }
                         root.close()
                     }

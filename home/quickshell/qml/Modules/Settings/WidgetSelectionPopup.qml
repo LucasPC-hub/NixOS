@@ -80,10 +80,12 @@ Popup {
     width: 500
     height: 550
     modal: true
+    focus: true
     closePolicy: Popup.CloseOnEscape | Popup.CloseOnPressOutside
     onOpened: {
         isOpening = false
         Qt.callLater(() => {
+            contentItem.forceActiveFocus()
             searchField.forceActiveFocus()
         })
     }
@@ -101,13 +103,14 @@ Popup {
         color: Qt.rgba(Theme.surfaceContainer.r, Theme.surfaceContainer.g,
                        Theme.surfaceContainer.b, 1)
         border.color: Theme.primarySelected
-        border.width: 1
+        border.width: 0
         radius: Theme.cornerRadius
     }
 
     contentItem: Item {
         anchors.fill: parent
         focus: true
+        
         Keys.onPressed: event => {
             if (event.key === Qt.Key_Escape) {
                 root.close()
@@ -127,8 +130,10 @@ Popup {
                     root.close()
                 }
                 event.accepted = true
-            } else if (!searchField.activeFocus && event.text && event.text.length > 0 && event.text.match(/[a-zA-Z0-9\\s]/)) {
-                searchField.forceActiveFocus()
+            } else if (event.text && event.text.length > 0 && event.text.match(/[a-zA-Z0-9\\s]/)) {
+                if (!searchField.activeFocus) {
+                    searchField.forceActiveFocus()
+                }
                 searchField.insertText(event.text)
                 event.accepted = true
             }
@@ -187,7 +192,7 @@ Popup {
                 width: parent.width
                 height: 48
                 cornerRadius: Theme.cornerRadius
-                backgroundColor: Qt.rgba(Theme.surfaceVariant.r, Theme.surfaceVariant.g, Theme.surfaceVariant.b, 0.3)
+                backgroundColor: Theme.surfaceContainerHigh
                 normalBorderColor: Qt.rgba(Theme.outline.r, Theme.outline.g, Theme.outline.b, 0.2)
                 focusedBorderColor: Theme.primary
                 leftIconName: "search"

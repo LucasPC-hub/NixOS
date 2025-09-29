@@ -4,13 +4,16 @@ pragma ComponentBehavior: Bound
 
 import QtQuick
 import Quickshell
+import Quickshell.Io
 import Quickshell.Services.UPower
 
 Singleton {
     id: root
 
-    readonly property UPowerDevice device: UPower.displayDevice
-    readonly property bool batteryAvailable: device && device.ready && device.isLaptopBattery
+    readonly property UPowerDevice device: {
+        UPower.devices.values.find(dev => dev.isLaptopBattery) || null
+    }
+    readonly property bool batteryAvailable: device && device.ready
     readonly property real batteryLevel: batteryAvailable ? Math.round(device.percentage * 100) : 0
     readonly property bool isCharging: batteryAvailable && device.state === UPowerDeviceState.Charging && device.changeRate > 0
     readonly property bool isPluggedIn: batteryAvailable && (device.state !== UPowerDeviceState.Discharging && device.state !== UPowerDeviceState.Empty)
@@ -22,11 +25,6 @@ Singleton {
 
         if (device.healthSupported && device.healthPercentage > 0) {
             return `${Math.round(device.healthPercentage)}%`
-        }
-
-        if (device.energyCapacity > 0 && device.energy > 0) {
-            const healthPercent = (device.energyCapacity / 90.0045) * 100
-            return `${Math.round(healthPercent)}%`
         }
 
         return "N/A"
@@ -81,5 +79,73 @@ Singleton {
         }
 
         return `${minutes}m`
+    }
+
+    function getBatteryIcon() {
+        if (!batteryAvailable) {
+            return "power"
+        }
+
+        if (isCharging) {
+            if (batteryLevel >= 90) {
+                return "battery_charging_full"
+            }
+            if (batteryLevel >= 80) {
+                return "battery_charging_90"
+            }
+            if (batteryLevel >= 60) {
+                return "battery_charging_80"
+            }
+            if (batteryLevel >= 50) {
+                return "battery_charging_60"
+            }
+            if (batteryLevel >= 30) {
+                return "battery_charging_50"
+            }
+            if (batteryLevel >= 20) {
+                return "battery_charging_30"
+            }
+            return "battery_charging_20"
+        }
+        if (isPluggedIn) {
+            if (batteryLevel >= 90) {
+                return "battery_charging_full"
+            }
+            if (batteryLevel >= 80) {
+                return "battery_charging_90"
+            }
+            if (batteryLevel >= 60) {
+                return "battery_charging_80"
+            }
+            if (batteryLevel >= 50) {
+                return "battery_charging_60"
+            }
+            if (batteryLevel >= 30) {
+                return "battery_charging_50"
+            }
+            if (batteryLevel >= 20) {
+                return "battery_charging_30"
+            }
+            return "battery_charging_20"
+        }
+        if (batteryLevel >= 95) {
+            return "battery_full"
+        }
+        if (batteryLevel >= 85) {
+            return "battery_6_bar"
+        }
+        if (batteryLevel >= 70) {
+            return "battery_5_bar"
+        }
+        if (batteryLevel >= 55) {
+            return "battery_4_bar"
+        }
+        if (batteryLevel >= 40) {
+            return "battery_3_bar"
+        }
+        if (batteryLevel >= 25) {
+            return "battery_2_bar"
+        }
+        return "battery_1_bar"
     }
 }

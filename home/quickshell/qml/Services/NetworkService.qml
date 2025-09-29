@@ -24,6 +24,8 @@ Singleton {
     property bool wifiConnected: false
     property bool wifiEnabled: true
     property string wifiConnectionUuid: ""
+    property string wifiDevicePath: ""
+    property string activeAccessPointPath: ""
 
     property string currentWifiSSID: ""
     property int wifiSignalStrength: 0
@@ -34,21 +36,15 @@ Singleton {
     }
     property var wifiSignalIcon: {
         if (!wifiConnected || networkStatus !== "wifi") {
-            return "signal_wifi_off"
-        }
-        if (wifiSignalStrength >= 70) {
-            return "signal_wifi_4_bar"
+            return "wifi_off"
         }
         if (wifiSignalStrength >= 50) {
-            return "network_wifi_3_bar"
+            return "wifi"
         }
         if (wifiSignalStrength >= 25) {
-            return "network_wifi_2_bar"
+            return "wifi_2_bar"
         }
-        if (wifiSignalStrength >= 10) {
-            return "network_wifi_1_bar"
-        }
-        return "signal_wifi_bad"
+        return "wifi_1_bar"
     }
 
     property string userPreference: "auto" // "auto", "wifi", "ethernet"
@@ -107,6 +103,10 @@ Singleton {
         initializeDBusMonitors()
     }
 
+    Component.onDestruction: {
+        nmStateMonitor.running = false
+    }
+
     function addRef() {
         refCount++
         if (refCount === 1) {
@@ -131,12 +131,30 @@ Singleton {
         command: lowPriorityCmd.concat(["gdbus", "monitor", "--system", "--dest", "org.freedesktop.NetworkManager"])
         running: false
 
+        property var lastRefreshTime: 0
+        property int minRefreshInterval: 1000
+
         stdout: SplitParser {
             splitMarker: "\n"
             onRead: line => {
-                if (line.includes("StateChanged") || line.includes("PrimaryConnectionChanged") || line.includes("WirelessEnabled") || line.includes("ActiveConnection") || line.includes("PropertiesChanged")) {
-                    refreshNetworkState()
-                }
+                const now = Date.now()                    
+                    if (line.includes("PropertiesChanged") && line.includes("org.freedesktop.NetworkManager.AccessPoint")) {
+                        if (line.includes("'Strength'") && root.activeAccessPointPath && line.includes(root.activeAccessPointPath)) {
+                            parseSignalStrengthFromDbus(line)
+                        }
+                        return
+                    }
+                    
+                    if (line.includes("StateChanged") || 
+                        line.includes("PrimaryConnectionChanged") || 
+                        line.includes("WirelessEnabled") || 
+                        (line.includes("ActiveConnection") && line.includes("State"))) {
+                        
+                        if (now - nmStateMonitor.lastRefreshTime > nmStateMonitor.minRefreshInterval) {
+                            nmStateMonitor.lastRefreshTime = now
+                            refreshNetworkState()
+                        }
+                    }
             }
         }
 
@@ -164,6 +182,17 @@ Singleton {
 
     function refreshNetworkState() {
         refreshDebounceTimer.restart()
+    }
+
+    function parseSignalStrengthFromDbus(line) {
+        const strengthMatch = line.match(/'Strength': <byte (0x[0-9a-fA-F]+)>/)
+        if (strengthMatch) {
+            const hexValue = strengthMatch[1]
+            const strength = parseInt(hexValue, 16)
+            if (strength >= 0 && strength <= 100) {
+                root.wifiSignalStrength = strength
+            }
+        }
     }
 
     function doRefreshNetworkState() {
@@ -353,11 +382,14 @@ Singleton {
             onStreamFinished: {
                 const match = text.match(/objectpath '([^']+)'/)
                 if (match && match[1] !== '/') {
+                    root.wifiDevicePath = match[1]
                     checkWifiState.command = lowPriorityCmd.concat(["gdbus", "call", "--system", "--dest", "org.freedesktop.NetworkManager", "--object-path", match[1], "--method", "org.freedesktop.DBus.Properties.Get", "org.freedesktop.NetworkManager.Device", "State"])
                     checkWifiState.running = true
                 } else {
                     root.wifiInterface = ""
                     root.wifiConnected = false
+                    root.wifiDevicePath = ""
+                    root.activeAccessPointPath = ""
                 }
             }
         }
@@ -380,7 +412,7 @@ Singleton {
                 if (root.wifiConnected) {
                     getWifiIP.running = true
                     getCurrentWifiInfo.running = true
-                    // Ensure SSID is resolved even if scan output lacks ACTIVE marker
+                    getActiveAccessPoint.running = true
                     if (root.currentWifiSSID === "") {
                         if (root.wifiConnectionUuid) {
                             resolveWifiSSID.running = true
@@ -393,6 +425,7 @@ Singleton {
                     root.wifiIP = ""
                     root.currentWifiSSID = ""
                     root.wifiSignalStrength = 0
+                    root.activeAccessPointPath = ""
                 }
             }
         }
@@ -414,30 +447,39 @@ Singleton {
     }
 
     Process {
+        id: getActiveAccessPoint
+        command: root.wifiDevicePath ? lowPriorityCmd.concat(["gdbus", "call", "--system", "--dest", "org.freedesktop.NetworkManager", "--object-path", root.wifiDevicePath, "--method", "org.freedesktop.DBus.Properties.Get", "org.freedesktop.NetworkManager.Device.Wireless", "ActiveAccessPoint"]) : []
+        running: false
+
+        stdout: StdioCollector {
+            onStreamFinished: {
+                const match = text.match(/objectpath '([^']+)'/)
+                if (match && match[1] !== '/') {
+                    root.activeAccessPointPath = match[1]
+                } else {
+                    root.activeAccessPointPath = ""
+                }
+            }
+        }
+    }
+
+    Process {
         id: getCurrentWifiInfo
-        command: root.wifiInterface ? lowPriorityCmd.concat(["nmcli", "-t", "-f", "IN-USE,SIGNAL,SSID", "device", "wifi", "list", "ifname", root.wifiInterface]) : []
+        command: root.wifiInterface ? lowPriorityCmd.concat(["nmcli", "-t", "-f", "ACTIVE,SIGNAL,SSID", "device", "wifi", "list", "ifname", root.wifiInterface, "--rescan", "no"]) : []
         running: false
 
         stdout: SplitParser {
             splitMarker: "\n"
             onRead: line => {
-                if (line.startsWith("*:")) {
+                if (line.startsWith("yes:")) {
                     const rest = line.substring(2)
                     const parts = root.splitNmcliFields(rest)
                     if (parts.length >= 2) {
-                        const signal = parseInt(parts[0])
+                        const signal = parseInt(parts[1])
+                        console.log("Current WiFi signal strength:", signal)
                         root.wifiSignalStrength = isNaN(signal) ? 0 : signal
                         root.currentWifiSSID = parts.slice(1).join(":")
-                    }
-                    return
-                }
-                if (line.startsWith("yes:")) {
-                    const rest = line.substring(4)
-                    const parts = root.splitNmcliFields(rest)
-                    if (parts.length >= 2) {
-                        root.currentWifiSSID = parts[0]
-                        const signal = parseInt(parts[1])
-                        root.wifiSignalStrength = isNaN(signal) ? 0 : signal
+                        console.log("Current WiFi SSID:", root.currentWifiSSID)
                     }
                     return
                 }

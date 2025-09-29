@@ -28,9 +28,11 @@ These are the essential colors that define your theme's appearance:
     "outline": "#80FF80",
     "surfaceContainer": "#1A2B1A",
     "surfaceContainerHigh": "#264026",
+    "surfaceContainerHighest": "#33553F",
     "error": "#FF0066",
     "warning": "#CCFF00",
-    "info": "#00FFCC"
+    "info": "#00FFCC",
+    "matugen_type": "scheme-expressive"
   },
   "light": {
     "name": "Cyberpunk Electric Light",
@@ -48,9 +50,11 @@ These are the essential colors that define your theme's appearance:
     "outline": "#4DCC4D",
     "surfaceContainer": "#F5FFF5",
     "surfaceContainerHigh": "#EBFFEB",
+    "surfaceContainerHighest": "#E1FFE1",
     "error": "#B3004D",
     "warning": "#99CC00",
-    "info": "#00B899"
+    "info": "#00B899",
+    "matugen_type": "scheme-expressive"
   }
 }
 ```
@@ -94,6 +98,7 @@ There are example themes you can start from:
 - `surfaceVariantText` - Text color for surfaceVariant backgrounds
 - `surfaceContainer` - Container surface color, slightly different from surface
 - `surfaceContainerHigh` - Elevated container color for layered interfaces
+- `surfaceContainerHighest` - Highest elevation container color for top-level surfaces
 
 **Background Colors**
 - `background` - Main background color for the entire interface
@@ -118,6 +123,25 @@ While the core colors above are required, you can also customize these optional 
 - `error` - Used for error states, delete buttons, and critical warnings
 - `warning` - Used for warning states and caution indicators
 - `info` - Used for informational states and neutral indicators
+
+### Matugen Color Scheme Type
+```json
+{
+  "matugen_type": "scheme-monochrome"
+}
+```
+
+- `matugen_type` - Controls the color scheme algorithm used by matugen for system app theming
+- **Default**: `scheme-tonal-spot` (if not specified)
+- **Available options**:
+  - `scheme-content` - Content-based color extraction
+  - `scheme-expressive` - Expressive, vibrant color schemes
+  - `scheme-fidelity` - High fidelity to source material
+  - `scheme-fruit-salad` - Colorful, fruit salad-like schemes
+  - `scheme-monochrome` - Monochromatic color schemes
+  - `scheme-neutral` - Neutral, subdued color schemes
+  - `scheme-rainbow` - Rainbow-like color schemes
+  - `scheme-tonal-spot` - Tonal spot color schemes (default)
 
 ## Setting Custom Theme
 

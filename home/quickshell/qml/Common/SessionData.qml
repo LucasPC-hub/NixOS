@@ -1,11 +1,11 @@
 pragma Singleton
-
 pragma ComponentBehavior: Bound
 
 import QtCore
 import QtQuick
 import Quickshell
 import Quickshell.Io
+import qs.Common
 import qs.Services
 
 Singleton {
@@ -26,7 +26,7 @@ Singleton {
     
     property bool hasTriedDefaultSession: false
     readonly property string _stateUrl: StandardPaths.writableLocation(StandardPaths.GenericStateLocation)
-    readonly property string _stateDir: _stateUrl.startsWith("file://") ? _stateUrl.substring(7) : _stateUrl
+    readonly property string _stateDir: Paths.strip(_stateUrl)
     property int nightModeStartHour: 18
     property int nightModeStartMinute: 0
     property int nightModeEndHour: 6
@@ -43,13 +43,27 @@ Singleton {
     property string wallpaperCyclingMode: "interval" // "interval" or "time"
     property int wallpaperCyclingInterval: 300 // seconds (5 minutes)
     property string wallpaperCyclingTime: "06:00" // HH:mm format
+    property var monitorCyclingSettings: ({})
     property string lastBrightnessDevice: ""
-    property string notepadContent: ""
-    property string notepadCurrentFileName: ""
-    property string notepadCurrentFileUrl: ""
-    property string notepadLastSavedContent: ""
-    property var notepadTabs: []
-    property int notepadCurrentTabIndex: 0
+    property string launchPrefix: ""
+    property string wallpaperTransition: "fade"
+    readonly property var availableWallpaperTransitions: ["none", "fade", "wipe", "disc", "stripes", "iris bloom", "pixelate", "portal"]
+    property var includedTransitions: availableWallpaperTransitions.filter(t => t !== "none")
+
+    // Power management settings - AC Power
+    property int acMonitorTimeout: 0 // Never
+    property int acLockTimeout: 0 // Never
+    property int acSuspendTimeout: 0 // Never
+    property int acHibernateTimeout: 0 // Never
+
+    // Power management settings - Battery
+    property int batteryMonitorTimeout: 0 // Never
+    property int batteryLockTimeout: 0 // Never
+    property int batterySuspendTimeout: 0 // Never
+    property int batteryHibernateTimeout: 0 // Never
+
+    property bool lockBeforeSuspend: false
+
 
     Component.onCompleted: {
         loadSettings()
@@ -103,45 +117,25 @@ Singleton {
                 wallpaperCyclingMode = settings.wallpaperCyclingMode !== undefined ? settings.wallpaperCyclingMode : "interval"
                 wallpaperCyclingInterval = settings.wallpaperCyclingInterval !== undefined ? settings.wallpaperCyclingInterval : 300
                 wallpaperCyclingTime = settings.wallpaperCyclingTime !== undefined ? settings.wallpaperCyclingTime : "06:00"
+                monitorCyclingSettings = settings.monitorCyclingSettings !== undefined ? settings.monitorCyclingSettings : {}
                 lastBrightnessDevice = settings.lastBrightnessDevice !== undefined ? settings.lastBrightnessDevice : ""
-                notepadContent = settings.notepadContent !== undefined ? settings.notepadContent : ""
+                launchPrefix = settings.launchPrefix !== undefined ? settings.launchPrefix : ""
+                wallpaperTransition = settings.wallpaperTransition !== undefined ? settings.wallpaperTransition : "fade"
+                includedTransitions = settings.includedTransitions !== undefined ? settings.includedTransitions : availableWallpaperTransitions.filter(t => t !== "none")
+
+                acMonitorTimeout = settings.acMonitorTimeout !== undefined ? settings.acMonitorTimeout : 0
+                acLockTimeout = settings.acLockTimeout !== undefined ? settings.acLockTimeout : 0
+                acSuspendTimeout = settings.acSuspendTimeout !== undefined ? settings.acSuspendTimeout : 0
+                acHibernateTimeout = settings.acHibernateTimeout !== undefined ? settings.acHibernateTimeout : 0
+                batteryMonitorTimeout = settings.batteryMonitorTimeout !== undefined ? settings.batteryMonitorTimeout : 0
+                batteryLockTimeout = settings.batteryLockTimeout !== undefined ? settings.batteryLockTimeout : 0
+                batterySuspendTimeout = settings.batterySuspendTimeout !== undefined ? settings.batterySuspendTimeout : 0
+                batteryHibernateTimeout = settings.batteryHibernateTimeout !== undefined ? settings.batteryHibernateTimeout : 0
+                lockBeforeSuspend = settings.lockBeforeSuspend !== undefined ? settings.lockBeforeSuspend : false
                 
                 // Generate system themes but don't override user's theme choice
                 if (typeof Theme !== "undefined") {
                     Theme.generateSystemThemesFromCurrentTheme()
-                }
-                notepadCurrentFileName = settings.notepadCurrentFileName !== undefined ? settings.notepadCurrentFileName : ""
-                notepadCurrentFileUrl = settings.notepadCurrentFileUrl !== undefined ? settings.notepadCurrentFileUrl : ""
-                notepadLastSavedContent = settings.notepadLastSavedContent !== undefined ? settings.notepadLastSavedContent : ""
-                notepadTabs = settings.notepadTabs !== undefined ? settings.notepadTabs : []
-                notepadCurrentTabIndex = settings.notepadCurrentTabIndex !== undefined ? settings.notepadCurrentTabIndex : 0
-                
-                // Migrate legacy single notepad to tabs if needed
-                if (notepadTabs.length === 0 && (notepadContent || notepadCurrentFileName)) {
-                    notepadTabs = [{
-                        id: Date.now(),
-                        title: notepadCurrentFileName || "Untitled",
-                        content: notepadContent,
-                        fileName: notepadCurrentFileName,
-                        fileUrl: notepadCurrentFileUrl,
-                        lastSavedContent: notepadLastSavedContent,
-                        hasUnsavedChanges: false
-                    }]
-                    notepadCurrentTabIndex = 0
-                }
-                
-                // Ensure at least one tab exists
-                if (notepadTabs.length === 0) {
-                    notepadTabs = [{
-                        id: Date.now(),
-                        title: "Untitled",
-                        content: "",
-                        fileName: "",
-                        fileUrl: "",
-                        lastSavedContent: "",
-                        hasUnsavedChanges: false
-                    }]
-                    notepadCurrentTabIndex = 0
                 }
             }
         } catch (e) {
@@ -178,13 +172,20 @@ Singleton {
                                                 "wallpaperCyclingMode": wallpaperCyclingMode,
                                                 "wallpaperCyclingInterval": wallpaperCyclingInterval,
                                                 "wallpaperCyclingTime": wallpaperCyclingTime,
+                                                "monitorCyclingSettings": monitorCyclingSettings,
                                                 "lastBrightnessDevice": lastBrightnessDevice,
-                                                "notepadContent": notepadContent,
-                                                "notepadCurrentFileName": notepadCurrentFileName,
-                                                "notepadCurrentFileUrl": notepadCurrentFileUrl,
-                                                "notepadLastSavedContent": notepadLastSavedContent,
-                                                "notepadTabs": notepadTabs,
-                                                "notepadCurrentTabIndex": notepadCurrentTabIndex
+                                                "launchPrefix": launchPrefix,
+                                                "wallpaperTransition": wallpaperTransition,
+                                                "includedTransitions": includedTransitions,
+                                                "acMonitorTimeout": acMonitorTimeout,
+                                                "acLockTimeout": acLockTimeout,
+                                                "acSuspendTimeout": acSuspendTimeout,
+                                                "acHibernateTimeout": acHibernateTimeout,
+                                                "batteryMonitorTimeout": batteryMonitorTimeout,
+                                                "batteryLockTimeout": batteryLockTimeout,
+                                                "batterySuspendTimeout": batterySuspendTimeout,
+                                                "batteryHibernateTimeout": batteryHibernateTimeout,
+                                                "lockBeforeSuspend": lockBeforeSuspend
                                             }, null, 2))
     }
 
@@ -266,9 +267,6 @@ Singleton {
         saveSettings()
 
         if (typeof Theme !== "undefined") {
-            if (Theme.currentTheme === Theme.dynamic) {
-                Theme.extractColors()
-            }
             Theme.generateSystemThemesFromCurrentTheme()
         }
     }
@@ -278,9 +276,6 @@ Singleton {
         saveSettings()
 
         if (typeof Theme !== "undefined") {
-            if (Theme.currentTheme === Theme.dynamic) {
-                Theme.extractColors()
-            }
             Theme.generateSystemThemesFromCurrentTheme()
         }
     }
@@ -374,14 +369,57 @@ Singleton {
         saveSettings()
     }
 
+    function getMonitorCyclingSettings(screenName) {
+        return monitorCyclingSettings[screenName] || {
+            enabled: false,
+            mode: "interval",
+            interval: 300,
+            time: "06:00"
+        }
+    }
+
+    function setMonitorCyclingEnabled(screenName, enabled) {
+        var newSettings = Object.assign({}, monitorCyclingSettings)
+        if (!newSettings[screenName]) {
+            newSettings[screenName] = { enabled: false, mode: "interval", interval: 300, time: "06:00" }
+        }
+        newSettings[screenName].enabled = enabled
+        monitorCyclingSettings = newSettings
+        saveSettings()
+    }
+
+    function setMonitorCyclingMode(screenName, mode) {
+        var newSettings = Object.assign({}, monitorCyclingSettings)
+        if (!newSettings[screenName]) {
+            newSettings[screenName] = { enabled: false, mode: "interval", interval: 300, time: "06:00" }
+        }
+        newSettings[screenName].mode = mode
+        monitorCyclingSettings = newSettings
+        saveSettings()
+    }
+
+    function setMonitorCyclingInterval(screenName, interval) {
+        var newSettings = Object.assign({}, monitorCyclingSettings)
+        if (!newSettings[screenName]) {
+            newSettings[screenName] = { enabled: false, mode: "interval", interval: 300, time: "06:00" }
+        }
+        newSettings[screenName].interval = interval
+        monitorCyclingSettings = newSettings
+        saveSettings()
+    }
+
+    function setMonitorCyclingTime(screenName, time) {
+        var newSettings = Object.assign({}, monitorCyclingSettings)
+        if (!newSettings[screenName]) {
+            newSettings[screenName] = { enabled: false, mode: "interval", interval: 300, time: "06:00" }
+        }
+        newSettings[screenName].time = time
+        monitorCyclingSettings = newSettings
+        saveSettings()
+    }
+
     function setPerMonitorWallpaper(enabled) {
         perMonitorWallpaper = enabled
-        
-        // Disable automatic cycling when per-monitor mode is enabled
-        if (enabled && wallpaperCyclingEnabled) {
-            wallpaperCyclingEnabled = false
-        }
-        
         saveSettings()
 
         // Refresh dynamic theming when per-monitor mode changes
@@ -404,10 +442,6 @@ Singleton {
         if (typeof Theme !== "undefined" && typeof Quickshell !== "undefined") {
             var screens = Quickshell.screens
             if (screens.length > 0 && screenName === screens[0].name) {
-                if (typeof SettingsData !== "undefined" && SettingsData.wallpaperDynamicTheming) {
-                    Theme.switchTheme("dynamic")
-                    Theme.extractColors()
-                }
                 Theme.generateSystemThemesFromCurrentTheme()
             }
         }
@@ -422,6 +456,61 @@ Singleton {
 
     function setLastBrightnessDevice(device) {
         lastBrightnessDevice = device
+        saveSettings()
+    }
+
+    function setLaunchPrefix(prefix) {
+        launchPrefix = prefix
+        saveSettings()
+    }
+
+    function setWallpaperTransition(transition) {
+        wallpaperTransition = transition
+        saveSettings()
+    }
+
+    function setAcMonitorTimeout(timeout) {
+        acMonitorTimeout = timeout
+        saveSettings()
+    }
+
+    function setAcLockTimeout(timeout) {
+        acLockTimeout = timeout
+        saveSettings()
+    }
+
+    function setAcSuspendTimeout(timeout) {
+        acSuspendTimeout = timeout
+        saveSettings()
+    }
+
+    function setBatteryMonitorTimeout(timeout) {
+        batteryMonitorTimeout = timeout
+        saveSettings()
+    }
+
+    function setBatteryLockTimeout(timeout) {
+        batteryLockTimeout = timeout
+        saveSettings()
+    }
+
+    function setBatterySuspendTimeout(timeout) {
+        batterySuspendTimeout = timeout
+        saveSettings()
+    }
+
+    function setAcHibernateTimeout(timeout) {
+        acHibernateTimeout = timeout
+        saveSettings()
+    }
+
+    function setBatteryHibernateTimeout(timeout) {
+        batteryHibernateTimeout = timeout
+        saveSettings()
+    }
+
+    function setLockBeforeSuspend(enabled) {
+        lockBeforeSuspend = enabled
         saveSettings()
     }
 
