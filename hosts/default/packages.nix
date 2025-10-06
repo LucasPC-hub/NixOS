@@ -50,7 +50,6 @@ in
   wl-clipboard
   pywalfox-native
   imagemagick
-  amdvlk
   rar
   unzip
   droidcam
