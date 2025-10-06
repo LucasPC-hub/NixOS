@@ -8,7 +8,19 @@ import qs.Widgets
 Item {
     id: dankBarTab
 
-    property var baseWidgetDefinitions: [{
+    property var parentModal: null
+
+    function getWidgetsForPopup() {
+        return baseWidgetDefinitions.filter(widget => {
+            if (widget.warning && widget.warning.includes("Plugin is disabled")) {
+                return false
+            }
+            return true
+        })
+    }
+
+    property var baseWidgetDefinitions: {
+        var coreWidgets = [{
             "id": "launcherButton",
             "text": "App Launcher",
             "description": "Quick access to application launcher",
@@ -177,6 +189,24 @@ Item {
             "icon": "update",
             "enabled": SystemUpdateService.distributionSupported
         }]
+
+        // Add all available plugins (loaded and unloaded)
+        var allPlugins = PluginService.getAvailablePlugins()
+        for (var i = 0; i < allPlugins.length; i++) {
+            var plugin = allPlugins[i]
+            var isLoaded = PluginService.isPluginLoaded(plugin.id)
+            coreWidgets.push({
+                "id": plugin.id,
+                "text": plugin.name,
+                "description": plugin.description || "Plugin widget",
+                "icon": plugin.icon || "extension",
+                "enabled": isLoaded,
+                "warning": !isLoaded ? "Plugin is disabled - enable in Plugins settings to use" : undefined
+            })
+        }
+
+        return coreWidgets
+    }
     property var defaultLeftWidgets: [{
             "id": "launcherButton",
             "enabled": true
@@ -623,11 +653,24 @@ Item {
                         DankButtonGroup {
                             id: positionButtonGroup
                             anchors.verticalCenter: parent.verticalCenter
-                            model: ["Top", "Bottom"]
-                            currentIndex: SettingsData.dankBarAtBottom ? 1 : 0
+                            model: ["Top", "Bottom", "Left", "Right"]
+                            currentIndex: {
+                                switch (SettingsData.dankBarPosition) {
+                                    case SettingsData.Position.Top: return 0
+                                    case SettingsData.Position.Bottom: return 1
+                                    case SettingsData.Position.Left: return 2
+                                    case SettingsData.Position.Right: return 3
+                                    default: return 0
+                                }
+                            }
                             onSelectionChanged: (index, selected) => {
                                 if (selected) {
-                                    SettingsData.setDankBarAtBottom(index === 1)
+                                    switch (index) {
+                                        case 0: SettingsData.setDankBarPosition(SettingsData.Position.Top); break
+                                        case 1: SettingsData.setDankBarPosition(SettingsData.Position.Bottom); break
+                                        case 2: SettingsData.setDankBarPosition(SettingsData.Position.Left); break
+                                        case 3: SettingsData.setDankBarPosition(SettingsData.Position.Right); break
+                                    }
                                 }
                             }
                         }
@@ -876,7 +919,7 @@ Item {
                         spacing: Theme.spacingS
 
                         StyledText {
-                            text: "Height to Edge Gap (Exclusive Zone)"
+                            text: "Exclusive Zone Offset"
                             font.pixelSize: Theme.fontSizeSmall
                             color: Theme.surfaceText
                             font.weight: Font.Medium
@@ -958,6 +1001,16 @@ Item {
                         onToggled: checked => {
                                        SettingsData.setDankBarGothCornersEnabled(
                                            checked)
+                                   }
+                    }
+
+                    DankToggle {
+                        width: parent.width
+                        text: "Border"
+                        description: "Add a 1px border to the bar. Smart edge detection only shows border on exposed sides."
+                        checked: SettingsData.dankBarBorderEnabled
+                        onToggled: checked => {
+                                       SettingsData.setDankBarBorderEnabled(checked)
                                    }
                     }
                 }
@@ -1086,7 +1139,7 @@ Item {
                 width: parent.width
                 spacing: Theme.spacingL
 
-                // Left Section
+                // Left/Top Section
                 StyledRect {
                     width: parent.width
                     height: leftSection.implicitHeight + Theme.spacingL * 2
@@ -1100,7 +1153,7 @@ Item {
                         id: leftSection
                         anchors.fill: parent
                         anchors.margins: Theme.spacingL
-                        title: "Left Section"
+                        title: SettingsData.dankBarIsVertical ? "Top Section" : "Left Section"
                         titleIcon: "format_align_left"
                         sectionId: "left"
                         allWidgets: dankBarTab.baseWidgetDefinitions
@@ -1116,9 +1169,9 @@ Item {
                                             }
                         onAddWidget: sectionId => {
                                          widgetSelectionPopup.allWidgets
-                                         = dankBarTab.baseWidgetDefinitions
+                                         = dankBarTab.getWidgetsForPopup()
                                          widgetSelectionPopup.targetSection = sectionId
-                                         widgetSelectionPopup.safeOpen()
+                                         widgetSelectionPopup.show()
                                      }
                         onRemoveWidget: (sectionId, widgetIndex) => {
                                             dankBarTab.removeWidgetFromSection(
@@ -1188,9 +1241,9 @@ Item {
                                             }
                         onAddWidget: sectionId => {
                                          widgetSelectionPopup.allWidgets
-                                         = dankBarTab.baseWidgetDefinitions
+                                         = dankBarTab.getWidgetsForPopup()
                                          widgetSelectionPopup.targetSection = sectionId
-                                         widgetSelectionPopup.safeOpen()
+                                         widgetSelectionPopup.show()
                                      }
                         onRemoveWidget: (sectionId, widgetIndex) => {
                                             dankBarTab.removeWidgetFromSection(
@@ -1230,7 +1283,7 @@ Item {
                     }
                 }
 
-                // Right Section
+                // Right/Bottom Section
                 StyledRect {
                     width: parent.width
                     height: rightSection.implicitHeight + Theme.spacingL * 2
@@ -1244,7 +1297,7 @@ Item {
                         id: rightSection
                         anchors.fill: parent
                         anchors.margins: Theme.spacingL
-                        title: "Right Section"
+                        title: SettingsData.dankBarIsVertical ? "Bottom Section" : "Right Section"
                         titleIcon: "format_align_right"
                         sectionId: "right"
                         allWidgets: dankBarTab.baseWidgetDefinitions
@@ -1260,9 +1313,9 @@ Item {
                                             }
                         onAddWidget: sectionId => {
                                          widgetSelectionPopup.allWidgets
-                                         = dankBarTab.baseWidgetDefinitions
+                                         = dankBarTab.getWidgetsForPopup()
                                          widgetSelectionPopup.targetSection = sectionId
-                                         widgetSelectionPopup.safeOpen()
+                                         widgetSelectionPopup.show()
                                      }
                         onRemoveWidget: (sectionId, widgetIndex) => {
                                             dankBarTab.removeWidgetFromSection(
@@ -1308,7 +1361,7 @@ Item {
     WidgetSelectionPopup {
         id: widgetSelectionPopup
 
-        anchors.centerIn: parent
+        parentModal: dankBarTab.parentModal
         onWidgetSelected: (widgetId, targetSection) => {
                               dankBarTab.addWidgetToSection(widgetId,
                                                            targetSection)

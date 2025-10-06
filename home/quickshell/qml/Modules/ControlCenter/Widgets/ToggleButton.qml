@@ -12,8 +12,9 @@ Rectangle {
     property bool enabled: true
     property string secondaryText: ""
     property real iconRotation: 0
-    
+
     signal clicked()
+    signal iconRotationCompleted()
 
     width: parent ? parent.width : 200
     height: 60
@@ -46,7 +47,7 @@ Rectangle {
     Rectangle {
         anchors.fill: parent
         radius: Theme.cornerRadius
-        color: mouseArea.containsMouse ? hoverTint(_containerBg) : "transparent"
+        color: mouseArea.containsMouse ? hoverTint(_containerBg) : Theme.withAlpha(_containerBg, 0)
         opacity: mouseArea.containsMouse ? 0.08 : 0.0
 
         Behavior on opacity {
@@ -63,9 +64,10 @@ Rectangle {
         DankIcon {
             name: root.iconName
             size: Theme.iconSize
-            color: isActive ? Theme.primaryContainer : Theme.primary
+            color: isActive ? Theme.primaryText : Theme.primary
             anchors.verticalCenter: parent.verticalCenter
             rotation: root.iconRotation
+            onRotationCompleted: root.iconRotationCompleted()
         }
 
         Item {
@@ -82,7 +84,7 @@ Rectangle {
                     width: parent.width
                     text: root.text
                     font.pixelSize: Theme.fontSizeMedium
-                    color: isActive ? Theme.primaryContainer : Theme.surfaceText
+                    color: isActive ? Theme.primaryText : Theme.surfaceText
                     font.weight: Font.Medium
                     elide: Text.ElideRight
                     wrapMode: Text.NoWrap
@@ -92,7 +94,7 @@ Rectangle {
                     width: parent.width
                     text: root.secondaryText
                     font.pixelSize: Theme.fontSizeSmall
-                    color: isActive ? Theme.primaryContainer : Theme.surfaceVariantText
+                    color: isActive ? Theme.primaryText : Theme.surfaceVariantText
                     visible: text.length > 0
                     elide: Text.ElideRight
                     wrapMode: Text.NoWrap
@@ -108,13 +110,6 @@ Rectangle {
         cursorShape: Qt.PointingHandCursor
         enabled: root.enabled
         onClicked: root.clicked()
-    }
-
-    Behavior on color {
-        ColorAnimation {
-            duration: Theme.shortDuration
-            easing.type: Theme.standardEasing
-        }
     }
 
     Behavior on radius {

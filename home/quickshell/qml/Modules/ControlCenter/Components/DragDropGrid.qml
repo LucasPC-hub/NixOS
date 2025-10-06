@@ -14,6 +14,7 @@ Column {
     property var model: null
     property var expandedWidgetData: null
     property var bluetoothCodecSelector: null
+    property bool darkModeTransitionPending: false
 
     signal expandClicked(var widgetData, int globalIndex)
     signal removeWidget(int index)
@@ -25,6 +26,7 @@ Column {
     property var currentRowWidgets: []
     property real currentRowWidth: 0
     property int expandedRowIndex: -1
+    property var colorPickerModal: null
 
     function calculateRowsAndWidgets() {
         return LayoutUtils.calculateRowsAndWidgets(root, expandedSection, expandedWidgetIndex)
@@ -60,7 +62,8 @@ Column {
             property var rowWidgets: modelData
             property bool isSliderOnlyRow: {
                 const widgets = rowWidgets || []
-                if (widgets.length === 0) return false
+                if (widgets.length === 0)
+                    return false
                 return widgets.every(w => w.id === "volumeSlider" || w.id === "brightnessSlider" || w.id === "inputVolumeSlider")
             }
             topPadding: isSliderOnlyRow ? (root.editMode ? 4 : -6) : 0
@@ -119,7 +122,11 @@ Column {
 
                         widgetComponent: {
                             const id = modelData.id || ""
-                            if (id === "wifi" || id === "bluetooth" || id === "audioOutput" || id === "audioInput") {
+                            if (id.startsWith("builtin_")) {
+                                return builtinPluginWidgetComponent
+                            } else if (id.startsWith("plugin_")) {
+                                return pluginWidgetComponent
+                            } else if (id === "wifi" || id === "bluetooth" || id === "audioOutput" || id === "audioInput") {
                                 return compoundPillComponent
                             } else if (id === "volumeSlider") {
                                 return audioSliderComponent
@@ -131,6 +138,8 @@ Column {
                                 return widgetWidth <= 25 ? smallBatteryComponent : batteryPillComponent
                             } else if (id === "diskUsage") {
                                 return diskUsagePillComponent
+                            } else if (id === "colorPicker") {
+                                return colorPickerPillComponent
                             } else {
                                 return widgetWidth <= 25 ? smallToggleComponent : toggleButtonComponent
                             }
@@ -147,7 +156,8 @@ Column {
                 width: parent.width
                 height: active ? (250 + Theme.spacingS) : 0
                 property bool active: {
-                    if (root.expandedSection === "") return false
+                    if (root.expandedSection === "")
+                        return false
 
                     if (root.expandedSection.startsWith("diskUsage_") && root.expandedWidgetData) {
                         const expandedInstanceId = root.expandedWidgetData.instanceId
@@ -160,6 +170,7 @@ Column {
                 expandedSection: root.expandedSection
                 expandedWidgetData: root.expandedWidgetData
                 bluetoothCodecSelector: root.bluetoothCodecSelector
+                widgetModel: root.model
             }
         }
     }
@@ -341,7 +352,8 @@ Column {
             }
             enabled: widgetDef?.enabled ?? true
             onToggled: {
-                if (root.editMode) return
+                if (root.editMode)
+                    return
                 switch (widgetData.id || "") {
                 case "wifi":
                 {
@@ -374,11 +386,13 @@ Column {
                 }
             }
             onExpandClicked: {
-                if (root.editMode) return
+                if (root.editMode)
+                    return
                 root.expandClicked(widgetData, widgetIndex)
             }
             onWheelEvent: function (wheelEvent) {
-                if (root.editMode) return
+                if (root.editMode)
+                    return
                 const id = widgetData.id || ""
                 if (id === "audioOutput") {
                     if (!AudioService.sink || !AudioService.sink.audio)
@@ -532,14 +546,21 @@ Column {
                 }
             }
 
-            iconRotation: widgetData.id === "darkMode" && SessionData.isLightMode ? 180 : 0
+            iconRotation: {
+                if (widgetData.id !== "darkMode")
+                    return 0
+                if (darkModeTransitionPending) {
+                    return SessionData.isLightMode ? 180 : 0
+                }
+                return SessionData.isLightMode ? 180 : 0
+            }
 
             isActive: {
                 switch (widgetData.id || "") {
                 case "nightMode":
                     return DisplayService.nightModeEnabled || false
                 case "darkMode":
-                    return !SessionData.isLightMode
+                    return SessionData.isLightMode
                 case "doNotDisturb":
                     return SessionData.doNotDisturb || false
                 case "idleInhibitor":
@@ -549,7 +570,7 @@ Column {
                 }
             }
 
-enabled: !root.editMode
+            enabled: !root.editMode
 
             onClicked: {
                 if (root.editMode)
@@ -563,7 +584,7 @@ enabled: !root.editMode
                 }
                 case "darkMode":
                 {
-                    Theme.toggleLightMode()
+                    Theme.setLightMode(!SessionData.isLightMode)
                     break
                 }
                 case "doNotDisturb":
@@ -604,14 +625,21 @@ enabled: !root.editMode
                 }
             }
 
-            iconRotation: widgetData.id === "darkMode" && SessionData.isLightMode ? 180 : 0
+            iconRotation: {
+                if (widgetData.id !== "darkMode")
+                    return 0
+                if (darkModeTransitionPending) {
+                    return SessionData.isLightMode ? 180 : 0
+                }
+                return SessionData.isLightMode ? 180 : 0
+            }
 
             isActive: {
                 switch (widgetData.id || "") {
                 case "nightMode":
                     return DisplayService.nightModeEnabled || false
                 case "darkMode":
-                    return !SessionData.isLightMode
+                    return SessionData.isLightMode
                 case "doNotDisturb":
                     return SessionData.doNotDisturb || false
                 case "idleInhibitor":
@@ -621,7 +649,7 @@ enabled: !root.editMode
                 }
             }
 
-enabled: !root.editMode
+            enabled: !root.editMode
 
             onClicked: {
                 if (root.editMode)
@@ -635,7 +663,7 @@ enabled: !root.editMode
                 }
                 case "darkMode":
                 {
-                    Theme.toggleLightMode()
+                    Theme.setLightMode(!SessionData.isLightMode)
                     break
                 }
                 case "doNotDisturb":
@@ -667,6 +695,261 @@ enabled: !root.editMode
             onExpandClicked: {
                 if (!root.editMode) {
                     root.expandClicked(widgetData, widgetIndex)
+                }
+            }
+        }
+    }
+
+    Component {
+        id: colorPickerPillComponent
+        ColorPickerPill {
+            property var widgetData: parent.widgetData || {}
+            property int widgetIndex: parent.widgetIndex || 0
+            width: parent.width
+            height: 60
+
+            colorPickerModal: root.colorPickerModal
+        }
+    }
+
+    Component {
+        id: builtinPluginWidgetComponent
+        Loader {
+            property var widgetData: parent.widgetData || {}
+            property int widgetIndex: parent.widgetIndex || 0
+            property int widgetWidth: widgetData.width || 50
+            width: parent.width
+            height: 60
+
+            property var builtinInstance: {
+                const id = widgetData.id || ""
+                if (id === "builtin_vpn") {
+                    return root.model?.vpnBuiltinInstance
+                }
+                return null
+            }
+
+            sourceComponent: {
+                if (!builtinInstance)
+                    return null
+
+                const hasDetail = builtinInstance.ccDetailContent !== null
+
+                if (widgetWidth <= 25) {
+                    return builtinSmallToggleComponent
+                } else if (hasDetail) {
+                    return builtinCompoundPillComponent
+                } else {
+                    return builtinToggleComponent
+                }
+            }
+        }
+    }
+
+    Component {
+        id: builtinCompoundPillComponent
+        CompoundPill {
+            property var widgetData: parent.widgetData || {}
+            property int widgetIndex: parent.widgetIndex || 0
+            property var builtinInstance: parent.builtinInstance
+
+            iconName: builtinInstance?.ccWidgetIcon || "extension"
+            primaryText: builtinInstance?.ccWidgetPrimaryText || "Built-in"
+            secondaryText: builtinInstance?.ccWidgetSecondaryText || ""
+            isActive: builtinInstance?.ccWidgetIsActive || false
+
+            onToggled: {
+                if (root.editMode)
+                    return
+                if (builtinInstance) {
+                    builtinInstance.ccWidgetToggled()
+                }
+            }
+
+            onExpandClicked: {
+                if (root.editMode)
+                    return
+                root.expandClicked(widgetData, widgetIndex)
+            }
+        }
+    }
+
+    Component {
+        id: builtinToggleComponent
+        ToggleButton {
+            property var widgetData: parent.widgetData || {}
+            property int widgetIndex: parent.widgetIndex || 0
+            property var builtinInstance: parent.builtinInstance
+
+            iconName: builtinInstance?.ccWidgetIcon || "extension"
+            text: builtinInstance?.ccWidgetPrimaryText || "Built-in"
+            isActive: builtinInstance?.ccWidgetIsActive || false
+            enabled: !root.editMode
+
+            onClicked: {
+                if (root.editMode)
+                    return
+                if (builtinInstance) {
+                    builtinInstance.ccWidgetToggled()
+                }
+            }
+        }
+    }
+
+    Component {
+        id: builtinSmallToggleComponent
+        SmallToggleButton {
+            property var widgetData: parent.widgetData || {}
+            property int widgetIndex: parent.widgetIndex || 0
+            property var builtinInstance: parent.builtinInstance
+
+            iconName: builtinInstance?.ccWidgetIcon || "extension"
+            isActive: builtinInstance?.ccWidgetIsActive || false
+            enabled: !root.editMode
+
+            onClicked: {
+                if (root.editMode)
+                    return
+                if (builtinInstance) {
+                    builtinInstance.ccWidgetToggled()
+                }
+            }
+        }
+    }
+
+    Component {
+        id: pluginWidgetComponent
+        Loader {
+            property var widgetData: parent.widgetData || {}
+            property int widgetIndex: parent.widgetIndex || 0
+            property int widgetWidth: widgetData.width || 50
+            width: parent.width
+            height: 60
+
+            property var pluginInstance: null
+            property string pluginId: widgetData.id?.replace("plugin_", "") || ""
+
+            sourceComponent: {
+                if (!pluginInstance)
+                    return null
+
+                const hasDetail = pluginInstance.ccDetailContent !== null
+
+                if (widgetWidth <= 25) {
+                    return pluginSmallToggleComponent
+                } else if (hasDetail) {
+                    return pluginCompoundPillComponent
+                } else {
+                    return pluginToggleComponent
+                }
+            }
+
+            Component.onCompleted: {
+                Qt.callLater(() => {
+                                 const pluginComponent = PluginService.pluginWidgetComponents[pluginId]
+                                 if (pluginComponent) {
+                                     const instance = pluginComponent.createObject(null, {
+                                                                                       "pluginId": pluginId,
+                                                                                       "pluginService": PluginService,
+                                                                                       "visible": false,
+                                                                                       "width": 0,
+                                                                                       "height": 0
+                                                                                   })
+                                     if (instance) {
+                                         pluginInstance = instance
+                                     }
+                                 }
+                             })
+            }
+
+            Connections {
+                target: PluginService
+                function onPluginDataChanged(changedPluginId) {
+                    if (changedPluginId === pluginId && pluginInstance) {
+                        pluginInstance.loadPluginData()
+                    }
+                }
+            }
+
+            Component.onDestruction: {
+                if (pluginInstance) {
+                    pluginInstance.destroy()
+                }
+            }
+        }
+    }
+
+    Component {
+        id: pluginCompoundPillComponent
+        CompoundPill {
+            property var widgetData: parent.widgetData || {}
+            property int widgetIndex: parent.widgetIndex || 0
+            property var pluginInstance: parent.pluginInstance
+
+            iconName: pluginInstance?.ccWidgetIcon || "extension"
+            primaryText: pluginInstance?.ccWidgetPrimaryText || "Plugin"
+            secondaryText: pluginInstance?.ccWidgetSecondaryText || ""
+            isActive: pluginInstance?.ccWidgetIsActive || false
+
+            onToggled: {
+                if (root.editMode)
+                    return
+                if (pluginInstance) {
+                    pluginInstance.ccWidgetToggled()
+                }
+            }
+
+            onExpandClicked: {
+                if (root.editMode)
+                    return
+                root.expandClicked(widgetData, widgetIndex)
+            }
+        }
+    }
+
+    Component {
+        id: pluginToggleComponent
+        ToggleButton {
+            property var widgetData: parent.widgetData || {}
+            property int widgetIndex: parent.widgetIndex || 0
+            property var pluginInstance: parent.pluginInstance
+            property var widgetDef: root.model?.getWidgetForId(widgetData.id || "")
+
+            iconName: pluginInstance?.ccWidgetIcon || widgetDef?.icon || "extension"
+            text: pluginInstance?.ccWidgetPrimaryText || widgetDef?.text || "Plugin"
+            secondaryText: pluginInstance?.ccWidgetSecondaryText || ""
+            isActive: pluginInstance?.ccWidgetIsActive || false
+            enabled: !root.editMode
+
+            onClicked: {
+                if (root.editMode)
+                    return
+                if (pluginInstance) {
+                    pluginInstance.ccWidgetToggled()
+                }
+            }
+        }
+    }
+
+    Component {
+        id: pluginSmallToggleComponent
+        SmallToggleButton {
+            property var widgetData: parent.widgetData || {}
+            property int widgetIndex: parent.widgetIndex || 0
+            property var pluginInstance: parent.pluginInstance
+            property var widgetDef: root.model?.getWidgetForId(widgetData.id || "")
+
+            iconName: pluginInstance?.ccWidgetIcon || widgetDef?.icon || "extension"
+            isActive: pluginInstance?.ccWidgetIsActive || false
+            enabled: !root.editMode
+
+            onClicked: {
+                if (root.editMode)
+                    return
+                if (pluginInstance && pluginInstance.ccDetailContent) {
+                    root.expandClicked(widgetData, widgetIndex)
+                } else if (pluginInstance) {
+                    pluginInstance.ccWidgetToggled()
                 }
             }
         }

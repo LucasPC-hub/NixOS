@@ -21,14 +21,11 @@ DankPopout {
     id: root
 
     property string expandedSection: ""
-    property bool powerOptionsExpanded: false
-    property string triggerSection: "right"
     property var triggerScreen: null
     property bool editMode: false
     property int expandedWidgetIndex: -1
     property var expandedWidgetData: null
 
-    signal powerActionRequested(string action, string title, string message)
     signal lockRequested
 
     function collapseAll() {
@@ -66,9 +63,9 @@ DankPopout {
     popupWidth: 550
     popupHeight: Math.min((triggerScreen?.height ?? 1080) - 100, contentLoader.item && contentLoader.item.implicitHeight > 0 ? contentLoader.item.implicitHeight + 20 : 400)
     triggerX: (triggerScreen?.width ?? 1920) - 600 - Theme.spacingL
-    triggerY: Theme.barHeight - 4 + SettingsData.dankBarSpacing + Theme.popupDistance
+    triggerY: Theme.barHeight - 4 + SettingsData.dankBarSpacing
     triggerWidth: 80
-    positioning: "center"
+    positioning: ""
     screen: triggerScreen
     shouldBeVisible: false
     visible: shouldBeVisible
@@ -102,7 +99,7 @@ DankPopout {
             property alias bluetoothCodecSelector: bluetoothCodecSelector
 
             color: {
-                const transparency = Theme.popupTransparency || 0.92
+                const transparency = Theme.popupTransparency
                 const surface = Theme.surfaceContainer || Qt.rgba(0.1, 0.1, 0.1, 1)
                 return Qt.rgba(surface.r, surface.g, surface.b, transparency)
             }
@@ -123,25 +120,21 @@ DankPopout {
                 HeaderPane {
                     id: headerPane
                     width: parent.width
-                    powerOptionsExpanded: root.powerOptionsExpanded
                     editMode: root.editMode
-                    onPowerOptionsExpandedChanged: root.powerOptionsExpanded = powerOptionsExpanded
                     onEditModeToggled: root.editMode = !root.editMode
-                    onPowerActionRequested: (action, title, message) => root.powerActionRequested(action, title, message)
+                    onPowerButtonClicked: {
+                        if (powerMenuModalLoader) {
+                            powerMenuModalLoader.active = true
+                            if (powerMenuModalLoader.item) {
+                                const popoutPos = controlContent.mapToItem(null, 0, 0)
+                                const bounds = Qt.rect(popoutPos.x, popoutPos.y, controlContent.width, controlContent.height)
+                                powerMenuModalLoader.item.openFromControlCenter(bounds, root.triggerScreen)
+                            }
+                        }
+                    }
                     onLockRequested: {
                         root.close()
                         root.lockRequested()
-                    }
-                }
-
-                PowerOptionsPane {
-                    id: powerOptionsPane
-                    width: parent.width
-                    expanded: root.powerOptionsExpanded
-                    onPowerActionRequested: (action, title, message) => {
-                        root.powerOptionsExpanded = false
-                        root.close()
-                        root.powerActionRequested(action, title, message)
                     }
                 }
 
@@ -154,6 +147,7 @@ DankPopout {
                     expandedWidgetData: root.expandedWidgetData
                     model: widgetModel
                     bluetoothCodecSelector: bluetoothCodecSelector
+                    colorPickerModal: root.colorPickerModal
                     onExpandClicked: (widgetData, globalIndex) => {
                         root.expandedWidgetIndex = globalIndex
                         root.expandedWidgetData = widgetData
@@ -171,9 +165,12 @@ DankPopout {
                 EditControls {
                     width: parent.width
                     visible: editMode
+                    popoutContent: controlContent
                     availableWidgets: {
+                        if (!editMode) return []
                         const existingIds = (SettingsData.controlCenterWidgets || []).map(w => w.id)
-                        return widgetModel.baseWidgetDefinitions.filter(w => w.allowMultiple || !existingIds.includes(w.id))
+                        const allWidgets = widgetModel.baseWidgetDefinitions.concat(widgetModel.getPluginWidgets())
+                        return allWidgets.filter(w => w.allowMultiple || !existingIds.includes(w.id))
                     }
                     onAddWidget: (widgetId) => widgetModel.addWidget(widgetId)
                     onResetToDefault: () => widgetModel.resetToDefault()
@@ -223,4 +220,7 @@ DankPopout {
         id: batteryDetailComponent
         BatteryDetail {}
     }
+
+    property var colorPickerModal: null
+    property var powerMenuModalLoader: null
 }

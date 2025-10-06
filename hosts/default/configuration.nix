@@ -79,6 +79,8 @@ fonts.packages = with pkgs; [
     kernelParams = [
       "video=eDP-1:2880x1800@120"
       "bluetooth.disable_ertm=1"
+      "nvidia.NVreg_PreserveVideoMemoryAllocations=1"
+      "nvidia.NVreg_TemporaryFilePath=/var/tmp"
     ];
     kernelModules = [ "v4l2loopback" "i2c-dev" ];
     initrd.availableKernelModules = [ "i2c-dev" ];
@@ -234,7 +236,7 @@ fonts.packages = with pkgs; [
     # Enable this if you have graphical corruption issues or application crashes after waking
     # up from sleep. This fixes it by saving the entire VRAM memory to /tmp/ instead
     # of just the bare essentials.
-    powerManagement.enable = false;
+    powerManagement.enable = true;
 
     # Fine-grained power management. Turns off GPU when not in use.
     # Experimental and only works on modern Nvidia GPUs (Turing or newer).
@@ -303,6 +305,11 @@ fonts.packages = with pkgs; [
       chmod 644 "$LOG_FILE"
     '';
   };
+   systemd.services = {
+     nvidia-suspend.wantedBy = [ "suspend.target" ];
+     nvidia-hibernate.wantedBy = [ "hibernate.target" ];
+     nvidia-resume.wantedBy = [ "suspend.target" ];
+   };
   systemd.user.services.polkit-gnome-authentication-agent-1 = {
     description = "polkit-gnome-authentication-agent-1";
     wantedBy = [ "graphical-session.target" ];

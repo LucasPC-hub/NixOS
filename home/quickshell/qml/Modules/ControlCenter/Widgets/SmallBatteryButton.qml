@@ -28,7 +28,7 @@ Rectangle {
     readonly property color _tileBgInactive: Theme.surfaceContainerHigh
     readonly property color _tileRingActive:
         Qt.rgba(Theme.primaryText.r, Theme.primaryText.g, Theme.primaryText.b, 0.22)
-    readonly property color _tileIconActive: Theme.primaryContainer
+    readonly property color _tileIconActive: Theme.primaryText
     readonly property color _tileIconInactive: Theme.primary
 
     color: {
@@ -89,13 +89,6 @@ Rectangle {
         cursorShape: Qt.PointingHandCursor
         enabled: root.enabled
         onClicked: root.clicked()
-    }
-
-    Behavior on color {
-        ColorAnimation {
-            duration: Theme.shortDuration
-            easing.type: Theme.standardEasing
-        }
     }
 
     Behavior on radius {

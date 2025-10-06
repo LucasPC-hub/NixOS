@@ -30,6 +30,7 @@ in
   nwg-look
   walker
   # Development
+  remmina
   jetbrains-toolbox
   rustup
   gcc

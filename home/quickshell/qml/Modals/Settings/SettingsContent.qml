@@ -68,6 +68,7 @@ Item {
             asynchronous: true
 
             sourceComponent: DankBarTab {
+                parentModal: root.parentModal
             }
 
         }
@@ -154,10 +155,23 @@ Item {
         }
 
         Loader {
-            id: aboutLoader
+            id: pluginsLoader
 
             anchors.fill: parent
             active: root.currentIndex === 10
+            visible: active
+            asynchronous: true
+
+            sourceComponent: PluginsTab {
+            }
+
+        }
+
+        Loader {
+            id: aboutLoader
+
+            anchors.fill: parent
+            active: root.currentIndex === 11
             visible: active
             asynchronous: true
 

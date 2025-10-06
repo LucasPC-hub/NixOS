@@ -11,14 +11,16 @@
 
 </div>
 
-A modern Wayland desktop shell built with [Quickshell](https://quickshell.org/) and designed for the [niri](https://github.com/YaLTeR/niri) and [Hyprland](https://hyprland.org/) compositors. Features Material 3 design principles with a heavy focus on functionality and customizability.
+A modern Wayland desktop shell built with [Quickshell](https://quickshell.org/) and optimized for the [niri](https://github.com/YaLTeR/niri) and [Hyprland](https://hyprland.org/) compositors.
+
+Features notifications, app launcher, wallpaper customization, and fully customizable with [plugins](https://github.com/AvengeMedia/dms-plugin-registry).
 
 ## Screenshots
 
 <div align="center">
 <div style="max-width: 700px; margin: 0 auto;">
 
-https://github.com/user-attachments/assets/fd619c0e-6edc-457e-b3d6-5a5c3bae7173
+https://github.com/user-attachments/assets/9b99dbbf-42d3-44ab-83b6-fae6c2aa3cc0
 
 </div>
 </div>
@@ -43,7 +45,7 @@ https://github.com/user-attachments/assets/fd619c0e-6edc-457e-b3d6-5a5c3bae7173
 
 ### Control Center
 
-<img width="600" alt="Control Center" src="https://github.com/user-attachments/assets/98889bd8-55d2-44c7-b278-75ca49c596fa" />
+<img width="600" alt="Control Center" src="https://github.com/user-attachments/assets/732c30de-5f4a-4a2b-a995-c8ab656cecd5" />
 
 ### System Monitor
 
@@ -122,6 +124,8 @@ curl -fsSL https://install.danklinux.com | sh
 - Configure bluetooth, wifi, and audio input+output devices.
 - A lock screen
 - Idle monitoring - configure auto lock, screen off, suspend, and hibernate with different knobs for battery + AC power.
+- A greeter
+- A comprehensive plugin system for endless customization possibilities.
 
 **TL;DR** *dms replaces your waybar, swaylock, swayidle, hypridle, hyprlock, fuzzels, walker, mako, and basically everything you use to stitch a desktop together*
 
@@ -245,17 +249,16 @@ sudo dnf copr enable errornointernet/quickshell && sudo dnf install quickshell-g
 
 **2.1 Install Material Symbols**
 ```bash
-mkdir -p ~/.local/share/fonts &&
-curl -L "https://github.com/google/material-design-icons/raw/master/variablefont/MaterialSymbolsRounded%5BFILL%2CGRAD%2Copsz%2Cwght%5D.ttf" -o ~/.local/share/fonts/MaterialSymbolsRounded.ttf
+sudo curl -L "https://github.com/google/material-design-icons/raw/master/variablefont/MaterialSymbolsRounded%5BFILL%2CGRAD%2Copsz%2Cwght%5D.ttf" -o /usr/share/fonts/MaterialSymbolsRounded.ttf
 ```
 **2.2 Install Inter Variable**
 ```bash
-curl -L "https://github.com/rsms/inter/raw/refs/tags/v4.1/docs/font-files/InterVariable.ttf" -o ~/.local/share/fonts/InterVariable.ttf
+sudo curl -L "https://github.com/rsms/inter/raw/refs/tags/v4.1/docs/font-files/InterVariable.ttf" -o /usr/share/fonts/InterVariable.ttf
 ```
 
 **2.3 Install Fira Code (monospace font)**
 ```bash
-curl -L "https://github.com/tonsky/FiraCode/releases/latest/download/FiraCode-Regular.ttf" -o ~/.local/share/fonts/FiraCode-Regular.ttf
+sudo curl -L "https://github.com/tonsky/FiraCode/releases/latest/download/FiraCode-Regular.ttf" -o /usr/share/fonts/FiraCode-Regular.ttf
 ```
 
 **2.4 Refresh font cache**
@@ -313,7 +316,7 @@ sudo sh -c "curl -L https://github.com/AvengeMedia/dgop/releases/latest/download
 
 A lot of options are subject to personal preference, but the below sets a good starting point for most features.
 
-### Niri Integration
+### niri Integration
 
 Add to your niri config
 
@@ -393,6 +396,17 @@ binds {
 }
 ```
 
+#### niri theming
+
+If using a niri build newer than [3933903](https://github.com/YaLTeR/niri/commit/39339032cee3453faa54c361a38db6d83756f750), you can synchronize colors and gaps with the shell settings by adding the following to your niri config.
+
+```bash
+# For colors
+echo -e 'include "dms/colors.kdl"' >> ~/.config/niri/config.kdl
+# For gaps, border widths, certain window rules
+echo -e 'include "dms/layout.kdl"' >> ~/.config/niri/config.kdl
+```
+
 ### Hyprland Integration
 
 Add to your Hyprland config (`~/.config/hypr/hyprland.conf`):
@@ -439,6 +453,12 @@ bindl = , XF86MonBrightnessDown, exec, dms ipc call brightness decrement 5 ""
 # Night mode toggle
 bind = SUPERSHIFT, N, exec, dms ipc call night toggle
 ```
+
+## Greeter
+
+You can install a matching [greetd](https://github.com/kennylevinsen/greetd) greeter, that will give you a greeter that matches the lock screen.
+
+It's as simple as running `dms greeter install` in most cases, but more information is in the [Greetd module](Modules/Greetd/README.md)
 
 ## IPC Commands
 
@@ -622,6 +642,23 @@ echo "app-notifications = no-clipboard-copy,no-config-reload" >> ~/.config/ghost
 ```bash
 echo "include dank-theme.conf" >> ~/.config/kitty/kitty.conf
 ```
+
+## Plugins
+
+[Plugin registry](https://github.com/AvengeMedia/dms-plugin-registry) - collection of available dms plugins.
+
+dms features a plugin system - meaning you can create your own widgets and load other user widgets.
+
+More comprehensive details available in the [PLUGINS](PLUGINS/README.md) - and examples [Emoji Plugin](PLUGINS/ExampleEmojiPlugin) and [Wallpaper Change Hook](PLUGINS/WallpaperWatcherDaemon) are available for reference.
+
+Install an example plugin by:
+
+```bash
+mkdir ~/.config/DankMaterialShell/plugins
+cp -R ./PLUGINS/ExampleEmojiPlugin ~/.config/DankMaterialShell/plugins
+```
+
+**Only install plugins from TRUSTED sources.** Plugins execute QML and javascript at runtime, plugins from third parties should be reviewed before enabling them in dms.
 
 ### Calendar Setup
 

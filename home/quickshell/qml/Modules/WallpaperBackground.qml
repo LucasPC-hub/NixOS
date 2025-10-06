@@ -11,7 +11,12 @@ LazyLoader {
     active: true
 
     Variants {
-        model: SettingsData.getFilteredScreens("wallpaper")
+        model: {
+            if (SessionData.isGreeterMode) {
+                return Quickshell.screens
+            }
+            return SettingsData.getFilteredScreens("wallpaper")
+        }
 
         PanelWindow {
             id: wallpaperWindow
@@ -38,6 +43,18 @@ LazyLoader {
                 property bool isColorSource: source.startsWith("#")
                 property string transitionType: SessionData.wallpaperTransition
                 property string actualTransitionType: transitionType
+
+                Connections {
+                    target: SessionData
+                    function onIsLightModeChanged() {
+                        if (SessionData.perModeWallpaper) {
+                            var newSource = SessionData.getMonitorWallpaper(modelData.name) || ""
+                            if (newSource !== root.source) {
+                                root.source = newSource
+                            }
+                        }
+                    }
+                }
                 onTransitionTypeChanged: {
                     if (transitionType === "random") {
                         if (SessionData.includedTransitions.length === 0) {
