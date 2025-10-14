@@ -2,11 +2,12 @@ import QtQuick
 import qs.Common
 import qs.Modules.Settings
 
-Item {
+FocusScope {
     id: root
 
     property int currentIndex: 0
     property var parentModal: null
+    focus: true
 
     Rectangle {
         anchors.fill: parent
@@ -34,27 +35,14 @@ Item {
         }
 
         Loader {
-            id: timeLoader
+            id: timeWeatherLoader
 
             anchors.fill: parent
             active: root.currentIndex === 1
             visible: active
             asynchronous: true
 
-            sourceComponent: TimeTab {
-            }
-
-        }
-
-        Loader {
-            id: weatherLoader
-
-            anchors.fill: parent
-            active: root.currentIndex === 2
-            visible: active
-            asynchronous: true
-
-            sourceComponent: WeatherTab {
+            sourceComponent: TimeWeatherTab {
             }
 
         }
@@ -63,7 +51,7 @@ Item {
             id: topBarLoader
 
             anchors.fill: parent
-            active: root.currentIndex === 3
+            active: root.currentIndex === 2
             visible: active
             asynchronous: true
 
@@ -77,7 +65,7 @@ Item {
             id: widgetsLoader
 
             anchors.fill: parent
-            active: root.currentIndex === 4
+            active: root.currentIndex === 3
             visible: active
             asynchronous: true
 
@@ -90,7 +78,7 @@ Item {
             id: dockLoader
 
             anchors.fill: parent
-            active: root.currentIndex === 5
+            active: root.currentIndex === 4
             visible: active
             asynchronous: true
 
@@ -106,7 +94,7 @@ Item {
             id: displaysLoader
 
             anchors.fill: parent
-            active: root.currentIndex === 6
+            active: root.currentIndex === 5
             visible: active
             asynchronous: true
 
@@ -119,7 +107,7 @@ Item {
             id: launcherLoader
 
             anchors.fill: parent
-            active: root.currentIndex === 7
+            active: root.currentIndex === 6
             visible: active
             asynchronous: true
 
@@ -132,7 +120,7 @@ Item {
             id: themeColorsLoader
 
             anchors.fill: parent
-            active: root.currentIndex === 8
+            active: root.currentIndex === 7
             visible: active
             asynchronous: true
 
@@ -145,7 +133,7 @@ Item {
             id: powerLoader
 
             anchors.fill: parent
-            active: root.currentIndex === 9
+            active: root.currentIndex === 8
             visible: active
             asynchronous: true
 
@@ -158,11 +146,12 @@ Item {
             id: pluginsLoader
 
             anchors.fill: parent
-            active: root.currentIndex === 10
+            active: root.currentIndex === 9
             visible: active
             asynchronous: true
 
             sourceComponent: PluginsTab {
+                parentModal: root.parentModal
             }
 
         }
@@ -171,7 +160,7 @@ Item {
             id: aboutLoader
 
             anchors.fill: parent
-            active: root.currentIndex === 11
+            active: root.currentIndex === 10
             visible: active
             asynchronous: true
 

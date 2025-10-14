@@ -14,6 +14,7 @@ Rectangle {
     property var axis: null
     property string screenName: ""
     property real widgetHeight: 30
+    property real barThickness: 48
     property int currentWorkspace: {
         if (CompositorService.isNiri) {
             return getNiriActiveWorkspace()
@@ -29,7 +30,9 @@ Rectangle {
         }
         if (CompositorService.isHyprland) {
             const baseList = getHyprlandWorkspaces()
-            return SettingsData.showWorkspacePadding ? padWorkspaces(baseList) : baseList
+            // Filter out special workspaces
+			const filteredList = baseList.filter(ws => ws.id > -1)
+            return SettingsData.showWorkspacePadding ? padWorkspaces(filteredList) : filteredList
         }
         return [1]
     }
@@ -238,7 +241,6 @@ Rectangle {
 
     MouseArea {
         anchors.fill: parent
-        hoverEnabled: true
         acceptedButtons: Qt.NoButton
 
         property real scrollAccumulator: 0
@@ -413,9 +415,7 @@ Rectangle {
                 MouseArea {
                     id: mouseArea
 
-                    anchors.centerIn: parent
-                    width: root.isVertical ? parent.width + Theme.spacingXL : parent.width
-                    height: root.isVerical ? parent.height : parent.height + Theme.spacingXL
+                    anchors.fill: parent
                     hoverEnabled: !isPlaceholder
                     cursorShape: isPlaceholder ? Qt.ArrowCursor : Qt.PointingHandCursor
                     enabled: !isPlaceholder
@@ -609,7 +609,7 @@ Rectangle {
                             anchors.centerIn: parent
                             text: loadedIconData ? loadedIconData.value : "" // NULL CHECK
                             color: isActive ? Qt.rgba(Theme.surfaceContainer.r, Theme.surfaceContainer.g, Theme.surfaceContainer.b, 0.95) : Theme.surfaceTextMedium
-                            font.pixelSize: Theme.fontSizeSmall
+                            font.pixelSize: Theme.barTextSize(barThickness)
                             font.weight: (isActive && !isPlaceholder) ? Font.DemiBold : Font.Normal
                         }
                     }
@@ -631,7 +631,7 @@ Rectangle {
                                 return CompositorService.isHyprland ? (modelData?.id || "") : (modelData - 1);
                             }
                             color: (isActive || isUrgent) ? Qt.rgba(Theme.surfaceContainer.r, Theme.surfaceContainer.g, Theme.surfaceContainer.b, 0.95) : isPlaceholder ? Theme.surfaceTextAlpha : Theme.surfaceTextMedium
-                            font.pixelSize: Theme.fontSizeSmall
+                            font.pixelSize: Theme.barTextSize(barThickness)
                             font.weight: (isActive && !isPlaceholder) ? Font.DemiBold : Font.Normal
                         }
                     }

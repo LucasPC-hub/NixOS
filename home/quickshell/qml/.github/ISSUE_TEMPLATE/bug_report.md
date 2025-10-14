@@ -26,6 +26,14 @@ assignees: ""
 - [ ] Hyprland
 - [ ] Other (specify)
 
+## Distribution
+
+<!-- Arch, Fedora, Debian, etc. -->
+
+## dms version
+
+<!-- Output of dms version command -->
+
 ## Description
 
 <!-- Brief description of the issue -->
@@ -45,6 +53,14 @@ assignees: ""
 ## Error Messages/Logs
 
 <!-- Please include any error messages, stack traces, or relevant logs -->
+<!-- you can get a log file with the following steps:
+dms kill
+mkdir ~/dms_logs
+nohup dms run > ~/dms_logs/dms-$(date +%s).txt 2>&1 &
+
+Then trigger your issue, and share the contents of ~/dms_logs/dms-<timestamp>.txt
+
+-->
 
 ```
 Paste error messages or logs here

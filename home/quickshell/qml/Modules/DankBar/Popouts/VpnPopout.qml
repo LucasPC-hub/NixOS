@@ -13,6 +13,10 @@ import qs.Widgets
 DankPopout {
     id: root
 
+    Ref {
+        service: VpnService
+    }
+
     property var triggerScreen: null
 
     function setTriggerPosition(x, y, width, section, screen) {
@@ -96,7 +100,7 @@ DankPopout {
                     height: 32
 
                     StyledText {
-                        text: "VPN Connections"
+                        text: I18n.tr("VPN Connections")
                         font.pixelSize: Theme.fontSizeLarge
                         color: Theme.surfaceText
                         font.weight: Font.Medium
@@ -206,7 +210,7 @@ DankPopout {
                                     }
 
                                     StyledText {
-                                        text: "Disconnect"
+                                        text: I18n.tr("Disconnect")
                                         font.pixelSize: Theme.fontSizeSmall
                                         color: Theme.surfaceText
                                         font.weight: Font.Medium
@@ -262,14 +266,14 @@ DankPopout {
                                         }
 
                                         StyledText {
-                                            text: "No VPN profiles found"
+                                            text: I18n.tr("No VPN profiles found")
                                             font.pixelSize: Theme.fontSizeMedium
                                             color: Theme.surfaceVariantText
                                             anchors.horizontalCenter: parent.horizontalCenter
                                         }
 
                                         StyledText {
-                                            text: "Add a VPN in NetworkManager"
+                                            text: I18n.tr("Add a VPN in NetworkManager")
                                             font.pixelSize: Theme.fontSizeSmall
                                             color: Theme.surfaceVariantText
                                             anchors.horizontalCenter: parent.horizontalCenter

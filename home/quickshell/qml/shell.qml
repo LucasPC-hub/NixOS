@@ -1,3 +1,6 @@
+//@ pragma Env QSG_RENDER_LOOP=threaded
+//@ pragma UseQApplication
+
 import QtQuick
 import Quickshell
 
@@ -9,14 +12,14 @@ ShellRoot {
     Loader {
         id: dmsShellLoader
         asynchronous: false
-        sourceComponent: DMSShell{}
+        sourceComponent: DMSShell {}
         active: !entrypoint.runGreeter
     }
 
     Loader {
         id: dmsGreeterLoader
         asynchronous: false
-        sourceComponent: DMSGreeter{}
+        sourceComponent: DMSGreeter {}
         active: entrypoint.runGreeter
     }
 }

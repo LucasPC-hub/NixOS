@@ -56,7 +56,7 @@ DankModal {
                         spacing: Theme.spacingXS
 
                         StyledText {
-                            text: "Network Information"
+                            text: I18n.tr("Network Information")
                             font.pixelSize: Theme.fontSizeLarge
                             color: Theme.surfaceText
                             font.weight: Font.Medium
@@ -126,7 +126,7 @@ DankModal {
                             id: closeText
 
                             anchors.centerIn: parent
-                            text: "Close"
+                            text: I18n.tr("Close")
                             font.pixelSize: Theme.fontSizeMedium
                             color: Theme.background
                             font.weight: Font.Medium

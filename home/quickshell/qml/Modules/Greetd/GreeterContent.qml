@@ -11,6 +11,7 @@ import Quickshell.Services.Mpris
 import qs.Common
 import qs.Services
 import qs.Widgets
+import qs.Modules.Lock
 
 Item {
     id: root
@@ -33,28 +34,8 @@ Item {
 
     signal launchRequested
 
-    property bool powerDialogVisible: false
-    property string powerDialogTitle: ""
-    property string powerDialogMessage: ""
-    property string powerDialogConfirmText: ""
-    property color powerDialogConfirmColor: Theme.primary
-    property var powerDialogOnConfirm: function () {}
-
     function pickRandomFact() {
         randomFact = Facts.getRandomFact()
-    }
-
-    function showPowerDialog(title, message, confirmText, confirmColor, onConfirm) {
-        powerDialogTitle = title
-        powerDialogMessage = message
-        powerDialogConfirmText = confirmText
-        powerDialogConfirmColor = confirmColor
-        powerDialogOnConfirm = onConfirm
-        powerDialogVisible = true
-    }
-
-    function hidePowerDialog() {
-        powerDialogVisible = false
     }
 
     Component.onCompleted: {
@@ -322,12 +303,17 @@ Item {
                         TextInput {
                             id: inputField
 
+                            property bool syncingFromState: false
+
                             anchors.fill: parent
                             anchors.leftMargin: lockIcon.width + Theme.spacingM * 2
                             anchors.rightMargin: {
                                 let margin = Theme.spacingM
                                 if (GreeterState.showPasswordInput && revealButton.visible) {
                                     margin += revealButton.width
+                                }
+                                if (virtualKeyboardButton.visible) {
+                                    margin += virtualKeyboardButton.width
                                 }
                                 if (enterButton.visible) {
                                     margin += enterButton.width + 2
@@ -338,6 +324,7 @@ Item {
                             focus: true
                             echoMode: GreeterState.showPasswordInput ? (parent.showPassword ? TextInput.Normal : TextInput.Password) : TextInput.Normal
                             onTextChanged: {
+                                if (syncingFromState) return
                                 if (GreeterState.showPasswordInput) {
                                     GreeterState.passwordBuffer = text
                                 } else {
@@ -355,20 +342,30 @@ Item {
                                         GreeterState.showPasswordInput = true
                                         PortalService.getGreeterUserProfileImage(GreeterState.username)
                                         GreeterState.passwordBuffer = ""
-                                        inputField.text = ""
+                                        syncingFromState = true
+                                        text = ""
+                                        syncingFromState = false
                                     }
                                 }
                             }
 
                             Component.onCompleted: {
+                                syncingFromState = true
                                 text = GreeterState.showPasswordInput ? GreeterState.passwordBuffer : GreeterState.usernameInput
-                                if (isPrimaryScreen)
+                                syncingFromState = false
+                                if (isPrimaryScreen && !powerMenu.isVisible)
                                     forceActiveFocus()
                             }
                             onVisibleChanged: {
-                                if (visible && isPrimaryScreen)
+                                if (visible && isPrimaryScreen && !powerMenu.isVisible)
                                     forceActiveFocus()
                             }
+                        }
+
+                        KeyboardController {
+                            id: keyboard_controller
+                            target: inputField
+                            rootObject: root
                         }
 
                         StyledText {
@@ -376,7 +373,7 @@ Item {
 
                             anchors.left: lockIcon.right
                             anchors.leftMargin: Theme.spacingM
-                            anchors.right: (GreeterState.showPasswordInput && revealButton.visible ? revealButton.left : (enterButton.visible ? enterButton.left : parent.right))
+                            anchors.right: (GreeterState.showPasswordInput && revealButton.visible ? revealButton.left : (virtualKeyboardButton.visible ? virtualKeyboardButton.left : (enterButton.visible ? enterButton.left : parent.right)))
                             anchors.rightMargin: 2
                             anchors.verticalCenter: parent.verticalCenter
                             text: {
@@ -413,7 +410,7 @@ Item {
                         StyledText {
                             anchors.left: lockIcon.right
                             anchors.leftMargin: Theme.spacingM
-                            anchors.right: (GreeterState.showPasswordInput && revealButton.visible ? revealButton.left : (enterButton.visible ? enterButton.left : parent.right))
+                            anchors.right: (GreeterState.showPasswordInput && revealButton.visible ? revealButton.left : (virtualKeyboardButton.visible ? virtualKeyboardButton.left : (enterButton.visible ? enterButton.left : parent.right)))
                             anchors.rightMargin: 2
                             anchors.verticalCenter: parent.verticalCenter
                             text: {
@@ -441,14 +438,32 @@ Item {
                         DankActionButton {
                             id: revealButton
 
-                            anchors.right: enterButton.visible ? enterButton.left : parent.right
-                            anchors.rightMargin: enterButton.visible ? 0 : Theme.spacingS
+                            anchors.right: virtualKeyboardButton.visible ? virtualKeyboardButton.left : (enterButton.visible ? enterButton.left : parent.right)
+                            anchors.rightMargin: 0
                             anchors.verticalCenter: parent.verticalCenter
                             iconName: parent.showPassword ? "visibility_off" : "visibility"
                             buttonSize: 32
                             visible: GreeterState.showPasswordInput && GreeterState.passwordBuffer.length > 0 && Greetd.state === GreetdState.Inactive && !GreeterState.unlocking
                             enabled: visible
                             onClicked: parent.showPassword = !parent.showPassword
+                        }
+                        DankActionButton {
+                            id: virtualKeyboardButton
+
+                            anchors.right: enterButton.visible ? enterButton.left : parent.right
+                            anchors.rightMargin: enterButton.visible ? 0 : Theme.spacingS
+                            anchors.verticalCenter: parent.verticalCenter
+                            iconName: "keyboard"
+                            buttonSize: 32
+                            visible: Greetd.state === GreetdState.Inactive && !GreeterState.unlocking
+                            enabled: visible
+                            onClicked: {
+                                if (keyboard_controller.isKeyboardActive) {
+                                    keyboard_controller.hide()
+                                } else {
+                                    keyboard_controller.show()
+                                }
+                            }
                         }
 
                         DankActionButton {
@@ -549,7 +564,7 @@ Item {
                         }
 
                         StyledText {
-                            text: "Switch User"
+                            text: I18n.tr("Switch User")
                             font.pixelSize: Theme.fontSizeMedium
                             color: Theme.surfaceText
                             anchors.verticalCenter: parent.verticalCenter
@@ -1038,33 +1053,15 @@ Item {
             visible: root.randomFact !== ""
         }
 
-        Row {
+        DankActionButton {
             anchors.bottom: parent.bottom
             anchors.left: parent.left
             anchors.margins: Theme.spacingXL
-            spacing: Theme.spacingL
             visible: GreetdSettings.lockScreenShowPowerActions
-
-            DankActionButton {
-                iconName: "power_settings_new"
-                iconColor: Theme.error
-                buttonSize: 40
-                onClicked: {
-                    showPowerDialog("Power Off", "Power off this computer?", "Power Off", Theme.error, function () {
-                        SessionService.poweroff()
-                    })
-                }
-            }
-
-            DankActionButton {
-                iconName: "refresh"
-                buttonSize: 40
-                onClicked: {
-                    showPowerDialog("Restart", "Restart this computer?", "Restart", Theme.primary, function () {
-                        SessionService.reboot()
-                    })
-                }
-            }
+            iconName: "power_settings_new"
+            iconColor: Theme.error
+            buttonSize: 40
+            onClicked: powerMenu.show()
         }
 
         Item {
@@ -1256,7 +1253,7 @@ Item {
             if (sessionCmd) {
                 GreetdMemory.setLastSessionId(GreeterState.sessionPaths[GreeterState.currentSessionIndex])
                 GreetdMemory.setLastSuccessfulUser(GreeterState.username)
-                Greetd.launch(sessionCmd.split(" "), ["XDG_SESSION_TYPE=wayland"], true)
+                Greetd.launch(sessionCmd.split(" "), ["XDG_SESSION_TYPE=wayland"])
             }
         }
 
@@ -1279,90 +1276,12 @@ Item {
         onTriggered: GreeterState.pamState = ""
     }
 
-    Rectangle {
-        anchors.fill: parent
-        color: Qt.rgba(0, 0, 0, 0.8)
-        visible: powerDialogVisible
-        z: 1000
-
-        Rectangle {
-            anchors.centerIn: parent
-            width: 320
-            height: 180
-            radius: Theme.cornerRadius
-            color: Theme.surfaceContainer
-            border.color: Theme.outline
-            border.width: 1
-
-            Column {
-                anchors.centerIn: parent
-                spacing: Theme.spacingXL
-
-                DankIcon {
-                    anchors.horizontalCenter: parent.horizontalCenter
-                    name: "power_settings_new"
-                    size: 32
-                    color: powerDialogConfirmColor
-                }
-
-                StyledText {
-                    anchors.horizontalCenter: parent.horizontalCenter
-                    text: powerDialogMessage
-                    color: Theme.surfaceText
-                    font.pixelSize: Theme.fontSizeLarge
-                    font.weight: Font.Medium
-                }
-
-                Row {
-                    anchors.horizontalCenter: parent.horizontalCenter
-                    spacing: Theme.spacingM
-
-                    Rectangle {
-                        width: 100
-                        height: 40
-                        radius: Theme.cornerRadius
-                        color: Theme.surfaceVariant
-
-                        StyledText {
-                            anchors.centerIn: parent
-                            text: "Cancel"
-                            color: Theme.surfaceText
-                            font.pixelSize: Theme.fontSizeMedium
-                        }
-
-                        MouseArea {
-                            anchors.fill: parent
-                            hoverEnabled: true
-                            cursorShape: Qt.PointingHandCursor
-                            onClicked: hidePowerDialog()
-                        }
-                    }
-
-                    Rectangle {
-                        width: 100
-                        height: 40
-                        radius: Theme.cornerRadius
-                        color: powerDialogConfirmColor
-
-                        StyledText {
-                            anchors.centerIn: parent
-                            text: powerDialogConfirmText
-                            color: Theme.primaryText
-                            font.pixelSize: Theme.fontSizeMedium
-                            font.weight: Font.Medium
-                        }
-
-                        MouseArea {
-                            anchors.fill: parent
-                            hoverEnabled: true
-                            cursorShape: Qt.PointingHandCursor
-                            onClicked: {
-                                hidePowerDialog()
-                                powerDialogOnConfirm()
-                            }
-                        }
-                    }
-                }
+    LockPowerMenu {
+        id: powerMenu
+        showLogout: false
+        onClosed: {
+            if (isPrimaryScreen && inputField && inputField.forceActiveFocus) {
+                Qt.callLater(() => inputField.forceActiveFocus())
             }
         }
     }

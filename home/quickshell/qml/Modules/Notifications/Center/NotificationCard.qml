@@ -133,10 +133,8 @@ Rectangle {
             }
 
             hasImage: hasNotificationImage
-            fallbackIcon: notificationGroup?.latestNotification?.appIcon || "notifications"  
+            fallbackIcon: ""
             fallbackText: {
-                if (hasNotificationImage || (notificationGroup?.latestNotification?.appIcon && notificationGroup.latestNotification.appIcon !== ""))
-                    return ""
                 const appName = notificationGroup?.appName || "?"
                 return appName.charAt(0).toUpperCase()
             }
@@ -390,21 +388,11 @@ Rectangle {
                                 return ""
                             }
 
-                            fallbackIcon: {
-                                if (modelData?.appIcon && !hasNotificationImage) {
-                                    const appIcon = modelData.appIcon
-                                    if (!appIcon.startsWith("file://") && !appIcon.startsWith("http://") && !appIcon.startsWith("https://"))
-                                        return appIcon
-                                }
-                                return "notifications"
-                            }
+                            fallbackIcon: ""
 
                             fallbackText: {
-                                if (!hasNotificationImage && (!modelData?.appIcon || modelData.appIcon === "")) {
-                                    const appName = modelData?.appName || "?"
-                                    return appName.charAt(0).toUpperCase()
-                                }
-                                return ""
+                                const appName = modelData?.appName || "?"
+                                return appName.charAt(0).toUpperCase()
                             }
                         }
 
@@ -549,7 +537,7 @@ Rectangle {
 
                                         StyledText {
                                             id: clearText
-                                            text: "Clear"
+                                            text: I18n.tr("Clear")
                                             color: parent.isHovered ? Theme.primary : Theme.surfaceVariantText
                                             font.pixelSize: Theme.fontSizeSmall
                                             font.weight: Font.Medium
@@ -642,7 +630,7 @@ Rectangle {
 
         StyledText {
             id: clearText
-            text: "Clear"
+            text: I18n.tr("Clear")
             color: clearButton.isHovered ? Theme.primary : Theme.surfaceVariantText
             font.pixelSize: Theme.fontSizeSmall
             font.weight: Font.Medium

@@ -6,9 +6,21 @@ import QtQuick
 import Quickshell
 import Quickshell.Io
 import Quickshell.Services.UPower
+import qs.Common
 
 Singleton {
     id: root
+
+    property bool suppressSound: true
+    property bool previousPluggedState: false
+
+    Timer {
+        id: startupTimer
+        interval: 500
+        repeat: false
+        running: true
+        onTriggered: root.suppressSound = false
+    }
 
     readonly property string preferredBatteryOverride: Quickshell.env("DMS_PREFERRED_BATTERY")
 
@@ -24,6 +36,23 @@ Singleton {
     readonly property bool isCharging: batteryAvailable && device.state === UPowerDeviceState.Charging && device.changeRate > 0
     readonly property bool isPluggedIn: batteryAvailable && (device.state !== UPowerDeviceState.Discharging && device.state !== UPowerDeviceState.Empty)
     readonly property bool isLowBattery: batteryAvailable && batteryLevel <= 20
+
+    onIsPluggedInChanged: {
+        if (suppressSound || !batteryAvailable) {
+            previousPluggedState = isPluggedIn
+            return
+        }
+
+        if (SettingsData.soundsEnabled && SettingsData.soundPluggedIn) {
+            if (isPluggedIn && !previousPluggedState) {
+                AudioService.playPowerPlugSound()
+            } else if (!isPluggedIn && previousPluggedState) {
+                AudioService.playPowerUnplugSound()
+            }
+        }
+
+        previousPluggedState = isPluggedIn
+    }
     readonly property string batteryHealth: {
         if (!batteryAvailable) {
             return "N/A"

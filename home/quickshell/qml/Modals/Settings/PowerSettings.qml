@@ -19,10 +19,94 @@ Item {
             spacing: Theme.spacingXL
 
             StyledText {
-                text: "Battery not detected - only AC power settings available"
+                text: I18n.tr("Battery not detected - only AC power settings available")
                 font.pixelSize: Theme.fontSizeMedium
                 color: Theme.surfaceVariantText
                 visible: !BatteryService.batteryAvailable
+            }
+
+            StyledRect {
+                width: parent.width
+                height: lockScreenSection.implicitHeight + Theme.spacingL * 2
+                radius: Theme.cornerRadius
+                color: Qt.rgba(Theme.surfaceVariant.r, Theme.surfaceVariant.g, Theme.surfaceVariant.b, 0.3)
+                border.color: Qt.rgba(Theme.outline.r, Theme.outline.g, Theme.outline.b, 0.2)
+                border.width: 0
+
+                Column {
+                    id: lockScreenSection
+                    anchors.fill: parent
+                    anchors.margins: Theme.spacingL
+                    spacing: Theme.spacingM
+
+                    Row {
+                        width: parent.width
+                        spacing: Theme.spacingM
+
+                        DankIcon {
+                            name: "lock"
+                            size: Theme.iconSize
+                            color: Theme.primary
+                            anchors.verticalCenter: parent.verticalCenter
+                        }
+
+                        StyledText {
+                            text: I18n.tr("Lock Screen")
+                            font.pixelSize: Theme.fontSizeLarge
+                            font.weight: Font.Medium
+                            color: Theme.surfaceText
+                            anchors.verticalCenter: parent.verticalCenter
+                        }
+                    }
+
+                    DankToggle {
+                        width: parent.width
+                        text: I18n.tr("Show Power Actions")
+                        description: "Show power, restart, and logout buttons on the lock screen"
+                        checked: SettingsData.lockScreenShowPowerActions
+                        onToggled: checked => SettingsData.setLockScreenShowPowerActions(checked)
+                    }
+
+                    StyledText {
+                        text: I18n.tr("loginctl not available - lock integration requires DMS socket connection")
+                        font.pixelSize: Theme.fontSizeSmall
+                        color: Theme.warning
+                        visible: !SessionService.loginctlAvailable
+                        width: parent.width
+                        wrapMode: Text.Wrap
+                    }
+
+                    DankToggle {
+                        width: parent.width
+                        text: I18n.tr("Enable loginctl lock integration")
+                        description: "Bind lock screen to dbus signals from loginctl. Disable if using an external lock screen."
+                        checked: SessionService.loginctlAvailable && SessionData.loginctlLockIntegration
+                        enabled: SessionService.loginctlAvailable
+                        onToggled: checked => {
+                            if (SessionService.loginctlAvailable) {
+                                SessionData.setLoginctlLockIntegration(checked)
+                            }
+                        }
+                    }
+
+                    DankToggle {
+                        width: parent.width
+                        text: I18n.tr("Lock before suspend")
+                        description: "Automatically lock the screen when the system prepares to suspend"
+                        checked: SessionData.lockBeforeSuspend
+                        visible: SessionService.loginctlAvailable && SessionData.loginctlLockIntegration
+                        onToggled: checked => SessionData.setLockBeforeSuspend(checked)
+                    }
+
+                    DankToggle {
+                        width: parent.width
+                        text: I18n.tr("Enable fingerprint authentication")
+                        description: "Use fingerprint reader for lock screen authentication (requires enrolled fingerprints)"
+                        checked: SettingsData.enableFprint
+                        visible: SettingsData.fprintdAvailable
+                        onToggled: checked => SettingsData.setEnableFprint(checked)
+                    }
+                }
             }
 
             StyledRect {
@@ -51,7 +135,7 @@ Item {
                         }
 
                         StyledText {
-                            text: "Idle Settings"
+                            text: I18n.tr("Idle Settings")
                             font.pixelSize: Theme.fontSizeLarge
                             font.weight: Font.Medium
                             color: Theme.surfaceText
@@ -79,7 +163,7 @@ Item {
                         property var timeoutOptions: ["Never", "1 minute", "2 minutes", "3 minutes", "5 minutes", "10 minutes", "15 minutes", "20 minutes", "30 minutes", "1 hour", "1 hour 30 minutes", "2 hours", "3 hours"]
                         property var timeoutValues: [0, 60, 120, 180, 300, 600, 900, 1200, 1800, 3600, 5400, 7200, 10800]
 
-                        text: "Automatically lock after"
+                        text: I18n.tr("Automatically lock after")
                         options: timeoutOptions
 
                         Connections {
@@ -115,7 +199,7 @@ Item {
                         property var timeoutOptions: ["Never", "1 minute", "2 minutes", "3 minutes", "5 minutes", "10 minutes", "15 minutes", "20 minutes", "30 minutes", "1 hour", "1 hour 30 minutes", "2 hours", "3 hours"]
                         property var timeoutValues: [0, 60, 120, 180, 300, 600, 900, 1200, 1800, 3600, 5400, 7200, 10800]
 
-                        text: "Turn off monitors after"
+                        text: I18n.tr("Turn off monitors after")
                         options: timeoutOptions
 
                         Connections {
@@ -151,7 +235,7 @@ Item {
                         property var timeoutOptions: ["Never", "1 minute", "2 minutes", "3 minutes", "5 minutes", "10 minutes", "15 minutes", "20 minutes", "30 minutes", "1 hour", "1 hour 30 minutes", "2 hours", "3 hours"]
                         property var timeoutValues: [0, 60, 120, 180, 300, 600, 900, 1200, 1800, 3600, 5400, 7200, 10800]
 
-                        text: "Suspend system after"
+                        text: I18n.tr("Suspend system after")
                         options: timeoutOptions
 
                         Connections {
@@ -187,7 +271,7 @@ Item {
                         property var timeoutOptions: ["Never", "1 minute", "2 minutes", "3 minutes", "5 minutes", "10 minutes", "15 minutes", "20 minutes", "30 minutes", "1 hour", "1 hour 30 minutes", "2 hours", "3 hours"]
                         property var timeoutValues: [0, 60, 120, 180, 300, 600, 900, 1200, 1800, 3600, 5400, 7200, 10800]
 
-                        text: "Hibernate system after"
+                        text: I18n.tr("Hibernate system after")
                         options: timeoutOptions
                         visible: SessionService.hibernateSupported
 
@@ -219,16 +303,8 @@ Item {
                         }
                     }
 
-                    DankToggle {
-                        width: parent.width
-                        text: "Lock before suspend"
-                        description: "Automatically lock the screen when the system prepares to suspend"
-                        checked: SessionData.lockBeforeSuspend
-                        onToggled: checked => SessionData.setLockBeforeSuspend(checked)
-                    }
-
                     StyledText {
-                        text: "Idle monitoring not supported - requires newer Quickshell version"
+                        text: I18n.tr("Idle monitoring not supported - requires newer Quickshell version")
                         font.pixelSize: Theme.fontSizeSmall
                         color: Theme.error
                         anchors.horizontalCenter: parent.horizontalCenter

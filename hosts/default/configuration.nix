@@ -26,6 +26,7 @@
   ];
 
   users.groups.i2c = {};
+  users.groups.plugdev = {};  # ADICIONADO
 
   users.users.lpc = {
     isNormalUser = true;
@@ -88,9 +89,16 @@ fonts.packages = with pkgs; [
     extraModulePackages = with config.boot.kernelPackages; [
       v4l2loopback
     ];
+
+    # Bluetooth kernel module options
+    extraModprobeConfig = ''
+      options btusb enable_autosuspend=0
+      options btusb reset=1
+      options v4l2loopback video_nr=0 card_label="DroidCam" exclusive_caps=1
+    '';
   };
 
-  services.udev.packages = [ pkgs.rwedid ];
+  services.udev.packages = [ pkgs.rwedid pkgs.solaar ];
 
   nix.settings = {
     experimental-features = [ "nix-command" "flakes" ];
@@ -121,6 +129,11 @@ fonts.packages = with pkgs; [
 
   hardware.enableRedistributableFirmware = true;
 
+  hardware.logitech.wireless = {
+    enable = true;
+    enableGraphical = true;
+  };
+
   time.timeZone = "America/Sao_Paulo";
 
   i18n = {
@@ -140,17 +153,15 @@ fonts.packages = with pkgs; [
   programs.fish.enable = true;
   security.polkit.enable = true;
 
-  # Enable graphics (updated from hardware.opengl in NixOS 24.11+)
   hardware.graphics = {
     enable = true;
     enable32Bit = true;
   };
 
   services = {
+    ratbagd.enable = true;
     xserver = {
       enable = true;
-      # Load modesetting driver for Intel and NVIDIA driver for offloading
-      # This is CRITICAL for PRIME offload to work properly
       videoDrivers = [ "modesetting" "nvidia" ];
       xkb = {
         layout = "br";
@@ -185,12 +196,11 @@ fonts.packages = with pkgs; [
   console.keyMap = "br-abnt2";
 
   xdg.portal.enable = true;
-# In your configuration.nix
+
   hardware.bluetooth = {
      enable = true;
      powerOnBoot = true;
 
-     # Bluetooth configuration
      settings = {
        General = {
          ControllerMode = "dual";
@@ -211,87 +221,52 @@ fonts.packages = with pkgs; [
      };
    };
 
-   # Bluetooth kernel module options
-   boot.extraModprobeConfig = ''
-     options btusb enable_autosuspend=0
-     options btusb reset=1
-     options v4l2loopback video_nr=0 card_label="DroidCam" exclusive_caps=1
-   '';
-
-   # Disable USB autosuspend for Bluetooth (find your device ID first)
+   # MODIFICADO: Regras udev consolidadas
    services.udev.extraRules = ''
      # Disable autosuspend for Bluetooth USB devices (corrected for AX211)
      ACTION=="add", SUBSYSTEM=="usb", ATTR{idVendor}=="8087", ATTR{idProduct}=="0033", TEST=="power/control", ATTR{power/control}="on"
 
      # Auto-reset Bluetooth HCI on add
      ACTION=="add", SUBSYSTEM=="bluetooth", KERNEL=="hci[0-9]*", RUN+="${pkgs.bluez}/bin/hciconfig %k reset"
+
+     # Logitech Unifying/Lightspeed receivers - permissões para plugdev
+     SUBSYSTEMS=="usb", ATTRS{idVendor}=="046d", ATTRS{idProduct}=="c547", MODE="0660", GROUP="plugdev"
+
+     # Todos os dispositivos hidraw com permissão para plugdev
+     KERNEL=="hidraw*", SUBSYSTEM=="hidraw", MODE="0660", GROUP="plugdev"
    '';
 
-  # NVIDIA Configuration
   hardware.nvidia = {
-    # Modesetting is required
     modesetting.enable = true;
-
-    # Nvidia power management. Experimental, and can cause sleep/suspend to fail.
-    # Enable this if you have graphical corruption issues or application crashes after waking
-    # up from sleep. This fixes it by saving the entire VRAM memory to /tmp/ instead
-    # of just the bare essentials.
     powerManagement.enable = true;
-
-    # Fine-grained power management. Turns off GPU when not in use.
-    # Experimental and only works on modern Nvidia GPUs (Turing or newer).
     powerManagement.finegrained = false;
-
-    # Use the NVidia open source kernel module (not to be confused with the
-    # independent third-party "nouveau" open source driver).
-    # Support is limited to the Turing and later architectures. Full list of
-    # supported GPUs is at:
-    # https://github.com/NVIDIA/open-gpu-kernel-modules#compatible-gpus
-    # Only available from driver 515.43.04+
-    # Currently alpha-quality/buggy, so false is currently the recommended setting.
-    # Your RTX 4070 Max-Q supports open modules, but closed-source is more stable for now
     open = false;
-
-    # Enable the Nvidia settings menu, accessible via `nvidia-settings`.
     nvidiaSettings = true;
-
-    # Optionally, you may need to select the appropriate driver version for your specific GPU.
     package = config.boot.kernelPackages.nvidiaPackages.stable;
 
-    # PRIME configuration for hybrid Intel/NVIDIA laptops
     prime = {
-      # Bus IDs for your specific hardware (found via lspci)
-      intelBusId = "PCI:0:2:0";    # Intel Meteor Lake-P Arc Graphics
-      nvidiaBusId = "PCI:1:0:0";   # NVIDIA RTX 4070 Max-Q Mobile
+      intelBusId = "PCI:0:2:0";
+      nvidiaBusId = "PCI:1:0:0";
 
-      # Offload mode - Intel as primary, NVIDIA on-demand (recommended for battery life)
       offload = {
         enable = true;
         enableOffloadCmd = true;
       };
-
-      # Alternative modes (uncomment one if you prefer):
-      # sync.enable = true;          # Both GPUs always active, NVIDIA does all rendering
-      # reverseSync.enable = true;   # NVIDIA as primary display (worse battery, better for external displays)
     };
   };
 
   environment.systemPackages = with pkgs; [
     bluez
-    # Graphics debugging and utilities
+    solaar
     glxinfo
     pciutils
     polkit_gnome
-    # Quickshell dependencies
     glib
     networkmanager
     khal
   ];
 
   nixpkgs.config.allowUnfree = true;
-
-
-  # home-manager.backupFileExtension = "backup";
 
   system.stateVersion = "25.05";
 

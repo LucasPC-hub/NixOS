@@ -188,7 +188,7 @@ PanelWindow {
                         }
 
                         StyledText {
-                            text: "Select a color from the palette or use custom sliders"
+                            text: I18n.tr("Select a color from the palette or use custom sliders")
                             font.pixelSize: Theme.fontSizeMedium
                             color: Theme.surfaceTextMedium
                         }
@@ -346,7 +346,7 @@ PanelWindow {
                     spacing: Theme.spacingS
 
                     StyledText {
-                        text: "Material Colors"
+                        text: I18n.tr("Material Colors")
                         font.pixelSize: Theme.fontSizeMedium
                         color: Theme.surfaceText
                         font.weight: Font.Medium
@@ -394,7 +394,7 @@ PanelWindow {
                             spacing: Theme.spacingXS
 
                             StyledText {
-                                text: "Recent Colors"
+                                text: I18n.tr("Recent Colors")
                                 font.pixelSize: Theme.fontSizeMedium
                                 color: Theme.surfaceText
                                 font.weight: Font.Medium
@@ -444,7 +444,7 @@ PanelWindow {
                             spacing: Theme.spacingXS
 
                             StyledText {
-                                text: "Opacity"
+                                text: I18n.tr("Opacity")
                                 font.pixelSize: Theme.fontSizeMedium
                                 color: Theme.surfaceText
                                 font.weight: Font.Medium
@@ -480,7 +480,7 @@ PanelWindow {
                     spacing: Theme.spacingS
 
                     StyledText {
-                        text: "Hex:"
+                        text: I18n.tr("Hex:")
                         font.pixelSize: Theme.fontSizeMedium
                         color: Theme.surfaceTextMedium
                         anchors.verticalCenter: parent.verticalCenter
@@ -518,7 +518,7 @@ PanelWindow {
                     DankButton {
                         width: 80
                         buttonHeight: 36
-                        text: "Apply"
+                        text: I18n.tr("Apply")
                         backgroundColor: Theme.primary
                         textColor: Theme.background
                         anchors.verticalCenter: parent.verticalCenter
@@ -545,7 +545,7 @@ PanelWindow {
                     DankButton {
                         width: 70
                         buttonHeight: 36
-                        text: "Cancel"
+                        text: I18n.tr("Cancel")
                         backgroundColor: "transparent"
                         textColor: Theme.surfaceText
                         anchors.verticalCenter: parent.verticalCenter
@@ -564,7 +564,7 @@ PanelWindow {
                     DankButton {
                         width: 70
                         buttonHeight: 36
-                        text: "Copy"
+                        text: I18n.tr("Copy")
                         backgroundColor: Theme.primary
                         textColor: Theme.background
                         anchors.verticalCenter: parent.verticalCenter

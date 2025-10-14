@@ -1,8 +1,9 @@
 import QtQuick
-import QtQuick.Effects
 import Quickshell
+import Quickshell.Hyprland
 import Quickshell.Wayland
 import qs.Common
+import qs.Services
 
 PanelWindow {
     id: root
@@ -70,33 +71,40 @@ PanelWindow {
 
     readonly property real screenWidth: root.screen.width
     readonly property real screenHeight: root.screen.height
-    readonly property real dpr: root.screen.devicePixelRatio
+    readonly property real dpr: {
+        if (CompositorService.isNiri && root.screen) {
+            const niriScale = NiriService.displayScales[root.screen.name]
+            if (niriScale !== undefined) return niriScale
+        }
+        if (CompositorService.isHyprland && root.screen) {
+            const hyprlandMonitor = Hyprland.monitors.values.find(m => m.name === root.screen.name)
+            if (hyprlandMonitor?.scale !== undefined) return hyprlandMonitor.scale
+        }
+        return root.screen?.devicePixelRatio || 1
+    }
 
-    readonly property real calculatedX: {
+    readonly property real alignedWidth: Theme.px(popupWidth, dpr)
+    readonly property real alignedHeight: Theme.px(popupHeight, dpr)
+    readonly property real alignedX: Theme.snap((() => {
         if (SettingsData.dankBarPosition === SettingsData.Position.Left) {
-            return triggerY
+            return triggerY + SettingsData.dankBarBottomGap
         } else if (SettingsData.dankBarPosition === SettingsData.Position.Right) {
-            return screenWidth - triggerY - popupWidth
+            return screenWidth - triggerY - SettingsData.dankBarBottomGap - popupWidth
         } else {
             const centerX = triggerX + (triggerWidth / 2) - (popupWidth / 2)
             return Math.max(Theme.popupDistance, Math.min(screenWidth - popupWidth - Theme.popupDistance, centerX))
         }
-    }
-    readonly property real calculatedY: {
+    })(), dpr)
+    readonly property real alignedY: Theme.snap((() => {
         if (SettingsData.dankBarPosition === SettingsData.Position.Left || SettingsData.dankBarPosition === SettingsData.Position.Right) {
             const centerY = triggerX + (triggerWidth / 2) - (popupHeight / 2)
             return Math.max(Theme.popupDistance, Math.min(screenHeight - popupHeight - Theme.popupDistance, centerY))
         } else if (SettingsData.dankBarPosition === SettingsData.Position.Bottom) {
-            return Math.max(Theme.popupDistance, Math.min(screenHeight - popupHeight - Theme.popupDistance, screenHeight - triggerY - popupHeight + Theme.popupDistance))
+            return Math.max(Theme.popupDistance, screenHeight - triggerY - popupHeight)
         } else {
-            return Math.max(Theme.popupDistance, Math.min(screenHeight - popupHeight - Theme.popupDistance, triggerY + Theme.popupDistance))
+            return Math.min(screenHeight - popupHeight - Theme.popupDistance, triggerY)
         }
-    }
-
-    readonly property real alignedWidth: Theme.snap(popupWidth, dpr)
-    readonly property real alignedHeight: Theme.snap(popupHeight, dpr)
-    readonly property real alignedX: Theme.snap(calculatedX, dpr)
-    readonly property real alignedY: Theme.snap(calculatedY, dpr)
+    })(), dpr)
 
     MouseArea {
         anchors.fill: parent
@@ -118,19 +126,8 @@ PanelWindow {
         height: alignedHeight
         active: root.visible
         asynchronous: false
-        opacity: Quickshell.env("DMS_DISABLE_LAYER") === "true" ? (shouldBeVisible ? 1 : 0) : 1
         layer.enabled: Quickshell.env("DMS_DISABLE_LAYER") !== "true"
-        layer.effect: MultiEffect {
-            source: contentLoader
-            opacity: shouldBeVisible ? 1 : 0
-
-            Behavior on opacity {
-                NumberAnimation {
-                    duration: animationDuration
-                    easing.type: animationEasing
-                }
-            }
-        }
+        opacity: shouldBeVisible ? 1 : 0
 
         Behavior on opacity {
             NumberAnimation {

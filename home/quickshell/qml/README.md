@@ -6,12 +6,13 @@
 [![GitHub License](https://img.shields.io/github/license/AvengeMedia/DankMaterialShell?style=for-the-badge&labelColor=101418&color=b9c8da)](https://github.com/AvengeMedia/DankMaterialShell/blob/master/LICENSE)
 [![GitHub release](https://img.shields.io/github/v/release/AvengeMedia/DankMaterialShell?style=for-the-badge&labelColor=101418&color=9ccbfb)](https://github.com/AvengeMedia/DankMaterialShell/releases)
 [![GitHub last commit](https://img.shields.io/github/last-commit/AvengeMedia/DankMaterialShell?style=for-the-badge&labelColor=101418&color=9ccbfb)](https://github.com/AvengeMedia/DankMaterialShell/commits/master)
-[![AUR version](https://img.shields.io/aur/version/dms-shell?style=for-the-badge&labelColor=101418&color=9ccbfb)](https://aur.archlinux.org/packages/dms-shell)
+[![AUR version](https://img.shields.io/aur/version/dms-shell-bin?style=for-the-badge&labelColor=101418&color=9ccbfb)](https://aur.archlinux.org/packages/dms-shell-bin)
 [![AUR version (git)](https://img.shields.io/aur/version/dms-shell-git?style=for-the-badge&labelColor=101418&color=9ccbfb&label=AUR%20(git))](https://aur.archlinux.org/packages/dms-shell-git)
+[![Ko-Fi donate](https://img.shields.io/badge/donate-kofi?style=for-the-badge&logo=ko-fi&logoColor=ffffff&label=ko-fi&labelColor=101418&color=f16061&link=https%3A%2F%2Fko-fi.com%2Favengemediallc)](https://ko-fi.com/avengemediallc)
 
 </div>
 
-A modern Wayland desktop shell built with [Quickshell](https://quickshell.org/) and optimized for the [niri](https://github.com/YaLTeR/niri) and [Hyprland](https://hyprland.org/) compositors.
+A modern Wayland desktop shell built with [Quickshell](https://quickshell.org/) and [Go](https://go.dev/). Optimized for the [niri](https://github.com/YaLTeR/niri) and [Hyprland](https://hyprland.org/) compositors.
 
 Features notifications, app launcher, wallpaper customization, and fully customizable with [plugins](https://github.com/AvengeMedia/dms-plugin-registry).
 
@@ -20,7 +21,7 @@ Features notifications, app launcher, wallpaper customization, and fully customi
 <div align="center">
 <div style="max-width: 700px; margin: 0 auto;">
 
-https://github.com/user-attachments/assets/9b99dbbf-42d3-44ab-83b6-fae6c2aa3cc0
+https://github.com/user-attachments/assets/40d2c56e-c1c9-4671-b04f-8f8b7b83b9ec
 
 </div>
 </div>
@@ -133,7 +134,7 @@ curl -fsSL https://install.danklinux.com | sh
 
 ### Compositor Setup
 
-DankMaterialShell supports both **niri** and **Hyprland** compositors:
+DankMaterialShell particularly aims at supporting the **niri** and **Hyprland** compositors, but it does support more wayland compositors with a diminished feature set (no monitor off, workspace switcher, overview integration, etc.):
 
 **Niri**:
 ```bash
@@ -170,6 +171,9 @@ For detailed Hyprland installation instructions, see the [Hyprland wiki](https:/
 #### Arch Linux - via AUR
 
 ```bash
+# Stable release
+paru -S dms-shell-bin
+# Latest -git
 paru -S dms-shell-git
 ```
 
@@ -283,11 +287,11 @@ sudo sh -c "curl -L https://github.com/AvengeMedia/danklinux/releases/latest/dow
 **4.1 Core optional dependencies**
 ```bash
 # Arch Linux
-sudo pacman -S cava wl-clipboard cliphist brightnessctl
+sudo pacman -S cava wl-clipboard cliphist brightnessctl qt6-multimedia
 paru -S matugen-bin dgop
 
 # Fedora
-sudo dnf install cava wl-clipboard brightnessctl
+sudo dnf install cava wl-clipboard brightnessctl qt6-qtmultimedia
 sudo dnf copr enable wef/cliphist && sudo dnf install cliphist
 sudo dnf copr enable heus-sueh/packages && sudo dnf install matugen
 ```
@@ -311,6 +315,7 @@ sudo sh -c "curl -L https://github.com/AvengeMedia/dgop/releases/latest/download
 - `cava`: Audio visualizer
 - `cliphist`: Clipboard history
 - `gammastep`: Night mode support
+- `qt6-multimedia`: System sound support
 
 ## Compositor Configuration
 
@@ -659,6 +664,16 @@ cp -R ./PLUGINS/ExampleEmojiPlugin ~/.config/DankMaterialShell/plugins
 ```
 
 **Only install plugins from TRUSTED sources.** Plugins execute QML and javascript at runtime, plugins from third parties should be reviewed before enabling them in dms.
+
+### nixOS - via home-manager
+
+Add the following to your home-manager config to install a plugin:
+
+```nix
+programs.dankMaterialShell.plugins = {
+    ExampleEmojiPlugin.src = "${inputs.dankMaterialShell}/PLUGINS/ExampleEmojiPlugin";
+};
+```
 
 ### Calendar Setup
 

@@ -16,8 +16,10 @@ Singleton {
 
     readonly property bool envDisableMatugen: Quickshell.env("DMS_DISABLE_MATUGEN") === "1" || Quickshell.env("DMS_DISABLE_MATUGEN") === "true"
 
-    // ! TODO - Synchronize with niri/hyprland gaps?
-    readonly property real popupDistance: 2
+    readonly property real popupDistance: {
+        if (typeof SettingsData === "undefined") return 4
+        return SettingsData.popupGapsAuto ? Math.max(4, SettingsData.dankBarSpacing) : SettingsData.popupGapsManual
+    }
 
     property string currentTheme: "blue"
     property string currentThemeCategory: "generic"
@@ -74,7 +76,6 @@ Singleton {
     property bool qtThemingEnabled: typeof SettingsData !== "undefined" ? (SettingsData.qt5ctAvailable || SettingsData.qt6ctAvailable) : false
     property var workerRunning: false
     property var matugenColors: ({})
-    property int colorUpdateTrigger: 0
     property var customThemeData: null
 
     readonly property string stateDir: Paths.strip(StandardPaths.writableLocation(StandardPaths.CacheLocation).toString()) + "/dankshell"
@@ -84,7 +85,6 @@ Singleton {
         matugenCheck.running = true
         if (typeof SessionData !== "undefined") {
             SessionData.isLightModeChanged.connect(root.onLightModeChanged)
-            isLightMode = SessionData.isLightMode
         }
 
         if (typeof SettingsData !== "undefined" && SettingsData.currentThemeName) {
@@ -100,7 +100,6 @@ Singleton {
     }
 
     function getMatugenColor(path, fallback) {
-        colorUpdateTrigger
         const colorMode = (typeof SessionData !== "undefined" && SessionData.isLightMode) ? "light" : "dark"
         let cur = matugenColors && matugenColors.colors && matugenColors.colors[colorMode]
         for (const part of path.split(".")) {
@@ -473,6 +472,19 @@ Singleton {
         return (0.299 * c.r + 0.587 * c.g + 0.114 * c.b) < 0.5
     }
 
+    function barIconSize(barThickness, offset) {
+        const defaultOffset = offset !== undefined ? offset : -6
+        return Math.round((barThickness / 48) * (iconSize + defaultOffset))
+    }
+
+    function barTextSize(barThickness) {
+        const scale = barThickness / 48
+        const dankBarScale = (typeof SettingsData !== "undefined" ? SettingsData.dankBarFontScale : 1.0)
+        if (scale <= 0.75) return fontSizeSmall * 0.9 * dankBarScale
+        if (scale >= 1.25) return fontSizeMedium * dankBarScale
+        return fontSizeSmall * dankBarScale
+    }
+
     function getBatteryIcon(level, isCharging, batteryAvailable) {
         if (!batteryAvailable)
             return _getBatteryPowerProfileIcon()
@@ -565,10 +577,6 @@ Singleton {
 
 
     function onLightModeChanged() {
-        if (matugenColors && Object.keys(matugenColors).length > 0) {
-            colorUpdateTrigger++
-        }
-
         if (currentTheme === "custom" && customThemeFileView.path) {
             customThemeFileView.reload()
         }
@@ -590,7 +598,8 @@ Singleton {
             "mode": isLight ? "light" : "dark",
             "iconTheme": iconTheme || "System Default",
             "matugenType": matugenType || "scheme-tonal-spot",
-            "surfaceBase": (typeof SettingsData !== "undefined" && SettingsData.surfaceBase) ? SettingsData.surfaceBase : "sc"
+            "surfaceBase": (typeof SettingsData !== "undefined" && SettingsData.surfaceBase) ? SettingsData.surfaceBase : "sc",
+            "runUserTemplates": (typeof SettingsData !== "undefined") ? SettingsData.runUserMatugenTemplates : true
         }
 
         const json = JSON.stringify(desired)
@@ -602,10 +611,10 @@ Singleton {
             console.log("calling matugen worker")
             systemThemeGenerator.command = [
                 "sh", "-c",
-                `sleep 1 && ${shellDir}/scripts/matugen-worker.sh '${stateDir}' '${shellDir}' --run`
+                `sleep 1 && ${shellDir}/scripts/matugen-worker.sh '${stateDir}' '${shellDir}' '${configDir}' --run`
             ]
         } else {
-            systemThemeGenerator.command = [shellDir + "/scripts/matugen-worker.sh", stateDir, shellDir, "--run"]
+            systemThemeGenerator.command = [shellDir + "/scripts/matugen-worker.sh", stateDir, shellDir, configDir, "--run"]
         }
         systemThemeGenerator.running = true
     }
@@ -679,8 +688,67 @@ Singleton {
     function withAlpha(c, a) { return Qt.rgba(c.r, c.g, c.b, a); }
 
     function snap(value, dpr) {
-        return Math.round(value * dpr) / dpr
+        const s = dpr || 1
+        return Math.round(value * s) / s
     }
+
+    function px(value, dpr) {
+        const s = dpr || 1
+        return Math.round(value * s) / s
+    }
+
+    function hairline(dpr) {
+        return 1 / (dpr || 1)
+    }
+
+    function invertHex(hex) {
+        hex = hex.replace('#', '');
+
+        if (!/^[0-9A-Fa-f]{6}$/.test(hex)) {
+            return hex;
+        }
+
+        const r = parseInt(hex.substr(0, 2), 16);
+        const g = parseInt(hex.substr(2, 2), 16);
+        const b = parseInt(hex.substr(4, 2), 16);
+
+        const invR = (255 - r).toString(16).padStart(2, '0');
+        const invG = (255 - g).toString(16).padStart(2, '0');
+        const invB = (255 - b).toString(16).padStart(2, '0');
+
+        return `#${invR}${invG}${invB}`;
+    }
+
+    property string baseLogoColor: {
+        if (typeof SettingsData === "undefined") return ""
+        const colorOverride = SettingsData.launcherLogoColorOverride
+        if (!colorOverride || colorOverride === "") return ""
+        if (colorOverride === "primary") return primary
+        if (colorOverride === "surface") return surfaceText
+        return colorOverride
+    }
+
+    property string effectiveLogoColor: {
+        if (typeof SettingsData === "undefined") return ""
+
+        const colorOverride = SettingsData.launcherLogoColorOverride
+        if (!colorOverride || colorOverride === "") return ""
+
+        if (colorOverride === "primary") return primary
+        if (colorOverride === "surface") return surfaceText
+
+        if (!SettingsData.launcherLogoColorInvertOnMode) {
+            return colorOverride
+        }
+
+        if (isLightMode) {
+            return invertHex(colorOverride)
+        }
+
+        return colorOverride
+    }
+
+
 
     Process {
         id: matugenCheck
@@ -843,7 +911,6 @@ Singleton {
                 const colorsText = dynamicColorsFileView.text()
                 if (colorsText) {
                     root.matugenColors = JSON.parse(colorsText)
-                    root.colorUpdateTrigger++
                     if (typeof ToastService !== "undefined") {
                         ToastService.clearWallpaperError()
                     }

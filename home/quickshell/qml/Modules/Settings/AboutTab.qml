@@ -248,7 +248,7 @@ Item {
                         }
 
                         StyledText {
-                            text: "About"
+                            text: I18n.tr("About")
                             font.pixelSize: Theme.fontSizeLarge
                             font.weight: Font.Medium
                             color: Theme.surfaceText
@@ -258,7 +258,7 @@ Item {
 
                     StyledText {
                         text: `dms is a highly customizable, modern desktop shell with a <a href="https://m3.material.io/" style="text-decoration:none; color:${Theme.primary};">material 3 inspired</a> design.
-                        <br /><br/>It is built on top of <a href="https://quickshell.org" style="text-decoration:none; color:${Theme.primary};">Quickshell</a>, a QT6 framework for building desktop shells.
+                        <br /><br/>It is built with <a href="https://quickshell.org" style="text-decoration:none; color:${Theme.primary};">Quickshell</a>, a QT6 framework for building desktop shells, and <a href="https://go.dev" style="text-decoration:none; color:${Theme.primary};">Go</a>, a statically typed, compiled programming language.
                         `
                         textFormat: Text.RichText
                         font.pixelSize: Theme.fontSizeMedium
@@ -307,7 +307,7 @@ Item {
                         }
 
                         StyledText {
-                            text: "Technical Details"
+                            text: I18n.tr("Technical Details")
                             font.pixelSize: Theme.fontSizeLarge
                             font.weight: Font.Medium
                             color: Theme.surfaceText
@@ -322,7 +322,7 @@ Item {
                         rowSpacing: Theme.spacingS
 
                         StyledText {
-                            text: "Framework:"
+                            text: I18n.tr("Framework:")
                             font.pixelSize: Theme.fontSizeMedium
                             font.weight: Font.Medium
                             color: Theme.surfaceText
@@ -345,20 +345,20 @@ Item {
                         }
 
                         StyledText {
-                            text: "Language:"
+                            text: I18n.tr("Language:")
                             font.pixelSize: Theme.fontSizeMedium
                             font.weight: Font.Medium
                             color: Theme.surfaceText
                         }
 
                         StyledText {
-                            text: "QML (Qt Modeling Language)"
+                            text: I18n.tr("QML, JavaScript, Go")
                             font.pixelSize: Theme.fontSizeMedium
                             color: Theme.surfaceVariantText
                         }
 
                         StyledText {
-                            text: "Compositor:"
+                            text: I18n.tr("Compositor:")
                             font.pixelSize: Theme.fontSizeMedium
                             font.weight: Font.Medium
                             color: Theme.surfaceText
@@ -410,7 +410,7 @@ Item {
                         }
 
                         StyledText {
-                            text: "Github:"
+                            text: I18n.tr("Github:")
                             font.pixelSize: Theme.fontSizeMedium
                             font.weight: Font.Medium
                             color: Theme.surfaceText
@@ -437,7 +437,7 @@ Item {
                             }
                             
                             StyledText {
-                                text: "- Support Us With a Star ⭐"
+                                text: I18n.tr("- Support Us With a Star ⭐")
                                 font.pixelSize: Theme.fontSizeMedium
                                 color: Theme.surfaceVariantText
                                 anchors.verticalCenter: parent.verticalCenter
@@ -445,7 +445,7 @@ Item {
                         }
 
                         StyledText {
-                            text: "System Monitoring:"
+                            text: I18n.tr("System Monitoring:")
                             font.pixelSize: Theme.fontSizeMedium
                             font.weight: Font.Medium
                             color: Theme.surfaceText
@@ -472,7 +472,7 @@ Item {
                             }
                             
                             StyledText {
-                                text: "- Stateless System Monitoring"
+                                text: I18n.tr("- Stateless System Monitoring")
                                 font.pixelSize: Theme.fontSizeMedium
                                 color: Theme.surfaceVariantText
                                 anchors.verticalCenter: parent.verticalCenter
@@ -480,7 +480,7 @@ Item {
                         }
 
                         StyledText {
-                            text: "Dank Suite:"
+                            text: I18n.tr("Dank Suite:")
                             font.pixelSize: Theme.fontSizeMedium
                             font.weight: Font.Medium
                             color: Theme.surfaceText

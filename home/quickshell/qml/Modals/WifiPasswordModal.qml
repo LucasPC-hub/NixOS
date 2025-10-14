@@ -9,33 +9,70 @@ DankModal {
 
     property string wifiPasswordSSID: ""
     property string wifiPasswordInput: ""
+    property string wifiUsernameInput: ""
+    property bool requiresEnterprise: false
+
+    property string wifiRealmInput: ""
+    property bool wifiUseAtRealm: true
+    property string wifiAnonymousIdentityInput: ""
+    property string wifiDomainSuffixMatchInput: ""
 
     function show(ssid) {
         wifiPasswordSSID = ssid
         wifiPasswordInput = ""
+        wifiUsernameInput = ""
+        wifiRealmInput = ""
+        wifiUseAtRealm = true
+        wifiAnonymousIdentityInput = ""
+        wifiDomainSuffixMatchInput = ""
+
+        const network = NetworkService.wifiNetworks.find(n => n.ssid === ssid)
+        requiresEnterprise = network?.enterprise || false
+
         open()
         Qt.callLater(() => {
-                         if (contentLoader.item && contentLoader.item.passwordInput)
-                         contentLoader.item.passwordInput.forceActiveFocus()
+                         if (contentLoader.item) {
+                             if (requiresEnterprise && contentLoader.item.usernameInput) {
+                                 contentLoader.item.usernameInput.forceActiveFocus()
+                             } else if (contentLoader.item.passwordInput) {
+                                 contentLoader.item.passwordInput.forceActiveFocus()
+                             }
+                         }
                      })
     }
 
     shouldBeVisible: false
     width: 420
-    height: 230
+    height: requiresEnterprise ? 520 : 230
     onShouldBeVisibleChanged: () => {
-                                  if (!shouldBeVisible)
-                                  wifiPasswordInput = ""
+                                  if (!shouldBeVisible) {
+                                      wifiPasswordInput = ""
+                                      wifiUsernameInput = ""
+                                      wifiRealmInput = ""
+                                      wifiUseAtRealm = true
+                                      wifiAnonymousIdentityInput = ""
+                                      wifiDomainSuffixMatchInput = ""
+                                  }
                               }
     onOpened: {
         Qt.callLater(() => {
-                         if (contentLoader.item && contentLoader.item.passwordInput)
-                         contentLoader.item.passwordInput.forceActiveFocus()
+                         if (contentLoader.item) {
+                             if (requiresEnterprise && contentLoader.item.usernameInput) {
+                                 contentLoader.item.usernameInput.forceActiveFocus()
+                             } else if (contentLoader.item.passwordInput) {
+                                 contentLoader.item.passwordInput.forceActiveFocus()
+                             }
+                         }
                      })
     }
     onBackgroundClicked: () => {
                              close()
                              wifiPasswordInput = ""
+                             wifiUsernameInput = ""
+                             wifiRealmInput = ""
+                             wifiUseAtRealm = true
+                             wifiAnonymousIdentityInput = ""
+                             wifiDomainSuffixMatchInput = ""
                          }
 
     Connections {
@@ -55,6 +92,7 @@ DankModal {
         FocusScope {
             id: wifiContent
 
+            property alias usernameInput: usernameInput
             property alias passwordInput: passwordInput
 
             anchors.fill: parent
@@ -62,6 +100,11 @@ DankModal {
             Keys.onEscapePressed: event => {
                                       close()
                                       wifiPasswordInput = ""
+                                      wifiUsernameInput = ""
+                                      wifiRealmInput = ""
+                                      wifiUseAtRealm = true
+                                      wifiAnonymousIdentityInput = ""
+                                      wifiDomainSuffixMatchInput = ""
                                       event.accepted = true
                                   }
 
@@ -78,14 +121,14 @@ DankModal {
                         spacing: Theme.spacingXS
 
                         StyledText {
-                            text: "Connect to Wi-Fi"
+                            text: I18n.tr("Connect to Wi-Fi")
                             font.pixelSize: Theme.fontSizeLarge
                             color: Theme.surfaceText
                             font.weight: Font.Medium
                         }
 
                         StyledText {
-                            text: `Enter password for "${wifiPasswordSSID}"`
+                            text: requiresEnterprise ? I18n.tr("Enter credentials for ") + wifiPasswordSSID : I18n.tr("Enter password for ") + wifiPasswordSSID
                             font.pixelSize: Theme.fontSizeMedium
                             color: Theme.surfaceTextMedium
                             width: parent.width
@@ -100,7 +143,45 @@ DankModal {
                         onClicked: () => {
                                        close()
                                        wifiPasswordInput = ""
+                                       wifiUsernameInput = ""
                                    }
+                    }
+                }
+
+                Rectangle {
+                    width: parent.width
+                    height: 50
+                    radius: Theme.cornerRadius
+                    color: Theme.surfaceHover
+                    border.color: usernameInput.activeFocus ? Theme.primary : Theme.outlineStrong
+                    border.width: usernameInput.activeFocus ? 2 : 1
+                    visible: requiresEnterprise
+
+                    MouseArea {
+                        anchors.fill: parent
+                        onClicked: () => {
+                                       usernameInput.forceActiveFocus()
+                                   }
+                    }
+
+                    DankTextField {
+                        id: usernameInput
+
+                        anchors.fill: parent
+                        font.pixelSize: Theme.fontSizeMedium
+                        textColor: Theme.surfaceText
+                        text: wifiUsernameInput
+                        placeholderText: I18n.tr("Username")
+                        backgroundColor: "transparent"
+                        enabled: root.shouldBeVisible
+                        onTextEdited: () => {
+                                          wifiUsernameInput = text
+                                      }
+                        onAccepted: () => {
+                                        if (passwordInput) {
+                                            passwordInput.forceActiveFocus()
+                                        }
+                                    }
                     }
                 }
 
@@ -127,21 +208,36 @@ DankModal {
                         textColor: Theme.surfaceText
                         text: wifiPasswordInput
                         echoMode: showPasswordCheckbox.checked ? TextInput.Normal : TextInput.Password
-                        placeholderText: ""
+                        placeholderText: requiresEnterprise ? I18n.tr("Password") : ""
                         backgroundColor: "transparent"
-                        focus: true
+                        focus: !requiresEnterprise
                         enabled: root.shouldBeVisible
                         onTextEdited: () => {
                                           wifiPasswordInput = text
                                       }
                         onAccepted: () => {
-                                        NetworkService.connectToWifi(wifiPasswordSSID, passwordInput.text)
+                                        const username = requiresEnterprise ? usernameInput.text : ""
+                                        NetworkService.connectToWifi(
+                                            wifiPasswordSSID,
+                                            passwordInput.text,
+                                            username,
+                                            wifiRealmInput,
+                                            wifiUseAtRealm,
+                                            wifiAnonymousIdentityInput,
+                                            wifiDomainSuffixMatchInput
+                                        )
                                         close()
                                         wifiPasswordInput = ""
+                                        wifiUsernameInput = ""
+                                        wifiRealmInput = ""
+                                        wifiUseAtRealm = true
+                                        wifiAnonymousIdentityInput = ""
+                                        wifiDomainSuffixMatchInput = ""
                                         passwordInput.text = ""
+                                        if (requiresEnterprise) usernameInput.text = ""
                                     }
                         Component.onCompleted: () => {
-                                                   if (root.shouldBeVisible)
+                                                   if (root.shouldBeVisible && !requiresEnterprise)
                                                    focusDelayTimer.start()
                                                }
 
@@ -151,8 +247,13 @@ DankModal {
                             interval: 100
                             repeat: false
                             onTriggered: () => {
-                                             if (root.shouldBeVisible)
-                                             passwordInput.forceActiveFocus()
+                                             if (root.shouldBeVisible) {
+                                                 if (requiresEnterprise && usernameInput) {
+                                                     usernameInput.forceActiveFocus()
+                                                 } else {
+                                                     passwordInput.forceActiveFocus()
+                                                 }
+                                             }
                                          }
                         }
 
@@ -164,6 +265,164 @@ DankModal {
                                     focusDelayTimer.start()
                             }
                         }
+                    }
+                }
+
+                Rectangle {
+                    visible: requiresEnterprise
+                    width: parent.width
+                    height: 50
+                    radius: Theme.cornerRadius
+                    color: Theme.surfaceHover
+                    border.color: realmInput.activeFocus ? Theme.primary : Theme.outlineStrong
+                    border.width: realmInput.activeFocus ? 2 : 1
+
+                    MouseArea {
+                        anchors.fill: parent
+                        onClicked: () => {
+                                       realmInput.forceActiveFocus()
+                                   }
+                    }
+
+                    DankTextField {
+                        id: realmInput
+
+                        anchors.fill: parent
+                        font.pixelSize: Theme.fontSizeMedium
+                        textColor: Theme.surfaceText
+                        text: wifiRealmInput
+                        placeholderText: I18n.tr("Realm / Domain (optional)")
+                        backgroundColor: "transparent"
+                        enabled: root.shouldBeVisible
+                        onTextEdited: () => {
+                                          wifiRealmInput = text
+                                      }
+                    }
+                }
+
+                Row {
+                    visible: requiresEnterprise
+                    spacing: Theme.spacingM
+                    width: parent.width
+
+                    Rectangle {
+                        id: atRealmBtn
+
+                        height: 36
+                        width: (parent.width - Theme.spacingM) / 2
+                        radius: Theme.cornerRadius
+                        color: wifiUseAtRealm ? Theme.primary : Theme.surfaceHover
+                        border.color: wifiUseAtRealm ? Theme.primary : Theme.outlineStrong
+                        border.width: 1
+
+                        MouseArea {
+                            anchors.fill: parent
+                            hoverEnabled: true
+                            cursorShape: Qt.PointingHandCursor
+                            onClicked: () => {
+                                           wifiUseAtRealm = true
+                                       }
+                        }
+
+                        StyledText {
+                            anchors.centerIn: parent
+                            text: "username@realm"
+                            color: wifiUseAtRealm ? Theme.background : Theme.surfaceText
+                            font.pixelSize: Theme.fontSizeMedium
+                            font.weight: Font.Medium
+                        }
+                    }
+
+                    Rectangle {
+                        id: domainSlashBtn
+
+                        height: 36
+                        width: (parent.width - Theme.spacingM) / 2
+                        radius: Theme.cornerRadius
+                        color: !wifiUseAtRealm ? Theme.primary : Theme.surfaceHover
+                        border.color: !wifiUseAtRealm ? Theme.primary : Theme.outlineStrong
+                        border.width: 1
+
+                        MouseArea {
+                            anchors.fill: parent
+                            hoverEnabled: true
+                            cursorShape: Qt.PointingHandCursor
+                            onClicked: () => {
+                                           wifiUseAtRealm = false
+                                       }
+                        }
+
+                        StyledText {
+                            anchors.centerIn: parent
+                            text: "DOMAIN\\username"
+                            color: !wifiUseAtRealm ? Theme.background : Theme.surfaceText
+                            font.pixelSize: Theme.fontSizeMedium
+                            font.weight: Font.Medium
+                        }
+                    }
+                }
+
+                Rectangle {
+                    visible: requiresEnterprise
+                    width: parent.width
+                    height: 50
+                    radius: Theme.cornerRadius
+                    color: Theme.surfaceHover
+                    border.color: anonInput.activeFocus ? Theme.primary : Theme.outlineStrong
+                    border.width: anonInput.activeFocus ? 2 : 1
+
+                    MouseArea {
+                        anchors.fill: parent
+                        onClicked: () => {
+                                       anonInput.forceActiveFocus()
+                                   }
+                    }
+
+                    DankTextField {
+                        id: anonInput
+
+                        anchors.fill: parent
+                        font.pixelSize: Theme.fontSizeMedium
+                        textColor: Theme.surfaceText
+                        text: wifiAnonymousIdentityInput
+                        placeholderText: I18n.tr("Anonymous Identity (optional)")
+                        backgroundColor: "transparent"
+                        enabled: root.shouldBeVisible
+                        onTextEdited: () => {
+                                          wifiAnonymousIdentityInput = text
+                                      }
+                    }
+                }
+
+                Rectangle {
+                    visible: requiresEnterprise
+                    width: parent.width
+                    height: 50
+                    radius: Theme.cornerRadius
+                    color: Theme.surfaceHover
+                    border.color: domainMatchInput.activeFocus ? Theme.primary : Theme.outlineStrong
+                    border.width: domainMatchInput.activeFocus ? 2 : 1
+
+                    MouseArea {
+                        anchors.fill: parent
+                        onClicked: () => {
+                                       domainMatchInput.forceActiveFocus()
+                                   }
+                    }
+
+                    DankTextField {
+                        id: domainMatchInput
+
+                        anchors.fill: parent
+                        font.pixelSize: Theme.fontSizeMedium
+                        textColor: Theme.surfaceText
+                        text: wifiDomainSuffixMatchInput
+                        placeholderText: I18n.tr("Server Domain for certificate (optional)")
+                        backgroundColor: "transparent"
+                        enabled: root.shouldBeVisible
+                        onTextEdited: () => {
+                                          wifiDomainSuffixMatchInput = text
+                                      }
                     }
                 }
 
@@ -201,7 +460,7 @@ DankModal {
                     }
 
                     StyledText {
-                        text: "Show password"
+                        text: I18n.tr("Show password")
                         font.pixelSize: Theme.fontSizeMedium
                         color: Theme.surfaceText
                         anchors.verticalCenter: parent.verticalCenter
@@ -229,7 +488,7 @@ DankModal {
                                 id: cancelText
 
                                 anchors.centerIn: parent
-                                text: "Cancel"
+                                text: I18n.tr("Cancel")
                                 font.pixelSize: Theme.fontSizeMedium
                                 color: Theme.surfaceText
                                 font.weight: Font.Medium
@@ -244,6 +503,11 @@ DankModal {
                                 onClicked: () => {
                                                close()
                                                wifiPasswordInput = ""
+                                               wifiUsernameInput = ""
+                                               wifiRealmInput = ""
+                                               wifiUseAtRealm = true
+                                               wifiAnonymousIdentityInput = ""
+                                               wifiDomainSuffixMatchInput = ""
                                            }
                             }
                         }
@@ -253,14 +517,14 @@ DankModal {
                             height: 36
                             radius: Theme.cornerRadius
                             color: connectArea.containsMouse ? Qt.darker(Theme.primary, 1.1) : Theme.primary
-                            enabled: passwordInput.text.length > 0
+                            enabled: requiresEnterprise ? (usernameInput.text.length > 0 && passwordInput.text.length > 0) : passwordInput.text.length > 0
                             opacity: enabled ? 1 : 0.5
 
                             StyledText {
                                 id: connectText
 
                                 anchors.centerIn: parent
-                                text: "Connect"
+                                text: I18n.tr("Connect")
                                 font.pixelSize: Theme.fontSizeMedium
                                 color: Theme.background
                                 font.weight: Font.Medium
@@ -274,10 +538,25 @@ DankModal {
                                 cursorShape: Qt.PointingHandCursor
                                 enabled: parent.enabled
                                 onClicked: () => {
-                                               NetworkService.connectToWifi(wifiPasswordSSID, passwordInput.text)
+                                               const username = requiresEnterprise ? usernameInput.text : ""
+                                               NetworkService.connectToWifi(
+                                                   wifiPasswordSSID,
+                                                   passwordInput.text,
+                                                   username,
+                                                   wifiRealmInput,
+                                                   wifiUseAtRealm,
+                                                   wifiAnonymousIdentityInput,
+                                                   wifiDomainSuffixMatchInput
+                                               )
                                                close()
                                                wifiPasswordInput = ""
+                                               wifiUsernameInput = ""
+                                               wifiRealmInput = ""
+                                               wifiUseAtRealm = true
+                                               wifiAnonymousIdentityInput = ""
+                                               wifiDomainSuffixMatchInput = ""
                                                passwordInput.text = ""
+                                               if (requiresEnterprise) usernameInput.text = ""
                                            }
                             }
 

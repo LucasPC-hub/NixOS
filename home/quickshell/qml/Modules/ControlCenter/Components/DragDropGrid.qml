@@ -176,6 +176,22 @@ Column {
     }
 
     Component {
+        id: errorPillComponent
+        ErrorPill {
+            property var widgetData: parent.widgetData || {}
+            width: parent.width
+            height: 60
+            primaryMessage: {
+                if (!DMSService.dmsAvailable) {
+                    return I18n.tr("DMS_SOCKET not available")
+                }
+                return I18n.tr("NM not supported")
+            }
+            secondaryMessage: I18n.tr("update dms for NM integration.")
+        }
+    }
+
+    Component {
         id: compoundPillComponent
         CompoundPill {
             property var widgetData: parent.widgetData || {}
@@ -584,6 +600,7 @@ Column {
                 }
                 case "darkMode":
                 {
+                    Theme.screenTransition()
                     Theme.setLightMode(!SessionData.isLightMode)
                     break
                 }
@@ -663,6 +680,7 @@ Column {
                 }
                 case "darkMode":
                 {
+                    Theme.screenTransition()
                     Theme.setLightMode(!SessionData.isLightMode)
                     break
                 }
@@ -721,12 +739,16 @@ Column {
             width: parent.width
             height: 60
 
-            property var builtinInstance: {
+            property var builtinInstance: null
+
+            Component.onCompleted: {
                 const id = widgetData.id || ""
                 if (id === "builtin_vpn") {
-                    return root.model?.vpnBuiltinInstance
+                    if (root.model?.vpnLoader) {
+                        root.model.vpnLoader.active = true
+                    }
+                    builtinInstance = Qt.binding(() => root.model?.vpnBuiltinInstance)
                 }
-                return null
             }
 
             sourceComponent: {

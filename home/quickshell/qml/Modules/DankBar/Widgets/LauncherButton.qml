@@ -1,4 +1,7 @@
 import QtQuick
+import QtQuick.Effects
+import Quickshell
+import Quickshell.Widgets
 import qs.Common
 import qs.Services
 import qs.Widgets
@@ -27,8 +30,15 @@ Item {
         anchors.fill: parent
         hoverEnabled: true
         cursorShape: Qt.PointingHandCursor
-        acceptedButtons: Qt.LeftButton
-        onPressed: {
+        acceptedButtons: Qt.LeftButton | Qt.RightButton
+        onPressed: function (mouse){
+            if (mouse.button === Qt.RightButton) {
+                if (CompositorService.isNiri) {
+                    NiriService.toggleOverview()
+                }
+                return
+            }
+            
             root.clicked();
             if (popupTarget && popupTarget.setTriggerPosition) {
                 const globalPos = mapToGlobal(0, 0);
@@ -53,22 +63,65 @@ Item {
             return Qt.rgba(baseColor.r, baseColor.g, baseColor.b, baseColor.a * Theme.widgetTransparency);
         }
 
-        SystemLogo {
-            visible: SettingsData.useOSLogo
-            anchors.centerIn: parent
-            width: Theme.iconSize - 3
-            height: Theme.iconSize - 3
-            colorOverride: SettingsData.osLogoColorOverride
-            brightnessOverride: SettingsData.osLogoBrightness
-            contrastOverride: SettingsData.osLogoContrast
-        }
-
         DankIcon {
-            visible: !SettingsData.useOSLogo
+            visible: SettingsData.launcherLogoMode === "apps"
             anchors.centerIn: parent
             name: "apps"
-            size: Theme.iconSize - 6
+            size: Theme.barIconSize(barThickness, -4)
             color: Theme.surfaceText
+        }
+
+        SystemLogo {
+            visible: SettingsData.launcherLogoMode === "os"
+            anchors.centerIn: parent
+            width: Theme.barIconSize(barThickness, SettingsData.launcherLogoSizeOffset)
+            height: Theme.barIconSize(barThickness, SettingsData.launcherLogoSizeOffset)
+            colorOverride: Theme.effectiveLogoColor
+            brightnessOverride: SettingsData.launcherLogoBrightness
+            contrastOverride: SettingsData.launcherLogoContrast
+        }
+
+        IconImage {
+            visible: SettingsData.launcherLogoMode === "compositor"
+            anchors.centerIn: parent
+            width: Theme.barIconSize(barThickness, SettingsData.launcherLogoSizeOffset)
+            height: Theme.barIconSize(barThickness, SettingsData.launcherLogoSizeOffset)
+            smooth: true
+            asynchronous: true
+            source: {
+                if (CompositorService.isNiri) {
+                    return "file://" + Theme.shellDir + "/assets/niri.svg"
+                } else if (CompositorService.isHyprland) {
+                    return "file://" + Theme.shellDir + "/assets/hyprland.svg"
+                }
+                return ""
+            }
+            layer.enabled: Theme.effectiveLogoColor !== ""
+            layer.effect: MultiEffect {
+                saturation: 0
+                colorization: 1
+                colorizationColor: Theme.effectiveLogoColor
+                brightness: SettingsData.launcherLogoBrightness
+                contrast: SettingsData.launcherLogoContrast
+            }
+        }
+
+        IconImage {
+            visible: SettingsData.launcherLogoMode === "custom" && SettingsData.launcherLogoCustomPath !== ""
+            anchors.centerIn: parent
+            width: Theme.barIconSize(barThickness, SettingsData.launcherLogoSizeOffset)
+            height: Theme.barIconSize(barThickness, SettingsData.launcherLogoSizeOffset)
+            smooth: true
+            asynchronous: true
+            source: SettingsData.launcherLogoCustomPath ? "file://" + SettingsData.launcherLogoCustomPath.replace("file://", "") : ""
+            layer.enabled: Theme.effectiveLogoColor !== ""
+            layer.effect: MultiEffect {
+                saturation: 0
+                colorization: 1
+                colorizationColor: Theme.effectiveLogoColor
+                brightness: SettingsData.launcherLogoBrightness
+                contrast: SettingsData.launcherLogoContrast
+            }
         }
     }
 }

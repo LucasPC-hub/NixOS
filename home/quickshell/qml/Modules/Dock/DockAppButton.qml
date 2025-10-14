@@ -316,14 +316,27 @@ Item {
                                        console.warn("No toplevel found for grouped app")
                                    }
                                } else {
-                                   // For multiple windows, show context menu (hide pin option for left-click)
                                    if (contextMenu) {
-                                       contextMenu.showForButton(root, appData, 65, true)
+                                       contextMenu.showForButton(root, appData, 65, true, cachedDesktopEntry)
                                    }
                                }
                            }
                        } else if (mouse.button === Qt.MiddleButton) {
-                           if (appData && appData.appId) {
+                           if (appData && appData.type === "window") {
+                               const sortedToplevels = CompositorService.sortedToplevels
+                               for (var i = 0; i < sortedToplevels.length; i++) {
+                                   const toplevel = sortedToplevels[i]
+                                   const checkId = toplevel.title + "|" + (toplevel.appId || "") + "|" + i
+                                   if (checkId === appData.uniqueId) {
+                                       toplevel.close()
+                                       break
+                                   }
+                               }
+                           } else if (appData && appData.type === "grouped") {
+                               if (contextMenu) {
+                                   contextMenu.showForButton(root, appData, 40, false, cachedDesktopEntry)
+                               }
+                           } else if (appData && appData.appId) {
                                const desktopEntry = cachedDesktopEntry
                                if (desktopEntry) {
                                    AppUsageHistoryData.addAppUsage({
@@ -334,12 +347,11 @@ Item {
                                                                        "comment": desktopEntry.comment || ""
                                                                    })
                                }
-                             SessionService.launchDesktopEntry(desktopEntry)
+                               SessionService.launchDesktopEntry(desktopEntry)
                            }
                        } else if (mouse.button === Qt.RightButton) {
                            if (contextMenu && appData) {
-                               console.log("Right-clicked on app:", appData.appId, "type:", appData.type, "windowCount:", appData.windowCount || 0)
-                               contextMenu.showForButton(root, appData, 40, false)
+                               contextMenu.showForButton(root, appData, 40, false, cachedDesktopEntry)
                            } else {
                                console.warn("No context menu or appData available")
                            }

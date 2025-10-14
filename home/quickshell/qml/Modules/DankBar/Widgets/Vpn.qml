@@ -7,6 +7,10 @@ import qs.Widgets
 Rectangle {
     id: root
 
+    Ref {
+        service: VpnService
+    }
+
     property bool isVertical: axis?.isVertical ?? false
     property var axis: null
     property int widgetThickness: 28
@@ -34,7 +38,7 @@ Rectangle {
         id: icon
 
         name: VpnService.isBusy ? "sync" : (VpnService.connected ? "vpn_lock" : "vpn_key_off")
-        size: Theme.iconSize - 6
+        size: Theme.barIconSize(barThickness, -4)
         color: VpnService.connected ? Theme.primary : Theme.surfaceText
         anchors.centerIn: parent
     }

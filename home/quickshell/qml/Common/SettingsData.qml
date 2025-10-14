@@ -33,6 +33,7 @@ Singleton {
     property string currentThemeName: "blue"
     property string customThemeFile: ""
     property string matugenScheme: "scheme-tonal-spot"
+    property bool runUserMatugenTemplates: true
     property real dankBarTransparency: 1.0
     property real dankBarWidgetTransparency: 1.0
     property real popupTransparency: 1.0
@@ -96,6 +97,7 @@ Singleton {
     property alias dankBarRightWidgetsModel: rightWidgetsModel
     property string appLauncherViewMode: "list"
     property string spotlightModalViewMode: "list"
+    property bool sortAppsAlphabetically: false
     property string networkPreference: "auto"
     property string iconTheme: "System Default"
     property var availableIconThemes: ["System Default"]
@@ -103,21 +105,29 @@ Singleton {
     property bool qt5ctAvailable: false
     property bool qt6ctAvailable: false
     property bool gtkAvailable: false
-    property bool useOSLogo: false
-    property string osLogoColorOverride: ""
-    property real osLogoBrightness: 0.5
-    property real osLogoContrast: 1
+    property string launcherLogoMode: "apps"
+    property string launcherLogoCustomPath: ""
+    property string launcherLogoColorOverride: ""
+    property bool launcherLogoColorInvertOnMode: false
+    property real launcherLogoBrightness: 0.5
+    property real launcherLogoContrast: 1
+    property int launcherLogoSizeOffset: 0
     property bool weatherEnabled: true
     property string fontFamily: "Inter Variable"
     property string monoFontFamily: "Fira Code"
     property int fontWeight: Font.Normal
     property real fontScale: 1.0
+    property real dankBarFontScale: 1.0
     property bool notepadUseMonospace: true
     property string notepadFontFamily: ""
     property real notepadFontSize: 14
     property bool notepadShowLineNumbers: false
     property real notepadTransparencyOverride: -1
     property real notepadLastCustomTransparency: 0.7
+    property bool soundsEnabled: true
+    property bool soundNewNotification: true
+    property bool soundVolumeChanged: true
+    property bool soundPluggedIn: true
 
     onNotepadUseMonospaceChanged: saveSettings()
     onNotepadFontFamilyChanged: saveSettings()
@@ -151,9 +161,22 @@ Singleton {
     property bool dankBarNoBackground: false
     property bool dankBarGothCornersEnabled: false
     property bool dankBarBorderEnabled: false
+    property string dankBarBorderColor: "surfaceText"
+    property real dankBarBorderOpacity: 1.0
+    property real dankBarBorderThickness: 1
+    property bool popupGapsAuto: true
+    property int popupGapsManual: 4
+
+    onDankBarBorderColorChanged: saveSettings()
+    onDankBarBorderOpacityChanged: saveSettings()
+    onDankBarBorderThicknessChanged: saveSettings()
+
     property int dankBarPosition: SettingsData.Position.Top
     property bool dankBarIsVertical: dankBarPosition === SettingsData.Position.Left || dankBarPosition === SettingsData.Position.Right
     property bool lockScreenShowPowerActions: true
+    property bool enableFprint: false
+    property int maxFprintTries: 3
+    property bool fprintdAvailable: false
     property bool hideBrightnessSlider: false
     property string widgetBackgroundColor: "sch"
     property string surfaceBase: "s"
@@ -162,6 +185,9 @@ Singleton {
     property int notificationTimeoutCritical: 0
     property int notificationPopupPosition: SettingsData.Position.Top
     property bool osdAlwaysShowValue: false
+    property bool updaterUseCustomCommand: false
+    property string updaterCustomCommand: ""
+    property string updaterTerminalAdditionalParams: ""
     property var screenPreferences: ({})
     property int animationSpeed: SettingsData.AnimationSpeed.Short
     readonly property string defaultFontFamily: "Inter Variable"
@@ -169,6 +195,7 @@ Singleton {
     readonly property string _homeUrl: StandardPaths.writableLocation(StandardPaths.HomeLocation)
     readonly property string _configUrl: StandardPaths.writableLocation(StandardPaths.ConfigLocation)
     readonly property string _configDir: Paths.strip(_configUrl)
+    readonly property string pluginSettingsPath: _configDir + "/DankMaterialShell/plugin_settings.json"
 
     signal forceDankBarLayoutRefresh
     signal forceDockLayoutRefresh
@@ -176,6 +203,7 @@ Singleton {
     signal workspaceIconsUpdated
 
     property bool _loading: false
+    property bool _pluginSettingsLoading: false
 
     property var pluginSettings: ({})
 
@@ -204,7 +232,8 @@ Singleton {
             "size": 20,
             "selectedGpuIndex": 0,
             "pciId": "",
-            "mountPath": "/"
+            "mountPath": "/",
+            "minimumWidth": true
         }
         leftWidgetsModel.append(dummyItem)
         centerWidgetsModel.append(dummyItem)
@@ -219,13 +248,41 @@ Singleton {
         _loading = true
         parseSettings(settingsFile.text())
         _loading = false
+        loadPluginSettings()
+    }
+
+    function loadPluginSettings() {
+        _pluginSettingsLoading = true
+        parsePluginSettings(pluginSettingsFile.text())
+        _pluginSettingsLoading = false
+    }
+
+    function parsePluginSettings(content) {
+        _pluginSettingsLoading = true
+        try {
+            if (content && content.trim()) {
+                pluginSettings = JSON.parse(content)
+            } else {
+                pluginSettings = {}
+            }
+        } catch (e) {
+            console.warn("SettingsData: Failed to parse plugin settings:", e.message)
+            pluginSettings = {}
+        } finally {
+            _pluginSettingsLoading = false
+        }
     }
 
     function parseSettings(content) {
         _loading = true
+        var shouldMigrate = false
         try {
             if (content && content.trim()) {
                 var settings = JSON.parse(content)
+                if (settings.pluginSettings !== undefined) {
+                    pluginSettings = settings.pluginSettings
+                    shouldMigrate = true
+                }
                 // Auto-migrate from old theme system
                 if (settings.themeIndex !== undefined || settings.themeIsDynamic !== undefined) {
                     const themeNames = ["blue", "deepBlue", "purple", "green", "orange", "red", "cyan", "pink", "amber", "coral"]
@@ -240,6 +297,7 @@ Singleton {
                 }
                 customThemeFile = settings.customThemeFile !== undefined ? settings.customThemeFile : ""
                 matugenScheme = settings.matugenScheme !== undefined ? settings.matugenScheme : "scheme-tonal-spot"
+                runUserMatugenTemplates = settings.runUserMatugenTemplates !== undefined ? settings.runUserMatugenTemplates : true
                 dankBarTransparency = settings.dankBarTransparency !== undefined ? (settings.dankBarTransparency > 1 ? settings.dankBarTransparency / 100 : settings.dankBarTransparency) : (settings.topBarTransparency !== undefined ? (settings.topBarTransparency > 1 ? settings.topBarTransparency / 100 : settings.topBarTransparency) : 1.0)
                 dankBarWidgetTransparency = settings.dankBarWidgetTransparency !== undefined ? (settings.dankBarWidgetTransparency > 1 ? settings.dankBarWidgetTransparency / 100 : settings.dankBarWidgetTransparency) : (settings.topBarWidgetTransparency !== undefined ? (settings.topBarWidgetTransparency > 1 ? settings.topBarWidgetTransparency / 100 : settings.topBarWidgetTransparency) : 1.0)
                 popupTransparency = settings.popupTransparency !== undefined ? (settings.popupTransparency > 1 ? settings.popupTransparency / 100 : settings.popupTransparency) : 1.0
@@ -319,22 +377,38 @@ Singleton {
                 }
                 appLauncherViewMode = settings.appLauncherViewMode !== undefined ? settings.appLauncherViewMode : "list"
                 spotlightModalViewMode = settings.spotlightModalViewMode !== undefined ? settings.spotlightModalViewMode : "list"
+                sortAppsAlphabetically = settings.sortAppsAlphabetically !== undefined ? settings.sortAppsAlphabetically : false
                 networkPreference = settings.networkPreference !== undefined ? settings.networkPreference : "auto"
                 iconTheme = settings.iconTheme !== undefined ? settings.iconTheme : "System Default"
-                useOSLogo = settings.useOSLogo !== undefined ? settings.useOSLogo : false
-                osLogoColorOverride = settings.osLogoColorOverride !== undefined ? settings.osLogoColorOverride : ""
-                osLogoBrightness = settings.osLogoBrightness !== undefined ? settings.osLogoBrightness : 0.5
-                osLogoContrast = settings.osLogoContrast !== undefined ? settings.osLogoContrast : 1
+                if (settings.useOSLogo !== undefined) {
+                    launcherLogoMode = settings.useOSLogo ? "os" : "apps"
+                    launcherLogoColorOverride = settings.osLogoColorOverride !== undefined ? settings.osLogoColorOverride : ""
+                    launcherLogoBrightness = settings.osLogoBrightness !== undefined ? settings.osLogoBrightness : 0.5
+                    launcherLogoContrast = settings.osLogoContrast !== undefined ? settings.osLogoContrast : 1
+                } else {
+                    launcherLogoMode = settings.launcherLogoMode !== undefined ? settings.launcherLogoMode : "apps"
+                    launcherLogoCustomPath = settings.launcherLogoCustomPath !== undefined ? settings.launcherLogoCustomPath : ""
+                    launcherLogoColorOverride = settings.launcherLogoColorOverride !== undefined ? settings.launcherLogoColorOverride : ""
+                    launcherLogoColorInvertOnMode = settings.launcherLogoColorInvertOnMode !== undefined ? settings.launcherLogoColorInvertOnMode : false
+                    launcherLogoBrightness = settings.launcherLogoBrightness !== undefined ? settings.launcherLogoBrightness : 0.5
+                    launcherLogoContrast = settings.launcherLogoContrast !== undefined ? settings.launcherLogoContrast : 1
+                    launcherLogoSizeOffset = settings.launcherLogoSizeOffset !== undefined ? settings.launcherLogoSizeOffset : 0
+                }
                 fontFamily = settings.fontFamily !== undefined ? settings.fontFamily : defaultFontFamily
                 monoFontFamily = settings.monoFontFamily !== undefined ? settings.monoFontFamily : defaultMonoFontFamily
                 fontWeight = settings.fontWeight !== undefined ? settings.fontWeight : Font.Normal
                 fontScale = settings.fontScale !== undefined ? settings.fontScale : 1.0
+                dankBarFontScale = settings.dankBarFontScale !== undefined ? settings.dankBarFontScale : 1.0
                 notepadUseMonospace = settings.notepadUseMonospace !== undefined ? settings.notepadUseMonospace : true
                 notepadFontFamily = settings.notepadFontFamily !== undefined ? settings.notepadFontFamily : ""
                 notepadFontSize = settings.notepadFontSize !== undefined ? settings.notepadFontSize : 14
                 notepadShowLineNumbers = settings.notepadShowLineNumbers !== undefined ? settings.notepadShowLineNumbers : false
                 notepadTransparencyOverride = settings.notepadTransparencyOverride !== undefined ? settings.notepadTransparencyOverride : -1
                 notepadLastCustomTransparency = settings.notepadLastCustomTransparency !== undefined ? settings.notepadLastCustomTransparency : 0.95
+                soundsEnabled = settings.soundsEnabled !== undefined ? settings.soundsEnabled : true
+                soundNewNotification = settings.soundNewNotification !== undefined ? settings.soundNewNotification : true
+                soundVolumeChanged = settings.soundVolumeChanged !== undefined ? settings.soundVolumeChanged : true
+                soundPluggedIn = settings.soundPluggedIn !== undefined ? settings.soundPluggedIn : true
                 gtkThemingEnabled = settings.gtkThemingEnabled !== undefined ? settings.gtkThemingEnabled : false
                 qtThemingEnabled = settings.qtThemingEnabled !== undefined ? settings.qtThemingEnabled : false
                 showDock = settings.showDock !== undefined ? settings.showDock : false
@@ -354,6 +428,9 @@ Singleton {
                 notificationTimeoutCritical = settings.notificationTimeoutCritical !== undefined ? settings.notificationTimeoutCritical : 0
                 notificationPopupPosition = settings.notificationPopupPosition !== undefined ? settings.notificationPopupPosition : SettingsData.Position.Top
                 osdAlwaysShowValue = settings.osdAlwaysShowValue !== undefined ? settings.osdAlwaysShowValue : false
+                updaterUseCustomCommand = settings.updaterUseCustomCommand !== undefined ? settings.updaterUseCustomCommand : false;
+                updaterCustomCommand = settings.updaterCustomCommand !== undefined ? settings.updaterCustomCommand : "";
+                updaterTerminalAdditionalParams = settings.updaterTerminalAdditionalParams !== undefined ? settings.updaterTerminalAdditionalParams : "";
                 dankBarSpacing = settings.dankBarSpacing !== undefined ? settings.dankBarSpacing : (settings.topBarSpacing !== undefined ? settings.topBarSpacing : 4)
                 dankBarBottomGap = settings.dankBarBottomGap !== undefined ? settings.dankBarBottomGap : (settings.topBarBottomGap !== undefined ? settings.topBarBottomGap : 0)
                 dankBarInnerPadding = settings.dankBarInnerPadding !== undefined ? settings.dankBarInnerPadding : (settings.topBarInnerPadding !== undefined ? settings.topBarInnerPadding : 4)
@@ -361,13 +438,19 @@ Singleton {
                 dankBarNoBackground = settings.dankBarNoBackground !== undefined ? settings.dankBarNoBackground : (settings.topBarNoBackground !== undefined ? settings.topBarNoBackground : false)
                 dankBarGothCornersEnabled = settings.dankBarGothCornersEnabled !== undefined ? settings.dankBarGothCornersEnabled : (settings.topBarGothCornersEnabled !== undefined ? settings.topBarGothCornersEnabled : false)
                 dankBarBorderEnabled = settings.dankBarBorderEnabled !== undefined ? settings.dankBarBorderEnabled : false
+                dankBarBorderColor = settings.dankBarBorderColor !== undefined ? settings.dankBarBorderColor : "surfaceText"
+                dankBarBorderOpacity = settings.dankBarBorderOpacity !== undefined ? settings.dankBarBorderOpacity : 1.0
+                dankBarBorderThickness = settings.dankBarBorderThickness !== undefined ? settings.dankBarBorderThickness : 1
+                popupGapsAuto = settings.popupGapsAuto !== undefined ? settings.popupGapsAuto : true
+                popupGapsManual = settings.popupGapsManual !== undefined ? settings.popupGapsManual : 4
                 dankBarPosition = settings.dankBarPosition !== undefined ? settings.dankBarPosition : (settings.dankBarAtBottom !== undefined ? (settings.dankBarAtBottom ? SettingsData.Position.Bottom : SettingsData.Position.Top) : (settings.topBarAtBottom !== undefined ? (settings.topBarAtBottom ? SettingsData.Position.Bottom : SettingsData.Position.Top) : SettingsData.Position.Top))
                 lockScreenShowPowerActions = settings.lockScreenShowPowerActions !== undefined ? settings.lockScreenShowPowerActions : true
+                enableFprint = settings.enableFprint !== undefined ? settings.enableFprint : false
+                maxFprintTries = settings.maxFprintTries !== undefined ? settings.maxFprintTries : 3
                 hideBrightnessSlider = settings.hideBrightnessSlider !== undefined ? settings.hideBrightnessSlider : false
                 widgetBackgroundColor = settings.widgetBackgroundColor !== undefined ? settings.widgetBackgroundColor : "sch"
                 surfaceBase = settings.surfaceBase !== undefined ? settings.surfaceBase : "s"
                 screenPreferences = settings.screenPreferences !== undefined ? settings.screenPreferences : ({})
-                pluginSettings = settings.pluginSettings !== undefined ? settings.pluginSettings : ({})
                 animationSpeed = settings.animationSpeed !== undefined ? settings.animationSpeed : SettingsData.AnimationSpeed.Short
                 applyStoredTheme()
                 detectAvailableIconThemes()
@@ -382,6 +465,11 @@ Singleton {
         } finally {
             _loading = false
         }
+
+        if (shouldMigrate) {
+            savePluginSettings()
+            saveSettings()
+        }
     }
 
     function saveSettings() {
@@ -391,6 +479,7 @@ Singleton {
                                                 "currentThemeName": currentThemeName,
                                                 "customThemeFile": customThemeFile,
                                                 "matugenScheme": matugenScheme,
+                                                "runUserMatugenTemplates": runUserMatugenTemplates,
                                                 "dankBarTransparency": dankBarTransparency,
                                                 "dankBarWidgetTransparency": dankBarWidgetTransparency,
                                                 "popupTransparency": popupTransparency,
@@ -442,22 +531,31 @@ Singleton {
                                                 "dankBarRightWidgets": dankBarRightWidgets,
                                                 "appLauncherViewMode": appLauncherViewMode,
                                                 "spotlightModalViewMode": spotlightModalViewMode,
+                                                "sortAppsAlphabetically": sortAppsAlphabetically,
                                                 "networkPreference": networkPreference,
                                                 "iconTheme": iconTheme,
-                                                "useOSLogo": useOSLogo,
-                                                "osLogoColorOverride": osLogoColorOverride,
-                                                "osLogoBrightness": osLogoBrightness,
-                                                "osLogoContrast": osLogoContrast,
+                                                "launcherLogoMode": launcherLogoMode,
+                                                "launcherLogoCustomPath": launcherLogoCustomPath,
+                                                "launcherLogoColorOverride": launcherLogoColorOverride,
+                                                "launcherLogoColorInvertOnMode": launcherLogoColorInvertOnMode,
+                                                "launcherLogoBrightness": launcherLogoBrightness,
+                                                "launcherLogoContrast": launcherLogoContrast,
+                                                "launcherLogoSizeOffset": launcherLogoSizeOffset,
                                                 "fontFamily": fontFamily,
                                                 "monoFontFamily": monoFontFamily,
                                                 "fontWeight": fontWeight,
                                                 "fontScale": fontScale,
+                                                "dankBarFontScale": dankBarFontScale,
                                                 "notepadUseMonospace": notepadUseMonospace,
                                                 "notepadFontFamily": notepadFontFamily,
                                                 "notepadFontSize": notepadFontSize,
                                                 "notepadShowLineNumbers": notepadShowLineNumbers,
                                                 "notepadTransparencyOverride": notepadTransparencyOverride,
                                                 "notepadLastCustomTransparency": notepadLastCustomTransparency,
+                                                "soundsEnabled": soundsEnabled,
+                                                "soundNewNotification": soundNewNotification,
+                                                "soundVolumeChanged": soundVolumeChanged,
+                                                "soundPluggedIn": soundPluggedIn,
                                                 "gtkThemingEnabled": gtkThemingEnabled,
                                                 "qtThemingEnabled": qtThemingEnabled,
                                                 "showDock": showDock,
@@ -479,8 +577,15 @@ Singleton {
                                                 "dankBarNoBackground": dankBarNoBackground,
                                                 "dankBarGothCornersEnabled": dankBarGothCornersEnabled,
                                                 "dankBarBorderEnabled": dankBarBorderEnabled,
+                                                "dankBarBorderColor": dankBarBorderColor,
+                                                "dankBarBorderOpacity": dankBarBorderOpacity,
+                                                "dankBarBorderThickness": dankBarBorderThickness,
+                                                "popupGapsAuto": popupGapsAuto,
+                                                "popupGapsManual": popupGapsManual,
                                                 "dankBarPosition": dankBarPosition,
                                                 "lockScreenShowPowerActions": lockScreenShowPowerActions,
+                                                "enableFprint": enableFprint,
+                                                "maxFprintTries": maxFprintTries,
                                                 "hideBrightnessSlider": hideBrightnessSlider,
                                                 "widgetBackgroundColor": widgetBackgroundColor,
                                                 "surfaceBase": surfaceBase,
@@ -489,10 +594,18 @@ Singleton {
                                                 "notificationTimeoutCritical": notificationTimeoutCritical,
                                                 "notificationPopupPosition": notificationPopupPosition,
                                                 "osdAlwaysShowValue": osdAlwaysShowValue,
+				                "updaterUseCustomCommand": updaterUseCustomCommand,
+				                "updaterCustomCommand": updaterCustomCommand,
+				                "updaterTerminalAdditionalParams": updaterTerminalAdditionalParams,
                                                 "screenPreferences": screenPreferences,
-                                                "pluginSettings": pluginSettings,
                                                 "animationSpeed": animationSpeed
                                             }, null, 2))
+    }
+
+    function savePluginSettings() {
+        if (_pluginSettingsLoading)
+            return
+        pluginSettingsFile.setText(JSON.stringify(pluginSettings, null, 2))
     }
 
     function setShowWorkspaceIndex(enabled) {
@@ -523,6 +636,21 @@ Singleton {
     function setWaveProgressEnabled(enabled) {
         waveProgressEnabled = enabled
         saveSettings()
+    }
+
+    function setUpdaterUseCustomCommandEnabled(enabled) {
+        updaterUseCustomCommand = enabled;
+        saveSettings();
+    }
+
+    function setUpdaterCustomCommand(command) {
+        updaterCustomCommand = command;
+        saveSettings();
+    }
+
+    function setUpdaterTerminalAdditionalParams(customArgs) {
+        updaterTerminalAdditionalParams = customArgs;
+        saveSettings();
     }
 
     function setWorkspaceNameIcon(workspaceName, iconData) {
@@ -631,6 +759,18 @@ Singleton {
             return
 
         matugenScheme = normalized
+        saveSettings()
+
+        if (typeof Theme !== "undefined") {
+            Theme.generateSystemThemesFromCurrentTheme()
+        }
+    }
+
+    function setRunUserMatugenTemplates(enabled) {
+        if (runUserMatugenTemplates === enabled)
+            return
+
+        runUserMatugenTemplates = enabled
         saveSettings()
 
         if (typeof Theme !== "undefined") {
@@ -811,6 +951,7 @@ Singleton {
             var selectedGpuIndex = typeof order[i] === "string" ? undefined : order[i].selectedGpuIndex
             var pciId = typeof order[i] === "string" ? undefined : order[i].pciId
             var mountPath = typeof order[i] === "string" ? undefined : order[i].mountPath
+            var minimumWidth = typeof order[i] === "string" ? undefined : order[i].minimumWidth
             var item = {
                 "widgetId": widgetId,
                 "enabled": enabled
@@ -823,6 +964,8 @@ Singleton {
                 item.pciId = pciId
             if (mountPath !== undefined)
                 item.mountPath = mountPath
+            if (minimumWidth !== undefined)
+                item.minimumWidth = minimumWidth
 
             listModel.append(item)
         }
@@ -869,6 +1012,11 @@ Singleton {
         saveSettings()
     }
 
+    function setSortAppsAlphabetically(enabled) {
+        sortAppsAlphabetically = enabled
+        saveSettings()
+    }
+
     // Weather location setter
     function setWeatherLocation(displayName, coordinates) {
         weatherLocation = displayName
@@ -907,21 +1055,21 @@ Singleton {
         updateQtIconTheme(themeName)
         saveSettings()
         if (typeof Theme !== "undefined" && Theme.currentTheme === Theme.dynamic)
-            Theme.generateSystemThemes()
+            Theme.generateSystemThemesFromCurrentTheme()
     }
 
     function updateGtkIconTheme(themeName) {
         var gtkThemeName = (themeName === "System Default") ? systemDefaultIconTheme : themeName
         if (gtkThemeName !== "System Default" && gtkThemeName !== "") {
-            var script = "if command -v gsettings >/dev/null 2>&1 && gsettings list-schemas | grep -q org.gnome.desktop.interface; then\n"
-                    + "    gsettings set org.gnome.desktop.interface icon-theme '" + gtkThemeName + "'\n" + "    echo 'Updated via gsettings'\n" + "elif command -v dconf >/dev/null 2>&1; then\n" + "    dconf write /org/gnome/desktop/interface/icon-theme \\\"" + gtkThemeName + "\\\"\n"
-                    + "    echo 'Updated via dconf'\n" + "fi\n" + "\n" + "# Ensure config directories exist\n" + "mkdir -p " + _configDir + "/gtk-3.0 " + _configDir
-                    + "/gtk-4.0\n" + "\n" + "# Update settings.ini files (keep existing gtk-theme-name)\n" + "for config_dir in " + _configDir + "/gtk-3.0 " + _configDir + "/gtk-4.0; do\n"
-                    + "    settings_file=\"$config_dir/settings.ini\"\n" + "    if [ -f \"$settings_file\" ]; then\n" + "        # Update existing icon-theme-name line or add it\n" + "        if grep -q '^gtk-icon-theme-name=' \"$settings_file\"; then\n" + "            sed -i 's/^gtk-icon-theme-name=.*/gtk-icon-theme-name=" + gtkThemeName + "/' \"$settings_file\"\n" + "        else\n"
-                    + "            # Add icon theme setting to [Settings] section or create it\n" + "            if grep -q '\\[Settings\\]' \"$settings_file\"; then\n" + "                sed -i '/\\[Settings\\]/a gtk-icon-theme-name=" + gtkThemeName + "' \"$settings_file\"\n" + "            else\n" + "                echo -e '\\n[Settings]\\ngtk-icon-theme-name=" + gtkThemeName
-                    + "' >> \"$settings_file\"\n" + "            fi\n" + "        fi\n" + "    else\n" + "        # Create new settings.ini file\n" + "        echo -e '[Settings]\\ngtk-icon-theme-name=" + gtkThemeName + "' > \"$settings_file\"\n"
-                    + "    fi\n" + "    echo \"Updated $settings_file\"\n" + "done\n" + "\n" + "# Clear icon cache and force refresh\n" + "rm -rf ~/.cache/icon-cache ~/.cache/thumbnails 2>/dev/null || true\n" + "# Send SIGHUP to running GTK applications to reload themes (Fedora-specific)\n" + "pkill -HUP -f 'gtk' 2>/dev/null || true\n"
-            Quickshell.execDetached(["sh", "-lc", script])
+            if (DMSService.apiVersion >= 3) {
+                PortalService.setSystemIconTheme(gtkThemeName)
+            }
+
+            var configScript = "mkdir -p " + _configDir + "/gtk-3.0 " + _configDir + "/gtk-4.0\n" + "\n" + "for config_dir in " + _configDir + "/gtk-3.0 " + _configDir + "/gtk-4.0; do\n"
+                    + "    settings_file=\"$config_dir/settings.ini\"\n" + "    if [ -f \"$settings_file\" ]; then\n" + "        if grep -q '^gtk-icon-theme-name=' \"$settings_file\"; then\n" + "            sed -i 's/^gtk-icon-theme-name=.*/gtk-icon-theme-name=" + gtkThemeName + "/' \"$settings_file\"\n" + "        else\n"
+                    + "            if grep -q '\\[Settings\\]' \"$settings_file\"; then\n" + "                sed -i '/\\[Settings\\]/a gtk-icon-theme-name=" + gtkThemeName + "' \"$settings_file\"\n" + "            else\n" + "                echo -e '\\n[Settings]\\ngtk-icon-theme-name=" + gtkThemeName + "' >> \"$settings_file\"\n" + "            fi\n"
+                    + "        fi\n" + "    else\n" + "        echo -e '[Settings]\\ngtk-icon-theme-name=" + gtkThemeName + "' > \"$settings_file\"\n" + "    fi\n" + "done\n" + "\n" + "rm -rf ~/.cache/icon-cache ~/.cache/thumbnails 2>/dev/null || true\n" + "pkill -HUP -f 'gtk' 2>/dev/null || true\n"
+            Quickshell.execDetached(["sh", "-lc", configScript])
         }
     }
 
@@ -945,23 +1093,38 @@ Singleton {
         updateQtIconTheme(iconTheme)
     }
 
-    function setUseOSLogo(enabled) {
-        useOSLogo = enabled
+    function setLauncherLogoMode(mode) {
+        launcherLogoMode = mode
         saveSettings()
     }
 
-    function setOSLogoColorOverride(color) {
-        osLogoColorOverride = color
+    function setLauncherLogoCustomPath(path) {
+        launcherLogoCustomPath = path
         saveSettings()
     }
 
-    function setOSLogoBrightness(brightness) {
-        osLogoBrightness = brightness
+    function setLauncherLogoColorOverride(color) {
+        launcherLogoColorOverride = color
         saveSettings()
     }
 
-    function setOSLogoContrast(contrast) {
-        osLogoContrast = contrast
+    function setLauncherLogoColorInvertOnMode(invert) {
+        launcherLogoColorInvertOnMode = invert
+        saveSettings()
+    }
+
+    function setLauncherLogoBrightness(brightness) {
+        launcherLogoBrightness = brightness
+        saveSettings()
+    }
+
+    function setLauncherLogoContrast(contrast) {
+        launcherLogoContrast = contrast
+        saveSettings()
+    }
+
+    function setLauncherLogoSizeOffset(offset) {
+        launcherLogoSizeOffset = offset
         saveSettings()
     }
 
@@ -982,6 +1145,31 @@ Singleton {
 
     function setFontScale(scale) {
         fontScale = scale
+        saveSettings()
+    }
+
+    function setDankBarFontScale(scale) {
+        dankBarFontScale = scale
+        saveSettings()
+    }
+
+    function setSoundsEnabled(enabled) {
+        soundsEnabled = enabled
+        saveSettings()
+    }
+
+    function setSoundNewNotification(enabled) {
+        soundNewNotification = enabled
+        saveSettings()
+    }
+
+    function setSoundVolumeChanged(enabled) {
+        soundVolumeChanged = enabled
+        saveSettings()
+    }
+
+    function setSoundPluggedIn(enabled) {
+        soundPluggedIn = enabled
         saveSettings()
     }
 
@@ -1102,9 +1290,9 @@ Singleton {
 
     function sendTestNotification(index) {
         const notifications = [
-            ["Notification Position Test", "DMS test notification 1 of 3 ~ Hi there!", "dialog-information"],
-            ["Second Test", "DMS Notification 2 of 3 ~ Check it out!", "emblem-default"],
-            ["Third Test", "DMS notification 3 of 3 ~ Enjoy!", "emblem-favorite"]
+            ["Notification Position Test", "DMS test notification 1 of 3 ~ Hi there!", "preferences-system"],
+            ["Second Test", "DMS Notification 2 of 3 ~ Check it out!", "applications-graphics"],
+            ["Third Test", "DMS notification 3 of 3 ~ Enjoy!", "face-smile"]
         ]
 
         if (index < 0 || index >= notifications.length) {
@@ -1142,6 +1330,9 @@ Singleton {
     function setDankBarSpacing(spacing) {
         dankBarSpacing = spacing
         saveSettings()
+        if (typeof NiriService !== "undefined" && CompositorService.isNiri) {
+            NiriService.generateNiriLayoutConfig()
+        }
     }
 
     function setDankBarBottomGap(gap) {
@@ -1171,6 +1362,16 @@ Singleton {
 
     function setDankBarBorderEnabled(enabled) {
         dankBarBorderEnabled = enabled
+        saveSettings()
+    }
+
+    function setPopupGapsAuto(enabled) {
+        popupGapsAuto = enabled
+        saveSettings()
+    }
+
+    function setPopupGapsManual(value) {
+        popupGapsManual = value
         saveSettings()
     }
 
@@ -1255,6 +1456,16 @@ Singleton {
         saveSettings()
     }
 
+    function setEnableFprint(enabled) {
+        enableFprint = enabled
+        saveSettings()
+    }
+
+    function setMaxFprintTries(tries) {
+        maxFprintTries = tries
+        saveSettings()
+    }
+
     function setHideBrightnessSlider(enabled) {
         hideBrightnessSlider = enabled
         saveSettings()
@@ -1299,13 +1510,13 @@ Singleton {
             pluginSettings[pluginId] = {}
         }
         pluginSettings[pluginId][key] = value
-        saveSettings()
+        savePluginSettings()
     }
 
     function removePluginSettings(pluginId) {
         if (pluginSettings[pluginId]) {
             delete pluginSettings[pluginId]
-            saveSettings()
+            savePluginSettings()
         }
     }
 
@@ -1327,6 +1538,7 @@ Singleton {
             loadSettings()
             fontCheckTimer.start()
             initializeListModels()
+            fprintdDetectionProcess.running = true
         }
     }
 
@@ -1385,6 +1597,26 @@ Singleton {
                 defaultSettingsCheckProcess.running = true
             } else if (!isGreeterMode) {
                 applyStoredTheme()
+            }
+        }
+    }
+
+    FileView {
+        id: pluginSettingsFile
+
+        path: isGreeterMode ? "" : pluginSettingsPath
+        blockLoading: true
+        blockWrites: true
+        atomicWrites: true
+        watchChanges: !isGreeterMode
+        onLoaded: {
+            if (!isGreeterMode) {
+                parsePluginSettings(pluginSettingsFile.text())
+            }
+        }
+        onLoadFailed: error => {
+            if (!isGreeterMode) {
+                pluginSettings = {}
             }
         }
     }
@@ -1453,7 +1685,7 @@ Singleton {
         id: defaultSettingsCheckProcess
 
         command: ["sh", "-c", "CONFIG_DIR=\"" + _configDir
-            + "/DankMaterialShell\"; if [ -f \"$CONFIG_DIR/default-settings.json\" ] && [ ! -f \"$CONFIG_DIR/settings.json\" ]; then cp \"$CONFIG_DIR/default-settings.json\" \"$CONFIG_DIR/settings.json\" && echo 'copied'; else echo 'not_found'; fi"]
+            + "/DankMaterialShell\"; if [ -f \"$CONFIG_DIR/default-settings.json\" ] && [ ! -f \"$CONFIG_DIR/settings.json\" ]; then cp --no-preserve=mode \"$CONFIG_DIR/default-settings.json\" \"$CONFIG_DIR/settings.json\" && echo 'copied'; else echo 'not_found'; fi"]
         running: false
         onExited: exitCode => {
             if (exitCode === 0) {
@@ -1463,6 +1695,16 @@ Singleton {
                 // No default settings file found, just apply stored theme
                 applyStoredTheme()
             }
+        }
+    }
+
+    Process {
+        id: fprintdDetectionProcess
+
+        command: ["sh", "-c", "command -v fprintd-list >/dev/null 2>&1"]
+        running: false
+        onExited: exitCode => {
+            fprintdAvailable = (exitCode === 0)
         }
     }
 

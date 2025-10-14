@@ -1,8 +1,9 @@
 import QtQuick
-import QtQuick.Effects
 import Quickshell
+import Quickshell.Hyprland
 import Quickshell.Wayland
 import qs.Common
+import qs.Services
 
 PanelWindow {
     id: root
@@ -15,6 +16,17 @@ PanelWindow {
     property real height: 300
     readonly property real screenWidth: screen ? screen.width : 1920
     readonly property real screenHeight: screen ? screen.height : 1080
+    readonly property real dpr: {
+        if (CompositorService.isNiri && screen) {
+            const niriScale = NiriService.displayScales[screen.name]
+            if (niriScale !== undefined) return niriScale
+        }
+        if (CompositorService.isHyprland && screen) {
+            const hyprlandMonitor = Hyprland.monitors.values.find(m => m.name === screen.name)
+            if (hyprlandMonitor?.scale !== undefined) return hyprlandMonitor.scale
+        }
+        return (screen?.devicePixelRatio) || 1
+    }
     property bool showBackground: true
     property real backgroundOpacity: 0.5
     property string positioning: "center"
@@ -134,22 +146,26 @@ PanelWindow {
     Rectangle {
         id: contentContainer
 
-        width: root.width
-        height: root.height
-        anchors.centerIn: positioning === "center" ? parent : undefined
+        width: Theme.px(root.width, dpr)
+        height: Theme.px(root.height, dpr)
+        anchors.centerIn: undefined
         x: {
-            if (positioning === "top-right") {
-                return Math.max(Theme.spacingL, root.screenWidth - width - Theme.spacingL)
+            if (positioning === "center") {
+                return Theme.snap((root.screenWidth - width) / 2, dpr)
+            } else if (positioning === "top-right") {
+                return Theme.px(Math.max(Theme.spacingL, root.screenWidth - width - Theme.spacingL), dpr)
             } else if (positioning === "custom") {
-                return root.customPosition.x
+                return Theme.snap(root.customPosition.x, dpr)
             }
             return 0
         }
         y: {
-            if (positioning === "top-right") {
-                return Theme.barHeight + Theme.spacingXS
+            if (positioning === "center") {
+                return Theme.snap((root.screenHeight - height) / 2, dpr)
+            } else if (positioning === "top-right") {
+                return Theme.px(Theme.barHeight + Theme.spacingXS, dpr)
             } else if (positioning === "custom") {
-                return root.customPosition.y
+                return Theme.snap(root.customPosition.y, dpr)
             }
             return 0
         }
@@ -157,38 +173,46 @@ PanelWindow {
         radius: root.cornerRadius
         border.color: root.borderColor
         border.width: root.borderWidth
+        clip: false
         layer.enabled: true
+        opacity: root.shouldBeVisible ? 1 : 0
         transform: root.animationType === "slide" ? slideTransform : null
 
         Translate {
             id: slideTransform
 
-            x: root.shouldBeVisible ? 0 : 15
-            y: root.shouldBeVisible ? 0 : -30
+            readonly property real rawX: root.shouldBeVisible ? 0 : 15
+            readonly property real rawY: root.shouldBeVisible ? 0 : -30
+
+            x: Theme.snap(rawX, root.dpr)
+            y: Theme.snap(rawY, root.dpr)
         }
 
-        Loader {
-            id: contentLoader
+        Behavior on opacity {
+            NumberAnimation {
+                duration: animationDuration
+                easing.type: animationEasing
+            }
+        }
 
+        FocusScope {
             anchors.fill: parent
-            active: root.keepContentLoaded || root.shouldBeVisible || root.visible
-            asynchronous: false
-        }
+            focus: root.shouldBeVisible
+            clip: false
 
-        layer.effect: MultiEffect {
-            shadowEnabled: true
-            shadowHorizontalOffset: 0
-            shadowVerticalOffset: 8
-            shadowBlur: 1
-            shadowColor: Theme.shadowStrong
-            shadowOpacity: 0.3
-            source: contentContainer
-            opacity: root.shouldBeVisible ? 1 : 0
+            Loader {
+                id: contentLoader
 
-            Behavior on opacity {
-                NumberAnimation {
-                    duration: animationDuration
-                    easing.type: animationEasing
+                anchors.fill: parent
+                active: root.keepContentLoaded || root.shouldBeVisible || root.visible
+                asynchronous: false
+                focus: true
+                clip: false
+
+                onLoaded: {
+                    if (item) {
+                        Qt.callLater(() => item.forceActiveFocus())
+                    }
                 }
             }
         }

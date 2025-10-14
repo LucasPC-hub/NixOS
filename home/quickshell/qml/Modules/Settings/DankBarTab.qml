@@ -22,186 +22,184 @@ Item {
     property var baseWidgetDefinitions: {
         var coreWidgets = [{
             "id": "launcherButton",
-            "text": "App Launcher",
-            "description": "Quick access to application launcher",
+            "text": I18n.tr("App Launcher"),
+            "description": I18n.tr("Quick access to application launcher"),
             "icon": "apps",
             "enabled": true
         }, {
             "id": "workspaceSwitcher",
-            "text": "Workspace Switcher",
-            "description": "Shows current workspace and allows switching",
+            "text": I18n.tr("Workspace Switcher"),
+            "description": I18n.tr("Shows current workspace and allows switching"),
             "icon": "view_module",
             "enabled": true
         }, {
             "id": "focusedWindow",
-            "text": "Focused Window",
-            "description": "Display currently focused application title",
+            "text": I18n.tr("Focused Window"),
+            "description": I18n.tr("Display currently focused application title"),
             "icon": "window",
             "enabled": true
         }, {
             "id": "runningApps",
-            "text": "Running Apps",
-            "description": "Shows all running applications with focus indication",
+            "text": I18n.tr("Running Apps"),
+            "description": I18n.tr("Shows all running applications with focus indication"),
             "icon": "apps",
             "enabled": true
         }, {
             "id": "clock",
-            "text": "Clock",
-            "description": "Current time and date display",
+            "text": I18n.tr("Clock"),
+            "description": I18n.tr("Current time and date display"),
             "icon": "schedule",
             "enabled": true
         }, {
             "id": "weather",
-            "text": "Weather Widget",
-            "description": "Current weather conditions and temperature",
+            "text": I18n.tr("Weather Widget"),
+            "description": I18n.tr("Current weather conditions and temperature"),
             "icon": "wb_sunny",
             "enabled": true
         }, {
             "id": "music",
-            "text": "Media Controls",
-            "description": "Control currently playing media",
+            "text": I18n.tr("Media Controls"),
+            "description": I18n.tr("Control currently playing media"),
             "icon": "music_note",
             "enabled": true
         }, {
             "id": "clipboard",
-            "text": "Clipboard Manager",
-            "description": "Access clipboard history",
+            "text": I18n.tr("Clipboard Manager"),
+            "description": I18n.tr("Access clipboard history"),
             "icon": "content_paste",
             "enabled": true
         }, {
             "id": "cpuUsage",
-            "text": "CPU Usage",
-            "description": "CPU usage indicator",
+            "text": I18n.tr("CPU Usage"),
+            "description": I18n.tr("CPU usage indicator"),
             "icon": "memory",
             "enabled": DgopService.dgopAvailable,
-            "warning": !DgopService.dgopAvailable ? "Requires 'dgop' tool" : undefined
+            "warning": !DgopService.dgopAvailable ? I18n.tr("Requires 'dgop' tool") : undefined
         }, {
             "id": "memUsage",
-            "text": "Memory Usage",
-            "description": "Memory usage indicator",
+            "text": I18n.tr("Memory Usage"),
+            "description": I18n.tr("Memory usage indicator"),
             "icon": "developer_board",
             "enabled": DgopService.dgopAvailable,
-            "warning": !DgopService.dgopAvailable ? "Requires 'dgop' tool" : undefined
+            "warning": !DgopService.dgopAvailable ? I18n.tr("Requires 'dgop' tool") : undefined
         }, {
             "id": "diskUsage",
-            "text": "Disk Usage",
-            "description": "Percentage",
+            "text": I18n.tr("Disk Usage"),
+            "description": I18n.tr("Percentage"),
             "icon": "storage",
             "enabled": DgopService.dgopAvailable,
-            "warning": !DgopService.dgopAvailable ? "Requires 'dgop' tool" : undefined
+            "warning": !DgopService.dgopAvailable ? I18n.tr("Requires 'dgop' tool") : undefined
         }, {
             "id": "cpuTemp",
-            "text": "CPU Temperature",
-            "description": "CPU temperature display",
+            "text": I18n.tr("CPU Temperature"),
+            "description": I18n.tr("CPU temperature display"),
             "icon": "device_thermostat",
             "enabled": DgopService.dgopAvailable,
-            "warning": !DgopService.dgopAvailable ? "Requires 'dgop' tool" : undefined
+            "warning": !DgopService.dgopAvailable ? I18n.tr("Requires 'dgop' tool") : undefined
         }, {
             "id": "gpuTemp",
-            "text": "GPU Temperature",
-            "description": "GPU temperature display",
+            "text": I18n.tr("GPU Temperature"),
+            "description": I18n.tr("GPU temperature display"),
             "icon": "auto_awesome_mosaic",
-            "warning": !DgopService.dgopAvailable ? "Requires 'dgop' tool" : "This widget prevents GPU power off states, which can significantly impact battery life on laptops. It is not recommended to use this on laptops with hybrid graphics.",
+            "warning": !DgopService.dgopAvailable ? I18n.tr("Requires 'dgop' tool") : I18n.tr("This widget prevents GPU power off states, which can significantly impact battery life on laptops. It is not recommended to use this on laptops with hybrid graphics."),
             "enabled": DgopService.dgopAvailable
         }, {
             "id": "systemTray",
-            "text": "System Tray",
-            "description": "System notification area icons",
+            "text": I18n.tr("System Tray"),
+            "description": I18n.tr("System notification area icons"),
             "icon": "notifications",
             "enabled": true
         }, {
             "id": "privacyIndicator",
-            "text": "Privacy Indicator",
-            "description": "Shows when microphone, camera, or screen sharing is active",
+            "text": I18n.tr("Privacy Indicator"),
+            "description": I18n.tr("Shows when microphone, camera, or screen sharing is active"),
             "icon": "privacy_tip",
             "enabled": true
         }, {
             "id": "controlCenterButton",
-            "text": "Control Center",
-            "description": "Access to system controls and settings",
+            "text": I18n.tr("Control Center"),
+            "description": I18n.tr("Access to system controls and settings"),
             "icon": "settings",
             "enabled": true
         }, {
             "id": "notificationButton",
-            "text": "Notification Center",
-            "description": "Access to notifications and do not disturb",
+            "text": I18n.tr("Notification Center"),
+            "description": I18n.tr("Access to notifications and do not disturb"),
             "icon": "notifications",
             "enabled": true
         }, {
             "id": "battery",
-            "text": "Battery",
-            "description": "Battery level and power management",
+            "text": I18n.tr("Battery"),
+            "description": I18n.tr("Battery level and power management"),
             "icon": "battery_std",
             "enabled": true
         }, {
             "id": "vpn",
-            "text": "VPN",
-            "description": "VPN status and quick connect",
+            "text": I18n.tr("VPN"),
+            "description": I18n.tr("VPN status and quick connect"),
             "icon": "vpn_lock",
             "enabled": true
         }, {
             "id": "idleInhibitor",
-            "text": "Idle Inhibitor",
-            "description": "Prevent screen timeout",
+            "text": I18n.tr("Idle Inhibitor"),
+            "description": I18n.tr("Prevent screen timeout"),
             "icon": "motion_sensor_active",
             "enabled": true
         }, {
             "id": "spacer",
-            "text": "Spacer",
-            "description": "Customizable empty space",
+            "text": I18n.tr("Spacer"),
+            "description": I18n.tr("Customizable empty space"),
             "icon": "more_horiz",
             "enabled": true
         }, {
             "id": "separator",
-            "text": "Separator",
-            "description": "Visual divider between widgets",
+            "text": I18n.tr("Separator"),
+            "description": I18n.tr("Visual divider between widgets"),
             "icon": "remove",
             "enabled": true
         },
         {
             "id": "network_speed_monitor",
-            "text": "Network Speed Monitor",
-            "description": "Network download and upload speed display",
+            "text": I18n.tr("Network Speed Monitor"),
+            "description": I18n.tr("Network download and upload speed display"),
             "icon": "network_check",
-            "warning": !DgopService.dgopAvailable ? "Requires 'dgop' tool" : undefined,
+            "warning": !DgopService.dgopAvailable ? I18n.tr("Requires 'dgop' tool") : undefined,
             "enabled": DgopService.dgopAvailable
         }, {
             "id": "keyboard_layout_name",
-            "text": "Keyboard Layout Name",
-            "description": "Displays the active keyboard layout and allows switching",
+            "text": I18n.tr("Keyboard Layout Name"),
+            "description": I18n.tr("Displays the active keyboard layout and allows switching"),
             "icon": "keyboard",
         }, {
             "id": "notepadButton",
-            "text": "Notepad",
-            "description": "Quick access to notepad",
+            "text": I18n.tr("Notepad"),
+            "description": I18n.tr("Quick access to notepad"),
             "icon": "assignment",
             "enabled": true
         }, {
             "id": "colorPicker",
-            "text": "Color Picker",
-            "description": "Quick access to color picker",
+            "text": I18n.tr("Color Picker"),
+            "description": I18n.tr("Quick access to color picker"),
             "icon": "palette",
             "enabled": true
         }, {
             "id": "systemUpdate",
-            "text": "System Update",
-            "description": "Check for system updates",
+            "text": I18n.tr("System Update"),
+            "description": I18n.tr("Check for system updates"),
             "icon": "update",
             "enabled": SystemUpdateService.distributionSupported
         }]
 
-        // Add all available plugins (loaded and unloaded)
-        var allPlugins = PluginService.getAvailablePlugins()
-        for (var i = 0; i < allPlugins.length; i++) {
-            var plugin = allPlugins[i]
-            var isLoaded = PluginService.isPluginLoaded(plugin.id)
+        var allPluginVariants = PluginService.getAllPluginVariants()
+        for (var i = 0; i < allPluginVariants.length; i++) {
+            var variant = allPluginVariants[i]
             coreWidgets.push({
-                "id": plugin.id,
-                "text": plugin.name,
-                "description": plugin.description || "Plugin widget",
-                "icon": plugin.icon || "extension",
-                "enabled": isLoaded,
-                "warning": !isLoaded ? "Plugin is disabled - enable in Plugins settings to use" : undefined
+                "id": variant.fullId,
+                "text": variant.name,
+                "description": variant.description,
+                "icon": variant.icon,
+                "enabled": variant.loaded,
+                "warning": !variant.loaded ? I18n.tr("Plugin is disabled - enable in Plugins settings to use") : undefined
             })
         }
 
@@ -262,6 +260,9 @@ Item {
         }
         if (widgetId === "diskUsage") {
             widgetObj.mountPath = "/"
+        }
+        if (widgetId === "cpuUsage" || widgetId === "memUsage" || widgetId === "cpuTemp" || widgetId === "gpuTemp") {
+            widgetObj.minimumWidth = true
         }
 
         var widgets = []
@@ -509,6 +510,54 @@ Item {
         }
     }
 
+    function handleMinimumWidthChanged(sectionId, widgetIndex, enabled) {
+        var widgets = []
+        if (sectionId === "left")
+            widgets = SettingsData.dankBarLeftWidgets.slice()
+        else if (sectionId === "center")
+            widgets = SettingsData.dankBarCenterWidgets.slice()
+        else if (sectionId === "right")
+            widgets = SettingsData.dankBarRightWidgets.slice()
+
+        if (widgetIndex >= 0 && widgetIndex < widgets.length) {
+            var widget = widgets[widgetIndex]
+            if (typeof widget === "string") {
+                widgets[widgetIndex] = {
+                    "id": widget,
+                    "enabled": true,
+                    "minimumWidth": enabled
+                }
+            } else {
+                var newWidget = {
+                    "id": widget.id,
+                    "enabled": widget.enabled,
+                    "minimumWidth": enabled
+                }
+                if (widget.size !== undefined)
+                    newWidget.size = widget.size
+                if (widget.selectedGpuIndex !== undefined)
+                    newWidget.selectedGpuIndex = widget.selectedGpuIndex
+                if (widget.pciId !== undefined)
+                    newWidget.pciId = widget.pciId
+                if (widget.mountPath !== undefined)
+                    newWidget.mountPath = widget.mountPath
+                if (widget.id === "controlCenterButton") {
+                    newWidget.showNetworkIcon = widget.showNetworkIcon !== undefined ? widget.showNetworkIcon : true
+                    newWidget.showBluetoothIcon = widget.showBluetoothIcon !== undefined ? widget.showBluetoothIcon : true
+                    newWidget.showAudioIcon = widget.showAudioIcon !== undefined ? widget.showAudioIcon : true
+                }
+                widgets[widgetIndex] = newWidget
+            }
+        }
+
+        if (sectionId === "left")
+            SettingsData.setDankBarLeftWidgets(widgets)
+        else if (sectionId === "center")
+            SettingsData.setDankBarCenterWidgets(widgets)
+        else if (sectionId === "right")
+            SettingsData.setDankBarRightWidgets(widgets)
+    }
+
     function getItemsForSection(sectionId) {
         var widgets = []
         var widgetData = []
@@ -532,6 +581,7 @@ Item {
                                var widgetShowNetworkIcon = typeof widget === "string" ? undefined : widget.showNetworkIcon
                                var widgetShowBluetoothIcon = typeof widget === "string" ? undefined : widget.showBluetoothIcon
                                var widgetShowAudioIcon = typeof widget === "string" ? undefined : widget.showAudioIcon
+                               var widgetMinimumWidth = typeof widget === "string" ? undefined : widget.minimumWidth
                                var widgetDef = baseWidgetDefinitions.find(w => {
                                                                               return w.id === widgetId
                                                                           })
@@ -552,6 +602,8 @@ Item {
                                    item.showBluetoothIcon = widgetShowBluetoothIcon
                                    if (widgetShowAudioIcon !== undefined)
                                    item.showAudioIcon = widgetShowAudioIcon
+                                   if (widgetMinimumWidth !== undefined)
+                                   item.minimumWidth = widgetMinimumWidth
 
                                    widgets.push(item)
                                }
@@ -643,7 +695,7 @@ Item {
                         }
 
                         StyledText {
-                            text: "Position"
+                            text: I18n.tr("Position")
                             font.pixelSize: Theme.fontSizeLarge
                             font.weight: Font.Medium
                             color: Theme.surfaceText
@@ -713,14 +765,14 @@ Item {
                             anchors.verticalCenter: parent.verticalCenter
 
                             StyledText {
-                                text: "Auto-hide"
+                                text: I18n.tr("Auto-hide")
                                 font.pixelSize: Theme.fontSizeLarge
                                 font.weight: Font.Medium
                                 color: Theme.surfaceText
                             }
 
                             StyledText {
-                                text: "Automatically hide the top bar to expand screen real estate"
+                                text: I18n.tr("Automatically hide the top bar to expand screen real estate")
                                 font.pixelSize: Theme.fontSizeSmall
                                 color: Theme.surfaceVariantText
                                 wrapMode: Text.WordWrap
@@ -765,14 +817,14 @@ Item {
                             anchors.verticalCenter: parent.verticalCenter
 
                             StyledText {
-                                text: "Manual Show/Hide"
+                                text: I18n.tr("Manual Show/Hide")
                                 font.pixelSize: Theme.fontSizeLarge
                                 font.weight: Font.Medium
                                 color: Theme.surfaceText
                             }
 
                             StyledText {
-                                text: "Toggle top bar visibility manually (can be controlled via IPC)"
+                                text: I18n.tr("Toggle top bar visibility manually (can be controlled via IPC)")
                                 font.pixelSize: Theme.fontSizeSmall
                                 color: Theme.surfaceVariantText
                                 wrapMode: Text.WordWrap
@@ -819,14 +871,14 @@ Item {
                             anchors.verticalCenter: parent.verticalCenter
 
                             StyledText {
-                                text: "Show on Overview"
+                                text: I18n.tr("Show on Overview")
                                 font.pixelSize: Theme.fontSizeLarge
                                 font.weight: Font.Medium
                                 color: Theme.surfaceText
                             }
 
                             StyledText {
-                                text: "Always show the top bar when niri's overview is open"
+                                text: I18n.tr("Always show the top bar when niri's overview is open")
                                 font.pixelSize: Theme.fontSizeSmall
                                 color: Theme.surfaceVariantText
                                 wrapMode: Text.WordWrap
@@ -878,7 +930,7 @@ Item {
                         }
 
                         StyledText {
-                            text: "Spacing"
+                            text: I18n.tr("Spacing")
                             font.pixelSize: Theme.fontSizeLarge
                             font.weight: Font.Medium
                             color: Theme.surfaceText
@@ -890,14 +942,51 @@ Item {
                         width: parent.width
                         spacing: Theme.spacingS
 
-                        StyledText {
-                            text: "Edge Spacing (0 = edge-to-edge)"
-                            font.pixelSize: Theme.fontSizeSmall
-                            color: Theme.surfaceText
-                            font.weight: Font.Medium
+                        Row {
+                            width: parent.width
+                            spacing: Theme.spacingS
+
+                            StyledText {
+                                text: I18n.tr("Edge Spacing (0 = edge-to-edge)")
+                                font.pixelSize: Theme.fontSizeSmall
+                                color: Theme.surfaceText
+                                font.weight: Font.Medium
+                                anchors.verticalCenter: parent.verticalCenter
+                            }
+
+                            Item {
+                                width: parent.width - edgeSpacingText.implicitWidth - resetEdgeSpacingBtn.width - Theme.spacingS - Theme.spacingM
+                                height: 1
+
+                                StyledText {
+                                    id: edgeSpacingText
+                                    visible: false
+                                    text: I18n.tr("Edge Spacing (0 = edge-to-edge)")
+                                    font.pixelSize: Theme.fontSizeSmall
+                                }
+                            }
+
+                            DankActionButton {
+                                id: resetEdgeSpacingBtn
+                                buttonSize: 20
+                                iconName: "refresh"
+                                iconSize: 12
+                                backgroundColor: Theme.surfaceContainerHigh
+                                iconColor: Theme.surfaceText
+                                anchors.verticalCenter: parent.verticalCenter
+                                onClicked: {
+                                    SettingsData.setDankBarSpacing(4)
+                                }
+                            }
+
+                            Item {
+                                width: Theme.spacingS
+                                height: 1
+                            }
                         }
 
                         DankSlider {
+                            id: edgeSpacingSlider
                             width: parent.width
                             height: 24
                             value: SettingsData.dankBarSpacing
@@ -911,6 +1000,13 @@ Item {
                                                       SettingsData.setDankBarSpacing(
                                                           newValue)
                                                   }
+
+                            Binding {
+                                target: edgeSpacingSlider
+                                property: "value"
+                                value: SettingsData.dankBarSpacing
+                                restoreMode: Binding.RestoreBinding
+                            }
                         }
                     }
 
@@ -918,19 +1014,56 @@ Item {
                         width: parent.width
                         spacing: Theme.spacingS
 
-                        StyledText {
-                            text: "Exclusive Zone Offset"
-                            font.pixelSize: Theme.fontSizeSmall
-                            color: Theme.surfaceText
-                            font.weight: Font.Medium
+                        Row {
+                            width: parent.width
+                            spacing: Theme.spacingS
+
+                            StyledText {
+                                text: I18n.tr("Exclusive Zone Offset")
+                                font.pixelSize: Theme.fontSizeSmall
+                                color: Theme.surfaceText
+                                font.weight: Font.Medium
+                                anchors.verticalCenter: parent.verticalCenter
+                            }
+
+                            Item {
+                                width: parent.width - exclusiveZoneText.implicitWidth - resetExclusiveZoneBtn.width - Theme.spacingS - Theme.spacingM
+                                height: 1
+
+                                StyledText {
+                                    id: exclusiveZoneText
+                                    visible: false
+                                    text: I18n.tr("Exclusive Zone Offset")
+                                    font.pixelSize: Theme.fontSizeSmall
+                                }
+                            }
+
+                            DankActionButton {
+                                id: resetExclusiveZoneBtn
+                                buttonSize: 20
+                                iconName: "refresh"
+                                iconSize: 12
+                                backgroundColor: Theme.surfaceContainerHigh
+                                iconColor: Theme.surfaceText
+                                anchors.verticalCenter: parent.verticalCenter
+                                onClicked: {
+                                    SettingsData.setDankBarBottomGap(0)
+                                }
+                            }
+
+                            Item {
+                                width: Theme.spacingS
+                                height: 1
+                            }
                         }
 
                         DankSlider {
+                            id: exclusiveZoneSlider
                             width: parent.width
                             height: 24
                             value: SettingsData.dankBarBottomGap
-                            minimum: -100
-                            maximum: 100
+                            minimum: -50
+                            maximum: 50
                             unit: ""
                             showValue: true
                             wheelEnabled: false
@@ -939,6 +1072,13 @@ Item {
                                                       SettingsData.setDankBarBottomGap(
                                                           newValue)
                                                   }
+
+                            Binding {
+                                target: exclusiveZoneSlider
+                                property: "value"
+                                value: SettingsData.dankBarBottomGap
+                                restoreMode: Binding.RestoreBinding
+                            }
                         }
                     }
 
@@ -946,14 +1086,51 @@ Item {
                         width: parent.width
                         spacing: Theme.spacingS
 
-                        StyledText {
-                            text: "Size"
-                            font.pixelSize: Theme.fontSizeSmall
-                            color: Theme.surfaceText
-                            font.weight: Font.Medium
+                        Row {
+                            width: parent.width
+                            spacing: Theme.spacingS
+
+                            StyledText {
+                                text: I18n.tr("Size")
+                                font.pixelSize: Theme.fontSizeSmall
+                                color: Theme.surfaceText
+                                font.weight: Font.Medium
+                                anchors.verticalCenter: parent.verticalCenter
+                            }
+
+                            Item {
+                                width: parent.width - sizeText.implicitWidth - resetSizeBtn.width - Theme.spacingS - Theme.spacingM
+                                height: 1
+
+                                StyledText {
+                                    id: sizeText
+                                    visible: false
+                                    text: I18n.tr("Size")
+                                    font.pixelSize: Theme.fontSizeSmall
+                                }
+                            }
+
+                            DankActionButton {
+                                id: resetSizeBtn
+                                buttonSize: 20
+                                iconName: "refresh"
+                                iconSize: 12
+                                backgroundColor: Theme.surfaceContainerHigh
+                                iconColor: Theme.surfaceText
+                                anchors.verticalCenter: parent.verticalCenter
+                                onClicked: {
+                                    SettingsData.setDankBarInnerPadding(4)
+                                }
+                            }
+
+                            Item {
+                                width: Theme.spacingS
+                                height: 1
+                            }
                         }
 
                         DankSlider {
+                            id: sizeSlider
                             width: parent.width
                             height: 24
                             value: SettingsData.dankBarInnerPadding
@@ -967,13 +1144,119 @@ Item {
                                                       SettingsData.setDankBarInnerPadding(
                                                           newValue)
                                                   }
+
+                            Binding {
+                                target: sizeSlider
+                                property: "value"
+                                value: SettingsData.dankBarInnerPadding
+                                restoreMode: Binding.RestoreBinding
+                            }
                         }
                     }
 
+                    Column {
+                        width: parent.width
+                        spacing: Theme.spacingM
+
+                        DankToggle {
+                            width: parent.width
+                            text: I18n.tr("Auto Popup Gaps")
+                            description: I18n.tr("Automatically calculate popup distance from bar edge.")
+                            checked: SettingsData.popupGapsAuto
+                            onToggled: checked => {
+                                SettingsData.setPopupGapsAuto(checked)
+                            }
+                        }
+
+                        Column {
+                            width: parent.width
+                            leftPadding: Theme.spacingM
+                            spacing: Theme.spacingM
+                            visible: !SettingsData.popupGapsAuto
+
+                            Rectangle {
+                                width: parent.width - parent.leftPadding
+                                height: 1
+                                color: Theme.outline
+                                opacity: 0.2
+                            }
+
+                            Column {
+                                width: parent.width - parent.leftPadding
+                                spacing: Theme.spacingS
+
+                                Row {
+                                    width: parent.width
+                                    spacing: Theme.spacingS
+
+                                    StyledText {
+                                        text: I18n.tr("Manual Gap Size")
+                                        font.pixelSize: Theme.fontSizeSmall
+                                        color: Theme.surfaceText
+                                        font.weight: Font.Medium
+                                        anchors.verticalCenter: parent.verticalCenter
+                                    }
+
+                                    Item {
+                                        width: parent.width - manualGapSizeText.implicitWidth - resetManualGapSizeBtn.width - Theme.spacingS - Theme.spacingM
+                                        height: 1
+
+                                        StyledText {
+                                            id: manualGapSizeText
+                                            visible: false
+                                            text: I18n.tr("Manual Gap Size")
+                                            font.pixelSize: Theme.fontSizeSmall
+                                        }
+                                    }
+
+                                    DankActionButton {
+                                        id: resetManualGapSizeBtn
+                                        buttonSize: 20
+                                        iconName: "refresh"
+                                        iconSize: 12
+                                        backgroundColor: Theme.surfaceContainerHigh
+                                        iconColor: Theme.surfaceText
+                                        anchors.verticalCenter: parent.verticalCenter
+                                        onClicked: {
+                                            SettingsData.setPopupGapsManual(4)
+                                        }
+                                    }
+
+                                    Item {
+                                        width: Theme.spacingS
+                                        height: 1
+                                    }
+                                }
+
+                                DankSlider {
+                                    id: popupGapsManualSlider
+                                    width: parent.width
+                                    height: 24
+                                    value: SettingsData.popupGapsManual
+                                    minimum: 0
+                                    maximum: 50
+                                    unit: ""
+                                    showValue: true
+                                    wheelEnabled: false
+                                    thumbOutlineColor: Theme.surfaceContainerHigh
+                                    onSliderValueChanged: newValue => {
+                                        SettingsData.setPopupGapsManual(newValue)
+                                    }
+
+                                    Binding {
+                                        target: popupGapsManualSlider
+                                        property: "value"
+                                        value: SettingsData.popupGapsManual
+                                        restoreMode: Binding.RestoreBinding
+                                    }
+                                }
+                            }
+                        }
+                    }
 
                     DankToggle {
                         width: parent.width
-                        text: "Square Corners"
+                        text: I18n.tr("Square Corners")
                         description: "Removes rounded corners from bar container."
                         checked: SettingsData.dankBarSquareCorners
                         onToggled: checked => {
@@ -984,7 +1267,7 @@ Item {
 
                     DankToggle {
                         width: parent.width
-                        text: "No Background"
+                        text: I18n.tr("No Background")
                         description: "Remove widget backgrounds for a minimal look with tighter spacing."
                         checked: SettingsData.dankBarNoBackground
                         onToggled: checked => {
@@ -995,7 +1278,7 @@ Item {
 
                     DankToggle {
                         width: parent.width
-                        text: "Goth Corners"
+                        text: I18n.tr("Goth Corners")
                         description: "Add curved swooping tips at the bottom of the bar."
                         checked: SettingsData.dankBarGothCornersEnabled
                         onToggled: checked => {
@@ -1004,14 +1287,318 @@ Item {
                                    }
                     }
 
-                    DankToggle {
+                    Column {
                         width: parent.width
-                        text: "Border"
-                        description: "Add a 1px border to the bar. Smart edge detection only shows border on exposed sides."
-                        checked: SettingsData.dankBarBorderEnabled
-                        onToggled: checked => {
-                                       SettingsData.setDankBarBorderEnabled(checked)
-                                   }
+                        spacing: Theme.spacingM
+
+                        DankToggle {
+                            width: parent.width
+                            text: I18n.tr("Border")
+                            description: "Add a 1px border to the bar. Smart edge detection only shows border on exposed sides."
+                            checked: SettingsData.dankBarBorderEnabled
+                            onToggled: checked => {
+                                           SettingsData.setDankBarBorderEnabled(checked)
+                                       }
+                        }
+
+                        Column {
+                            width: parent.width
+                            leftPadding: Theme.spacingM
+                            spacing: Theme.spacingM
+                            visible: SettingsData.dankBarBorderEnabled
+
+                            Rectangle {
+                                width: parent.width - parent.leftPadding
+                                height: 1
+                                color: Theme.outline
+                                opacity: 0.2
+                            }
+
+                            Row {
+                                width: parent.width - parent.leftPadding
+                                spacing: Theme.spacingM
+
+                                Column {
+                                    width: parent.width - borderColorGroup.width - Theme.spacingM
+                                    spacing: Theme.spacingXS
+
+                                    StyledText {
+                                        text: I18n.tr("Border Color")
+                                        font.pixelSize: Theme.fontSizeSmall
+                                        color: Theme.surfaceText
+                                        font.weight: Font.Medium
+                                    }
+
+                                    StyledText {
+                                        text: I18n.tr("Choose the border accent color")
+                                        font.pixelSize: Theme.fontSizeSmall
+                                        color: Theme.surfaceVariantText
+                                        width: parent.width
+                                    }
+                                }
+
+                                DankButtonGroup {
+                                    id: borderColorGroup
+                                    anchors.verticalCenter: parent.verticalCenter
+                                    model: ["Surface", "Secondary", "Primary"]
+                                    currentIndex: {
+                                        const colorOption = SettingsData.dankBarBorderColor || "surfaceText"
+                                        switch (colorOption) {
+                                            case "surfaceText": return 0
+                                            case "secondary": return 1
+                                            case "primary": return 2
+                                            default: return 0
+                                        }
+                                    }
+                                    onSelectionChanged: (index, selected) => {
+                                        if (selected) {
+                                            let newColor = "surfaceText"
+                                            switch (index) {
+                                                case 0: newColor = "surfaceText"; break
+                                                case 1: newColor = "secondary"; break
+                                                case 2: newColor = "primary"; break
+                                            }
+                                            if (SettingsData.dankBarBorderColor !== newColor) {
+                                                SettingsData.dankBarBorderColor = newColor
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+
+                            Column {
+                                width: parent.width - parent.leftPadding
+                                spacing: Theme.spacingS
+
+                                Row {
+                                    width: parent.width
+                                    spacing: Theme.spacingS
+
+                                    StyledText {
+                                        text: I18n.tr("Border Opacity")
+                                        font.pixelSize: Theme.fontSizeSmall
+                                        color: Theme.surfaceText
+                                        font.weight: Font.Medium
+                                        anchors.verticalCenter: parent.verticalCenter
+                                    }
+
+                                    Item {
+                                        width: parent.width - borderOpacityText.implicitWidth - resetBorderOpacityBtn.width - Theme.spacingS - Theme.spacingM
+                                        height: 1
+
+                                        StyledText {
+                                            id: borderOpacityText
+                                            visible: false
+                                            text: I18n.tr("Border Opacity")
+                                            font.pixelSize: Theme.fontSizeSmall
+                                        }
+                                    }
+
+                                    DankActionButton {
+                                        id: resetBorderOpacityBtn
+                                        buttonSize: 20
+                                        iconName: "refresh"
+                                        iconSize: 12
+                                        backgroundColor: Theme.surfaceContainerHigh
+                                        iconColor: Theme.surfaceText
+                                        anchors.verticalCenter: parent.verticalCenter
+                                        onClicked: {
+                                            SettingsData.dankBarBorderOpacity = 1.0
+                                        }
+                                    }
+
+                                    Item {
+                                        width: Theme.spacingS
+                                        height: 1
+                                    }
+                                }
+
+                                DankSlider {
+                                    id: borderOpacitySlider
+                                    width: parent.width
+                                    height: 24
+                                    value: (SettingsData.dankBarBorderOpacity ?? 1.0) * 100
+                                    minimum: 0
+                                    maximum: 100
+                                    unit: "%"
+                                    showValue: true
+                                    wheelEnabled: false
+                                    thumbOutlineColor: Theme.surfaceContainerHigh
+                                    onSliderValueChanged: newValue => {
+                                        SettingsData.dankBarBorderOpacity = newValue / 100
+                                    }
+
+                                    Binding {
+                                        target: borderOpacitySlider
+                                        property: "value"
+                                        value: (SettingsData.dankBarBorderOpacity ?? 1.0) * 100
+                                        restoreMode: Binding.RestoreBinding
+                                    }
+                                }
+                            }
+
+                            Column {
+                                width: parent.width - parent.leftPadding
+                                spacing: Theme.spacingS
+
+                                Row {
+                                    width: parent.width
+                                    spacing: Theme.spacingS
+
+                                    StyledText {
+                                        text: I18n.tr("Border Thickness")
+                                        font.pixelSize: Theme.fontSizeSmall
+                                        color: Theme.surfaceText
+                                        font.weight: Font.Medium
+                                        anchors.verticalCenter: parent.verticalCenter
+                                    }
+
+                                    Item {
+                                        width: parent.width - borderThicknessText.implicitWidth - resetBorderThicknessBtn.width - Theme.spacingS - Theme.spacingM
+                                        height: 1
+
+                                        StyledText {
+                                            id: borderThicknessText
+                                            visible: false
+                                            text: I18n.tr("Border Thickness")
+                                            font.pixelSize: Theme.fontSizeSmall
+                                        }
+                                    }
+
+                                    DankActionButton {
+                                        id: resetBorderThicknessBtn
+                                        buttonSize: 20
+                                        iconName: "refresh"
+                                        iconSize: 12
+                                        backgroundColor: Theme.surfaceContainerHigh
+                                        iconColor: Theme.surfaceText
+                                        anchors.verticalCenter: parent.verticalCenter
+                                        onClicked: {
+                                            SettingsData.dankBarBorderThickness = 1
+                                        }
+                                    }
+
+                                    Item {
+                                        width: Theme.spacingS
+                                        height: 1
+                                    }
+                                }
+
+                                DankSlider {
+                                    id: borderThicknessSlider
+                                    width: parent.width
+                                    height: 24
+                                    value: SettingsData.dankBarBorderThickness ?? 1
+                                    minimum: 1
+                                    maximum: 10
+                                    unit: "px"
+                                    showValue: true
+                                    wheelEnabled: false
+                                    thumbOutlineColor: Theme.surfaceContainerHigh
+                                    onSliderValueChanged: newValue => {
+                                        SettingsData.dankBarBorderThickness = newValue
+                                    }
+
+                                    Binding {
+                                        target: borderThicknessSlider
+                                        property: "value"
+                                        value: SettingsData.dankBarBorderThickness ?? 1
+                                        restoreMode: Binding.RestoreBinding
+                                    }
+                                }
+                            }
+                        }
+                    }
+
+                    Rectangle {
+                        width: parent.width
+                        height: 1
+                        color: Theme.outline
+                        opacity: 0.2
+                    }
+
+                    Rectangle {
+                        width: parent.width
+                        height: 60
+                        radius: Theme.cornerRadius
+                        color: "transparent"
+
+                        Column {
+                            anchors.left: parent.left
+                            anchors.right: dankBarFontScaleControls.left
+                            anchors.verticalCenter: parent.verticalCenter
+                            anchors.leftMargin: Theme.spacingM
+                            anchors.rightMargin: Theme.spacingM
+                            spacing: Theme.spacingXS
+
+                            StyledText {
+                                text: I18n.tr("DankBar Font Scale")
+                                font.pixelSize: Theme.fontSizeMedium
+                                font.weight: Font.Medium
+                                color: Theme.surfaceText
+                            }
+
+                            StyledText {
+                                text: I18n.tr("Scale DankBar font sizes independently")
+                                font.pixelSize: Theme.fontSizeSmall
+                                color: Theme.surfaceVariantText
+                                width: parent.width
+                            }
+                        }
+
+                        Row {
+                            id: dankBarFontScaleControls
+
+                            width: 180
+                            height: 36
+                            anchors.right: parent.right
+                            anchors.rightMargin: 0
+                            anchors.verticalCenter: parent.verticalCenter
+                            spacing: Theme.spacingS
+
+                            DankActionButton {
+                                buttonSize: 32
+                                iconName: "remove"
+                                iconSize: Theme.iconSizeSmall
+                                enabled: SettingsData.dankBarFontScale > 0.5
+                                backgroundColor: Theme.surfaceContainerHigh
+                                iconColor: Theme.surfaceText
+                                onClicked: {
+                                    var newScale = Math.max(0.5, SettingsData.dankBarFontScale - 0.05)
+                                    SettingsData.setDankBarFontScale(newScale)
+                                }
+                            }
+
+                            StyledRect {
+                                width: 60
+                                height: 32
+                                radius: Theme.cornerRadius
+                                color: Theme.surfaceContainerHigh
+                                border.color: Qt.rgba(Theme.outline.r, Theme.outline.g, Theme.outline.b, 0.2)
+                                border.width: 0
+
+                                StyledText {
+                                    anchors.centerIn: parent
+                                    text: (SettingsData.dankBarFontScale * 100).toFixed(0) + "%"
+                                    font.pixelSize: Theme.fontSizeSmall
+                                    font.weight: Font.Medium
+                                    color: Theme.surfaceText
+                                }
+                            }
+
+                            DankActionButton {
+                                buttonSize: 32
+                                iconName: "add"
+                                iconSize: Theme.iconSizeSmall
+                                enabled: SettingsData.dankBarFontScale < 2.0
+                                backgroundColor: Theme.surfaceContainerHigh
+                                iconColor: Theme.surfaceText
+                                onClicked: {
+                                    var newScale = Math.min(2.0, SettingsData.dankBarFontScale + 0.05)
+                                    SettingsData.setDankBarFontScale(newScale)
+                                }
+                            }
+                        }
                     }
                 }
             }
@@ -1047,7 +1634,7 @@ Item {
 
                         StyledText {
                             id: widgetTitle
-                            text: "Widget Management"
+                            text: I18n.tr("Widget Management")
                             font.pixelSize: Theme.fontSizeLarge
                             font.weight: Font.Medium
                             color: Theme.surfaceText
@@ -1085,7 +1672,7 @@ Item {
                                 }
 
                                 StyledText {
-                                    text: "Reset"
+                                    text: I18n.tr("Reset")
                                     font.pixelSize: Theme.fontSizeSmall
                                     font.weight: Font.Medium
                                     color: Theme.surfaceText
@@ -1127,7 +1714,7 @@ Item {
 
                     StyledText {
                         width: parent.width
-                        text: "Drag widgets to reorder within sections. Use the eye icon to hide/show widgets (maintains spacing), or X to remove them completely."
+                        text: I18n.tr("Drag widgets to reorder within sections. Use the eye icon to hide/show widgets (maintains spacing), or X to remove them completely.")
                         font.pixelSize: Theme.fontSizeSmall
                         color: Theme.surfaceVariantText
                         wrapMode: Text.WordWrap
@@ -1208,6 +1795,10 @@ Item {
                                                          dankBarTab.handleDiskMountSelectionChanged(
                                                              sectionId, widgetIndex, mountPath)
                                                      }
+                        onMinimumWidthChanged: (sectionId, widgetIndex, enabled) => {
+                                                   dankBarTab.handleMinimumWidthChanged(
+                                                       sectionId, widgetIndex, enabled)
+                                               }
                     }
                 }
 
@@ -1225,7 +1816,7 @@ Item {
                         id: centerSection
                         anchors.fill: parent
                         anchors.margins: Theme.spacingL
-                        title: "Center Section"
+                        title: I18n.tr("Center Section")
                         titleIcon: "format_align_center"
                         sectionId: "center"
                         allWidgets: dankBarTab.baseWidgetDefinitions
@@ -1280,6 +1871,10 @@ Item {
                                                          dankBarTab.handleDiskMountSelectionChanged(
                                                              sectionId, widgetIndex, mountPath)
                                                      }
+                        onMinimumWidthChanged: (sectionId, widgetIndex, enabled) => {
+                                                   dankBarTab.handleMinimumWidthChanged(
+                                                       sectionId, widgetIndex, enabled)
+                                               }
                     }
                 }
 
@@ -1352,6 +1947,10 @@ Item {
                                                          dankBarTab.handleDiskMountSelectionChanged(
                                                              sectionId, widgetIndex, mountPath)
                                                      }
+                        onMinimumWidthChanged: (sectionId, widgetIndex, enabled) => {
+                                                   dankBarTab.handleMinimumWidthChanged(
+                                                       sectionId, widgetIndex, enabled)
+                                               }
                     }
                 }
             }

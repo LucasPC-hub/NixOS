@@ -1,11 +1,11 @@
+pragma ComponentBehavior: Bound
+
 import QtCore
 import QtQuick
-import QtQuick.Controls
 import QtQuick.Effects
 import QtQuick.Layouts
 import Quickshell
 import Quickshell.Io
-import Quickshell.Services.Pam
 import Quickshell.Services.Mpris
 import qs.Common
 import qs.Services
@@ -26,27 +26,6 @@ Item {
 
     signal unlockRequested
 
-    // Internal power dialog state
-    property bool powerDialogVisible: false
-    property string powerDialogTitle: ""
-    property string powerDialogMessage: ""
-    property string powerDialogConfirmText: ""
-    property color powerDialogConfirmColor: Theme.primary
-    property var powerDialogOnConfirm: function () {}
-
-    function showPowerDialog(title, message, confirmText, confirmColor, onConfirm) {
-        powerDialogTitle = title
-        powerDialogMessage = message
-        powerDialogConfirmText = confirmText
-        powerDialogConfirmColor = confirmColor
-        powerDialogOnConfirm = onConfirm
-        powerDialogVisible = true
-    }
-
-    function hidePowerDialog() {
-        powerDialogVisible = false
-    }
-
     function pickRandomFact() {
         randomFact = Facts.getRandomFact()
     }
@@ -62,6 +41,16 @@ Item {
         if (CompositorService.isHyprland) {
             updateHyprlandLayout()
             hyprlandLayoutUpdateTimer.start()
+        }
+
+        if (SessionService.loginctlAvailable && DMSService.apiVersion >= 2) {
+            DMSService.sendRequest("loginctl.lockerReady", null, response => {
+                if (response.error) {
+                    console.warn("LockScreenContent: Failed to signal locker ready:", response.error)
+                } else {
+                    console.log("LockScreenContent: Locker ready signaled, inhibitor released")
+                }
+            })
         }
     }
     onDemoModeChanged: {
@@ -263,22 +252,50 @@ Item {
                     border.color: passwordField.activeFocus ? Theme.primary : Qt.rgba(1, 1, 1, 0.3)
                     border.width: passwordField.activeFocus ? 2 : 1
 
-                    DankIcon {
-                        id: lockIcon
-
+                    Item {
+                        id: lockIconContainer
                         anchors.left: parent.left
                         anchors.leftMargin: Theme.spacingM
                         anchors.verticalCenter: parent.verticalCenter
-                        name: "lock"
-                        size: 20
-                        color: passwordField.activeFocus ? Theme.primary : Theme.surfaceVariantText
+                        width: 20
+                        height: 20
+
+                        DankIcon {
+                            id: lockIcon
+
+                            anchors.centerIn: parent
+                            name: {
+                                if (pam.fprint.tries >= SettingsData.maxFprintTries)
+                                    return "fingerprint_off";
+                                if (pam.fprint.active)
+                                    return "fingerprint";
+                                return "lock";
+                            }
+                            size: 20
+                            color: pam.fprint.tries >= SettingsData.maxFprintTries ? Theme.error : (passwordField.activeFocus ? Theme.primary : Theme.surfaceVariantText)
+                            opacity: pam.passwd.active ? 0 : 1
+
+                            Behavior on opacity {
+                                NumberAnimation {
+                                    duration: Theme.mediumDuration
+                                    easing.type: Theme.standardEasing
+                                }
+                            }
+
+                            Behavior on color {
+                                ColorAnimation {
+                                    duration: Theme.shortDuration
+                                    easing.type: Theme.standardEasing
+                                }
+                            }
+                        }
                     }
 
                     TextInput {
                         id: passwordField
 
                         anchors.fill: parent
-                        anchors.leftMargin: lockIcon.width + Theme.spacingM * 2
+                        anchors.leftMargin: lockIconContainer.width + Theme.spacingM * 2
                         anchors.rightMargin: {
                             let margin = Theme.spacingM
                             if (loadingSpinner.visible) {
@@ -306,9 +323,9 @@ Item {
                             }
                         }
                         onAccepted: {
-                            if (!demoMode && !pam.active) {
+                            if (!demoMode && !pam.passwd.active) {
                                 console.log("Enter pressed, starting PAM authentication")
-                                pam.start()
+                                pam.passwd.start()
                             }
                         }
                         Keys.onPressed: event => {
@@ -316,7 +333,7 @@ Item {
                                                 return
                                             }
 
-                                            if (pam.active) {
+                                            if (pam.passwd.active) {
                                                 console.log("PAM is active, ignoring input")
                                                 event.accepted = true
                                                 return
@@ -336,7 +353,7 @@ Item {
                         }
 
                         onActiveFocusChanged: {
-                            if (!activeFocus && !demoMode && visible && passwordField) {
+                            if (!activeFocus && !demoMode && visible && passwordField && !powerMenu.isVisible) {
                                 Qt.callLater(() => {
                                     if (passwordField && passwordField.forceActiveFocus) {
                                         passwordField.forceActiveFocus()
@@ -346,7 +363,7 @@ Item {
                         }
 
                         onEnabledChanged: {
-                            if (enabled && !demoMode && visible && passwordField) {
+                            if (enabled && !demoMode && visible && passwordField && !powerMenu.isVisible) {
                                 Qt.callLater(() => {
                                     if (passwordField && passwordField.forceActiveFocus) {
                                         passwordField.forceActiveFocus()
@@ -365,7 +382,7 @@ Item {
                     StyledText {
                         id: placeholder
 
-                        anchors.left: lockIcon.right
+                        anchors.left: lockIconContainer.right
                         anchors.leftMargin: Theme.spacingM
                         anchors.right: (revealButton.visible ? revealButton.left : (virtualKeyboardButton.visible ? virtualKeyboardButton.left : (enterButton.visible ? enterButton.left : (loadingSpinner.visible ? loadingSpinner.left : parent.right))))
                         anchors.rightMargin: 2
@@ -377,12 +394,12 @@ Item {
                             if (root.unlocking) {
                                 return "Unlocking..."
                             }
-                            if (pam.active) {
+                            if (pam.passwd.active) {
                                 return "Authenticating..."
                             }
                             return "Password..."
                         }
-                        color: root.unlocking ? Theme.primary : (pam.active ? Theme.primary : Theme.outline)
+                        color: root.unlocking ? Theme.primary : (pam.passwd.active ? Theme.primary : Theme.outline)
                         font.pixelSize: Theme.fontSizeMedium
                         opacity: (demoMode || root.passwordBuffer.length === 0) ? 1 : 0
 
@@ -402,7 +419,7 @@ Item {
                     }
 
                     StyledText {
-                        anchors.left: lockIcon.right
+                        anchors.left: lockIconContainer.right
                         anchors.leftMargin: Theme.spacingM
                         anchors.right: (revealButton.visible ? revealButton.left : (virtualKeyboardButton.visible ? virtualKeyboardButton.left : (enterButton.visible ? enterButton.left : (loadingSpinner.visible ? loadingSpinner.left : parent.right))))
                         anchors.rightMargin: 2
@@ -437,7 +454,7 @@ Item {
                         anchors.verticalCenter: parent.verticalCenter
                         iconName: parent.showPassword ? "visibility_off" : "visibility"
                         buttonSize: 32
-                        visible: !demoMode && root.passwordBuffer.length > 0 && !pam.active && !root.unlocking
+                        visible: !demoMode && root.passwordBuffer.length > 0 && !pam.passwd.active && !root.unlocking
                         enabled: visible
                         onClicked: parent.showPassword = !parent.showPassword
                     }
@@ -449,7 +466,7 @@ Item {
                         anchors.verticalCenter: parent.verticalCenter
                         iconName: "keyboard"
                         buttonSize: 32
-                        visible: !demoMode && !pam.active && !root.unlocking
+                        visible: !demoMode && !pam.passwd.active && !root.unlocking
                         enabled: visible
                         onClicked: {
                             if (keyboardController.isKeyboardActive) {
@@ -470,7 +487,7 @@ Item {
                         height: 24
                         radius: 12
                         color: "transparent"
-                        visible: !demoMode && (pam.active || root.unlocking)
+                        visible: !demoMode && (pam.passwd.active || root.unlocking)
 
                         DankIcon {
                             anchors.centerIn: parent
@@ -502,7 +519,7 @@ Item {
 
                         Item {
                             anchors.fill: parent
-                            visible: pam.active && !root.unlocking
+                            visible: pam.passwd.active && !root.unlocking
 
                             Rectangle {
                                 width: 20
@@ -532,7 +549,7 @@ Item {
                                 }
 
                                 RotationAnimation on rotation {
-                                    running: pam.active && !root.unlocking
+                                    running: pam.passwd.active && !root.unlocking
                                     loops: Animation.Infinite
                                     duration: Anims.durLong
                                     from: 0
@@ -550,12 +567,12 @@ Item {
                         anchors.verticalCenter: parent.verticalCenter
                         iconName: "keyboard_return"
                         buttonSize: 36
-                        visible: (demoMode || (!pam.active && !root.unlocking))
+                        visible: (demoMode || (!pam.passwd.active && !root.unlocking))
                         enabled: !demoMode
                         onClicked: {
                             if (!demoMode) {
                                 console.log("Enter button clicked, starting PAM authentication")
-                                pam.start()
+                                pam.passwd.start()
                             }
                         }
 
@@ -609,7 +626,7 @@ Item {
             anchors.top: parent.top
             anchors.left: parent.left
             anchors.margins: Theme.spacingXL
-            text: "DEMO MODE - Click anywhere to exit"
+            text: I18n.tr("DEMO MODE - Click anywhere to exit")
             font.pixelSize: Theme.fontSizeSmall
             color: "white"
             opacity: 0.7
@@ -743,8 +760,7 @@ Item {
 
                         Repeater {
                             model: 6
-
-                            Rectangle {
+                            delegate: Rectangle {
                                 width: 2
                                 height: {
                                     if (MprisController.activePlayer?.playbackState === MprisPlaybackState.Playing && CavaService.values.length > index) {
@@ -1070,53 +1086,19 @@ Item {
             }
         }
 
-        Row {
+        DankActionButton {
             anchors.bottom: parent.bottom
             anchors.left: parent.left
             anchors.margins: Theme.spacingXL
-            spacing: Theme.spacingL
             visible: SettingsData.lockScreenShowPowerActions
-
-            DankActionButton {
-                iconName: "power_settings_new"
-                iconColor: Theme.error
-                buttonSize: 40
-                onClicked: {
-                    if (demoMode) {
-                        console.log("Demo: Power")
-                    } else {
-                        showPowerDialog("Power Off", "Power off this computer?", "Power Off", Theme.error, function () {
-                            SessionService.poweroff()
-                        })
-                    }
-                }
-            }
-
-            DankActionButton {
-                iconName: "refresh"
-                buttonSize: 40
-                onClicked: {
-                    if (demoMode) {
-                        console.log("Demo: Reboot")
-                    } else {
-                        showPowerDialog("Restart", "Restart this computer?", "Restart", Theme.primary, function () {
-                            SessionService.reboot()
-                        })
-                    }
-                }
-            }
-
-            DankActionButton {
-                iconName: "logout"
-                buttonSize: 40
-                onClicked: {
-                    if (demoMode) {
-                        console.log("Demo: Logout")
-                    } else {
-                        showPowerDialog("Log Out", "End this session?", "Log Out", Theme.primary, function () {
-                            SessionService.logout()
-                        })
-                    }
+            iconName: "power_settings_new"
+            iconColor: Theme.error
+            buttonSize: 40
+            onClicked: {
+                if (demoMode) {
+                    console.log("Demo: Power Menu")
+                } else {
+                    powerMenu.show()
                 }
             }
         }
@@ -1136,52 +1118,29 @@ Item {
         }
     }
 
-    FileView {
-        id: pamConfigWatcher
-
-        path: "/etc/pam.d/dankshell"
-        printErrors: false
+    Pam {
+        id: pam
+        lockSecured: !demoMode
+        onUnlockRequested: {
+            root.unlocking = true
+            passwordField.text = ""
+            root.passwordBuffer = ""
+            root.unlockRequested()
+        }
+        onStateChanged: {
+            root.pamState = state
+            if (state !== "") {
+                placeholderDelay.restart()
+                passwordField.text = ""
+                root.passwordBuffer = ""
+            }
+        }
     }
 
-    PamContext {
-        id: pam
-
-        config: pamConfigWatcher.loaded ? "dankshell" : "login"
-        onResponseRequiredChanged: {
-            if (demoMode)
-                return
-
-            console.log("PAM response required:", responseRequired)
-            if (!responseRequired)
-                return
-
-            console.log("Responding to PAM with password buffer length:", root.passwordBuffer.length)
-            respond(root.passwordBuffer)
-        }
-        onCompleted: res => {
-                         if (demoMode)
-                         return
-
-                         console.log("PAM authentication completed with result:", res)
-                         if (res === PamResult.Success) {
-                             console.log("Authentication successful, unlocking")
-                             root.unlocking = true
-                             passwordField.text = ""
-                             root.passwordBuffer = ""
-                             root.unlockRequested()
-                             return
-                         }
-                         console.log("Authentication failed:", res)
-                         passwordField.text = ""
-                         root.passwordBuffer = ""
-                         if (res === PamResult.Error)
-                         root.pamState = "error"
-                         else if (res === PamResult.MaxTries)
-                         root.pamState = "max"
-                         else if (res === PamResult.Failed)
-                         root.pamState = "fail"
-                         placeholderDelay.restart()
-                     }
+    Binding {
+        target: pam
+        property: "buffer"
+        value: root.passwordBuffer
     }
 
     Timer {
@@ -1197,91 +1156,12 @@ Item {
         onClicked: root.unlockRequested()
     }
 
-    // Internal power dialog
-    Rectangle {
-        anchors.fill: parent
-        color: Qt.rgba(0, 0, 0, 0.8)
-        visible: powerDialogVisible
-        z: 1000
-
-        Rectangle {
-            anchors.centerIn: parent
-            width: 320
-            height: 180
-            radius: Theme.cornerRadius
-            color: Theme.surfaceContainer
-            border.color: Theme.outline
-            border.width: 1
-
-            Column {
-                anchors.centerIn: parent
-                spacing: Theme.spacingXL
-
-                DankIcon {
-                    anchors.horizontalCenter: parent.horizontalCenter
-                    name: "power_settings_new"
-                    size: 32
-                    color: powerDialogConfirmColor
-                }
-
-                StyledText {
-                    anchors.horizontalCenter: parent.horizontalCenter
-                    text: powerDialogMessage
-                    color: Theme.surfaceText
-                    font.pixelSize: Theme.fontSizeLarge
-                    font.weight: Font.Medium
-                }
-
-                Row {
-                    anchors.horizontalCenter: parent.horizontalCenter
-                    spacing: Theme.spacingM
-
-                    Rectangle {
-                        width: 100
-                        height: 40
-                        radius: Theme.cornerRadius
-                        color: Theme.surfaceVariant
-
-                        StyledText {
-                            anchors.centerIn: parent
-                            text: "Cancel"
-                            color: Theme.surfaceText
-                            font.pixelSize: Theme.fontSizeMedium
-                        }
-
-                        MouseArea {
-                            anchors.fill: parent
-                            hoverEnabled: true
-                            cursorShape: Qt.PointingHandCursor
-                            onClicked: hidePowerDialog()
-                        }
-                    }
-
-                    Rectangle {
-                        width: 100
-                        height: 40
-                        radius: Theme.cornerRadius
-                        color: powerDialogConfirmColor
-
-                        StyledText {
-                            anchors.centerIn: parent
-                            text: powerDialogConfirmText
-                            color: Theme.primaryText
-                            font.pixelSize: Theme.fontSizeMedium
-                            font.weight: Font.Medium
-                        }
-
-                        MouseArea {
-                            anchors.fill: parent
-                            hoverEnabled: true
-                            cursorShape: Qt.PointingHandCursor
-                            onClicked: {
-                                hidePowerDialog()
-                                powerDialogOnConfirm()
-                            }
-                        }
-                    }
-                }
+    LockPowerMenu {
+        id: powerMenu
+        showLogout: true
+        onClosed: {
+            if (!demoMode && passwordField && passwordField.forceActiveFocus) {
+                Qt.callLater(() => passwordField.forceActiveFocus())
             }
         }
     }

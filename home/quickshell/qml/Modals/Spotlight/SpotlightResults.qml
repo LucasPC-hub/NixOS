@@ -10,10 +10,16 @@ Rectangle {
     property var appLauncher: null
     property var contextMenu: null
 
+    function resetScroll() {
+        resultsList.contentY = 0
+        resultsGrid.contentY = 0
+    }
+
     width: parent.width
     height: parent.height - y
     radius: Theme.cornerRadius
     color: "transparent"
+    clip: true
 
     DankListView {
         id: resultsList
@@ -156,8 +162,9 @@ Rectangle {
                 onClicked: mouse => {
                                if (mouse.button === Qt.LeftButton) {
                                    resultsList.itemClicked(index, model)
-                               } else if (mouse.button === Qt.RightButton) {
-                                   const modalPos = mapToItem(resultsContainer.parent, mouse.x, mouse.y)
+                               } else if (mouse.button === Qt.RightButton && !model.isPlugin) {
+                                   const globalPos = mapToItem(null, mouse.x, mouse.y)
+                                   const modalPos = resultsContainer.parent.mapFromItem(null, globalPos.x, globalPos.y)
                                    resultsList.itemRightClicked(index, model, modalPos.x, modalPos.y)
                                }
                            }
@@ -307,8 +314,9 @@ Rectangle {
                 onClicked: mouse => {
                                if (mouse.button === Qt.LeftButton) {
                                    resultsGrid.itemClicked(index, model)
-                               } else if (mouse.button === Qt.RightButton) {
-                                   const modalPos = mapToItem(resultsContainer.parent, mouse.x, mouse.y)
+                               } else if (mouse.button === Qt.RightButton && !model.isPlugin) {
+                                   const globalPos = mapToItem(null, mouse.x, mouse.y)
+                                   const modalPos = resultsContainer.parent.mapFromItem(null, globalPos.x, globalPos.y)
                                    resultsGrid.itemRightClicked(index, model, modalPos.x, modalPos.y)
                                }
                            }

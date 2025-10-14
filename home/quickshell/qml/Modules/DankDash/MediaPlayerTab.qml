@@ -305,7 +305,7 @@ Item {
         }
 
         StyledText {
-            text: "No Active Players"
+            text: I18n.tr("No Active Players")
             font.pixelSize: Theme.fontSizeLarge
             color: Qt.rgba(Theme.surfaceText.r, Theme.surfaceText.g, Theme.surfaceText.b, 0.7)
             anchors.horizontalCenter: parent.horizontalCenter
@@ -406,7 +406,7 @@ Item {
                 anchors.margins: Theme.spacingM
                 
                 StyledText {
-                    text: "Audio Output Devices (" + audioDevicesDropdown.availableDevices.length + ")"
+                    text: I18n.tr("Audio Output Devices (") + audioDevicesDropdown.availableDevices.length + ")"
                     font.pixelSize: Theme.fontSizeMedium
                     font.weight: Font.Medium
                     color: Theme.surfaceText
@@ -491,7 +491,6 @@ Item {
                                     }
                                 }
                                 
-                                Behavior on color { ColorAnimation { duration: Anims.durShort } }
                                 Behavior on border.color { ColorAnimation { duration: Anims.durShort } }
                             }
                         }
@@ -564,7 +563,7 @@ Item {
                 anchors.margins: Theme.spacingM
 
                 StyledText {
-                    text: "Media Players (" + (allPlayers?.length || 0) + ")"
+                    text: I18n.tr("Media Players (") + (allPlayers?.length || 0) + ")"
                     font.pixelSize: Theme.fontSizeMedium
                     font.weight: Font.Medium
                     color: Theme.surfaceText
@@ -672,14 +671,6 @@ Item {
                                             MprisController.activePlayer = modelData
                                         }
                                         playerSelectorButton.playersExpanded = false
-                                    }
-                                }
-
-                                Behavior on color {
-                                    ColorAnimation { 
-                                        duration: Anims.durShort
-                                        easing.type: Easing.BezierSpline
-                                        easing.bezierCurve: Anims.standard
                                     }
                                 }
 
@@ -858,14 +849,6 @@ Item {
                                         }
                                     }
                                 }
-
-                                Behavior on color {
-                                    ColorAnimation {
-                                        duration: Anims.durShort
-                                        easing.type: Easing.BezierSpline
-                                        easing.bezierCurve: Anims.standard
-                                    }
-                                }
                             }
                         }
 
@@ -1022,14 +1005,6 @@ Item {
                                                     break
                                             }
                                         }
-                                    }
-                                }
-
-                                Behavior on color {
-                                    ColorAnimation {
-                                        duration: Anims.durShort
-                                        easing.type: Easing.BezierSpline
-                                        easing.bezierCurve: Anims.standard
                                     }
                                 }
                             }

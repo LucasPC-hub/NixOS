@@ -1,13 +1,14 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-if [ $# -lt 3 ]; then
-    echo "Usage: $0 STATE_DIR SHELL_DIR --run" >&2
+if [ $# -lt 4 ]; then
+    echo "Usage: $0 STATE_DIR SHELL_DIR CONFIG_DIR --run" >&2
     exit 1
 fi
 
 STATE_DIR="$1"
 SHELL_DIR="$2"
+CONFIG_DIR="$3"
 
 if [ ! -d "$STATE_DIR" ]; then
     echo "Error: STATE_DIR '$STATE_DIR' does not exist" >&2
@@ -19,10 +20,15 @@ if [ ! -d "$SHELL_DIR" ]; then
     exit 1
 fi
 
-shift 2  # Remove STATE_DIR and SHELL_DIR from arguments
+if [ ! -d "$CONFIG_DIR" ]; then
+    echo "Error: CONFIG_DIR '$CONFIG_DIR' does not exist" >&2
+    exit 1
+fi
+
+shift 3  # Remove STATE_DIR, SHELL_DIR, and CONFIG_DIR from arguments
 
 if [[ "${1:-}" != "--run" ]]; then
-  echo "usage: $0 STATE_DIR SHELL_DIR --run" >&2
+  echo "usage: $0 STATE_DIR SHELL_DIR CONFIG_DIR --run" >&2
   exit 1
 fi
 
@@ -48,34 +54,45 @@ key_of() {
   local icon=$(echo "$json" | sed 's/.*"iconTheme": *"\([^"]*\)".*/\1/')
   local matugen_type=$(echo "$json" | sed 's/.*"matugenType": *"\([^"]*\)".*/\1/')
   local surface_base=$(echo "$json" | sed 's/.*"surfaceBase": *"\([^"]*\)".*/\1/')
+  local run_user_templates=$(echo "$json" | sed 's/.*"runUserTemplates": *\([^,}]*\).*/\1/')
   [[ -z "$icon" ]] && icon="System Default"
   [[ -z "$matugen_type" ]] && matugen_type="scheme-tonal-spot"
   [[ -z "$surface_base" ]] && surface_base="sc"
-  echo "${kind}|${value}|${mode}|${icon}|${matugen_type}|${surface_base}" | sha256sum | cut -d' ' -f1
+  [[ -z "$run_user_templates" ]] && run_user_templates="true"
+  echo "${kind}|${value}|${mode}|${icon}|${matugen_type}|${surface_base}|${run_user_templates}" | sha256sum | cut -d' ' -f1
 }
 
 build_once() {
   local json="$1"
-  local kind value mode icon matugen_type surface_base
+  local kind value mode icon matugen_type surface_base run_user_templates
   kind=$(echo "$json" | sed 's/.*"kind": *"\([^"]*\)".*/\1/')
   value=$(echo "$json" | sed 's/.*"value": *"\([^"]*\)".*/\1/')
   mode=$(echo "$json" | sed 's/.*"mode": *"\([^"]*\)".*/\1/')
   icon=$(echo "$json" | sed 's/.*"iconTheme": *"\([^"]*\)".*/\1/')
   matugen_type=$(echo "$json" | sed 's/.*"matugenType": *"\([^"]*\)".*/\1/')
   surface_base=$(echo "$json" | sed 's/.*"surfaceBase": *"\([^"]*\)".*/\1/')
+  run_user_templates=$(echo "$json" | sed 's/.*"runUserTemplates": *\([^,}]*\).*/\1/')
   [[ -z "$icon" ]] && icon="System Default"
   [[ -z "$matugen_type" ]] && matugen_type="scheme-tonal-spot"
   [[ -z "$surface_base" ]] && surface_base="sc"
+  [[ -z "$run_user_templates" ]] && run_user_templates="true"
 
-  CONFIG_DIR="${CONFIG_DIR:-$HOME/.config}"
-
+  USER_MATUGEN_DIR="$CONFIG_DIR/matugen/dms"
+  
   TMP_CFG="$(mktemp)"
   trap 'rm -f "$TMP_CFG"' RETURN
 
-  cat "$SHELL_DIR/matugen/configs/base.toml" > "$TMP_CFG"
+  if [[ "$run_user_templates" == "true" ]] && [[ -f "$CONFIG_DIR/matugen/config.toml" ]]; then
+    awk '/^\[config/{p=1} /^\[templates/{p=0} p' "$CONFIG_DIR/matugen/config.toml" >> "$TMP_CFG"
+    echo "" >> "$TMP_CFG"
+  else
+    echo "[config]" >> "$TMP_CFG"
+    echo "" >> "$TMP_CFG"
+  fi
+
+  grep -v '^\[config\]' "$SHELL_DIR/matugen/configs/base.toml" >> "$TMP_CFG"
   echo "" >> "$TMP_CFG"
 
-  # Generate dank config dynamically with correct state directory
   cat >> "$TMP_CFG" << EOF
 [templates.dank]
 input_path = '$SHELL_DIR/matugen/templates/dank.json'
@@ -112,6 +129,17 @@ EOF
     cat "$SHELL_DIR/matugen/configs/vesktop.toml" >> "$TMP_CFG"
     echo "" >> "$TMP_CFG"
   fi
+
+  if [[ "$run_user_templates" == "true" ]] && [[ -f "$CONFIG_DIR/matugen/config.toml" ]]; then
+    awk '/^\[templates/{p=1} p' "$CONFIG_DIR/matugen/config.toml" >> "$TMP_CFG"
+    echo "" >> "$TMP_CFG"
+  fi
+
+  for config in "$USER_MATUGEN_DIR/configs"/*.toml; do
+    [[ -f "$config" ]] || continue
+    cat "$config" >> "$TMP_CFG"
+    echo "" >> "$TMP_CFG"
+  done
   
   # GTK3 colors based on colloid
   COLLOID_TEMPLATE="$SHELL_DIR/matugen/templates/gtk3-colors.css"
@@ -125,7 +153,8 @@ EOF
     trap 'rm -rf "$TMP_TEMPLATES_DIR"' RETURN
 
     # Create shifted versions of templates
-    for template in "$SHELL_DIR/matugen/templates"/*.{css,conf,json,kdl,colors}; do
+    for template in "$SHELL_DIR/matugen/templates"/*.{css,conf,json,kdl,colors} \
+                    "$USER_MATUGEN_DIR/templates"/*.{css,conf,json,kdl,colors,toml}; do
       [[ -f "$template" ]] || continue
       template_name="$(basename "$template")"
       shifted_template="$TMP_TEMPLATES_DIR/$template_name"
@@ -140,6 +169,7 @@ EOF
 
     # Update config to use shifted templates
     sed -i "s|input_path = '$SHELL_DIR/matugen/templates/|input_path = '$TMP_TEMPLATES_DIR/|g" "$TMP_CFG"
+    sed -i "s|input_path = '$USER_MATUGEN_DIR/templates/|input_path = '$TMP_TEMPLATES_DIR/|g" "$TMP_CFG"
 
     # Handle the special colloid template path
     if [[ -f "$TMP_TEMPLATES_DIR/gtk3-colors.css" ]]; then
@@ -242,14 +272,6 @@ EOF
       cat "$CONFIG_DIR/kitty/dank-theme.conf" >> "$TMP"
       mv "$TMP" "$CONFIG_DIR/kitty/dank-theme.conf"
     fi
-  fi
-  COLOR_SCHEME=$([[ "$mode" == "light" ]] && echo default || echo prefer-dark)
-  if command -v dconf >/dev/null 2>&1; then
-    dconf write /org/gnome/desktop/interface/color-scheme "\"$COLOR_SCHEME\"" 2>/dev/null || true
-    [[ "$icon" != "System Default" && -n "$icon" ]] && dconf write /org/gnome/desktop/interface/icon-theme "\"$icon\"" 2>/dev/null || true
-  elif command -v gsettings >/dev/null 2>&1; then
-    gsettings set org.gnome.desktop.interface color-scheme "$COLOR_SCHEME" 2>/dev/null || true
-    [[ "$icon" != "System Default" && -n "$icon" ]] && gsettings set org.gnome.desktop.interface icon-theme "$icon" 2>/dev/null || true
   fi
 }
 

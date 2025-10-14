@@ -13,8 +13,13 @@ Item {
     property alias searchField: searchField
     property var parentModal: null
 
+    function resetScroll() {
+        resultsView.resetScroll()
+    }
+
     anchors.fill: parent
     focus: true
+    clip: false
     Keys.onPressed: event => {
                         if (event.key === Qt.Key_Escape) {
                             if (parentModal)
@@ -76,10 +81,6 @@ Item {
                         } else if (event.key === Qt.Key_Return || event.key === Qt.Key_Enter) {
                             appLauncher.launchSelected()
                             event.accepted = true
-                        } else if (!searchField.activeFocus && event.text && event.text.length > 0 && event.text.match(/[a-zA-Z0-9\\s]/)) {
-                            searchField.forceActiveFocus()
-                            searchField.insertText(event.text)
-                            event.accepted = true
                         }
                     }
 
@@ -101,27 +102,7 @@ Item {
         anchors.fill: parent
         anchors.margins: Theme.spacingM
         spacing: Theme.spacingM
-
-        Rectangle {
-            width: parent.width
-            height: categorySelector.height + Theme.spacingS * 2
-            radius: Theme.cornerRadius
-            color: "transparent"
-            visible: appLauncher.categories.length > 1 || appLauncher.model.count > 0
-
-            CategorySelector {
-                id: categorySelector
-
-                anchors.centerIn: parent
-                width: parent.width - Theme.spacingS * 2
-                categories: appLauncher.categories
-                selectedCategory: appLauncher.selectedCategory
-                compact: false
-                onCategorySelected: category => {
-                                        appLauncher.setCategory(category)
-                                    }
-            }
-        }
+        clip: false
 
         Row {
             width: parent.width
@@ -146,7 +127,8 @@ Item {
                 font.pixelSize: Theme.fontSizeLarge
                 enabled: parentModal ? parentModal.spotlightOpen : true
                 placeholderText: ""
-                ignoreLeftRightKeys: true
+                ignoreLeftRightKeys: appLauncher.viewMode !== "list"
+                ignoreTabKeys: true
                 keyForwardTargets: [spotlightKeyHandler]
                 text: appLauncher.searchQuery
                 onTextEdited: () => {
@@ -228,6 +210,7 @@ Item {
         }
 
         SpotlightResults {
+            id: resultsView
             appLauncher: spotlightKeyHandler.appLauncher
             contextMenu: contextMenu
         }
@@ -245,7 +228,7 @@ Item {
         visible: contextMenu.visible
         z: 999
         onClicked: () => {
-                       contextMenu.close()
+                       contextMenu.hide()
                    }
 
         MouseArea {

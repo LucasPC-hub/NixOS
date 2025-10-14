@@ -70,7 +70,9 @@ Singleton {
     property int batteryHibernateTimeout: 0 // Never
 
     property bool lockBeforeSuspend: false
+    property bool loginctlLockIntegration: true
     property var recentColors: []
+    property bool showThirdPartyPlugins: false
 
 
     Component.onCompleted: {
@@ -151,7 +153,9 @@ Singleton {
                 batterySuspendTimeout = settings.batterySuspendTimeout !== undefined ? settings.batterySuspendTimeout : 0
                 batteryHibernateTimeout = settings.batteryHibernateTimeout !== undefined ? settings.batteryHibernateTimeout : 0
                 lockBeforeSuspend = settings.lockBeforeSuspend !== undefined ? settings.lockBeforeSuspend : false
+                loginctlLockIntegration = settings.loginctlLockIntegration !== undefined ? settings.loginctlLockIntegration : true
                 recentColors = settings.recentColors !== undefined ? settings.recentColors : []
+                showThirdPartyPlugins = settings.showThirdPartyPlugins !== undefined ? settings.showThirdPartyPlugins : false
 
                 if (!isGreeterMode) {
                     if (typeof Theme !== "undefined") {
@@ -213,7 +217,9 @@ Singleton {
                                                 "batterySuspendTimeout": batterySuspendTimeout,
                                                 "batteryHibernateTimeout": batteryHibernateTimeout,
                                                 "lockBeforeSuspend": lockBeforeSuspend,
-                                                "recentColors": recentColors
+                                                "loginctlLockIntegration": loginctlLockIntegration,
+                                                "recentColors": recentColors,
+                                                "showThirdPartyPlugins": showThirdPartyPlugins
                                             }, null, 2))
     }
 
@@ -640,6 +646,16 @@ Singleton {
         saveSettings()
     }
 
+    function setLoginctlLockIntegration(enabled) {
+        loginctlLockIntegration = enabled
+        saveSettings()
+    }
+
+    function setShowThirdPartyPlugins(enabled) {
+        showThirdPartyPlugins = enabled
+        saveSettings()
+    }
+
     FileView {
         id: settingsFile
 
@@ -654,8 +670,8 @@ Singleton {
             }
         }
         onLoadFailed: error => {
-            if (!isGreeterMode && !hasTriedDefaultSettings) {
-                hasTriedDefaultSettings = true
+            if (!isGreeterMode && !hasTriedDefaultSession) {
+                hasTriedDefaultSession = true
                 defaultSessionCheckProcess.running = true
             }
         }
@@ -684,7 +700,7 @@ Singleton {
         id: defaultSessionCheckProcess
 
         command: ["sh", "-c", "CONFIG_DIR=\"" + _stateDir
-            + "/DankMaterialShell\"; if [ -f \"$CONFIG_DIR/default-session.json\" ] && [ ! -f \"$CONFIG_DIR/session.json\" ]; then cp \"$CONFIG_DIR/default-session.json\" \"$CONFIG_DIR/session.json\" && echo 'copied'; else echo 'not_found'; fi"]
+            + "/DankMaterialShell\"; if [ -f \"$CONFIG_DIR/default-session.json\" ] && [ ! -f \"$CONFIG_DIR/session.json\" ]; then cp --no-preserve=mode \"$CONFIG_DIR/default-session.json\" \"$CONFIG_DIR/session.json\" && echo 'copied'; else echo 'not_found'; fi"]
         running: false
         onExited: exitCode => {
             if (exitCode === 0) {

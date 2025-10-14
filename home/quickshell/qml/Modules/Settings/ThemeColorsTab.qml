@@ -14,70 +14,42 @@ Item {
 
     property var cachedFontFamilies: []
     property var cachedMonoFamilies: []
+    property var cachedIconThemes: []
+    property var cachedMatugenSchemes: []
     property bool fontsEnumerated: false
 
     function enumerateFonts() {
-        var fonts = ["Default"]
+        var fonts = []
         var availableFonts = Qt.fontFamilies()
-        var rootFamilies = []
-        var seenFamilies = new Set()
+
         for (var i = 0; i < availableFonts.length; i++) {
             var fontName = availableFonts[i]
             if (fontName.startsWith("."))
                 continue
-
-            if (fontName === SettingsData.defaultFontFamily)
-                continue
-
-            var rootName = fontName.replace(
-                        / (Thin|Extra Light|Light|Regular|Medium|Semi Bold|Demi Bold|Bold|Extra Bold|Black|Heavy)$/i,
-                        "").replace(
-                        / (Italic|Oblique|Condensed|Extended|Narrow|Wide)$/i,
-                        "").replace(/ (UI|Display|Text|Mono|Sans|Serif)$/i,
-                                    function (match, suffix) {
-                                        return match
-                                    }).trim()
-            if (!seenFamilies.has(rootName) && rootName !== "") {
-                seenFamilies.add(rootName)
-                rootFamilies.push(rootName)
-            }
+            fonts.push(fontName)
         }
-        cachedFontFamilies = fonts.concat(rootFamilies.sort())
-        var monoFonts = ["Default"]
-        var monoFamilies = []
-        var seenMonoFamilies = new Set()
+        fonts.sort()
+        fonts.unshift("Default")
+        cachedFontFamilies = fonts
+
+        var monoFonts = []
         for (var j = 0; j < availableFonts.length; j++) {
             var fontName2 = availableFonts[j]
             if (fontName2.startsWith("."))
                 continue
 
-            if (fontName2 === SettingsData.defaultMonoFontFamily)
-                continue
-
             var lowerName = fontName2.toLowerCase()
-            if (lowerName.includes("mono") || lowerName.includes(
-                        "code") || lowerName.includes(
-                        "console") || lowerName.includes(
-                        "terminal") || lowerName.includes(
-                        "courier") || lowerName.includes(
-                        "dejavu sans mono") || lowerName.includes(
-                        "jetbrains") || lowerName.includes(
-                        "fira") || lowerName.includes(
-                        "hack") || lowerName.includes(
-                        "source code") || lowerName.includes(
-                        "ubuntu mono") || lowerName.includes("cascadia")) {
-                var rootName2 = fontName2.replace(
-                            / (Thin|Extra Light|Light|Regular|Medium|Semi Bold|Demi Bold|Bold|Extra Bold|Black|Heavy)$/i,
-                            "").replace(
-                            / (Italic|Oblique|Condensed|Extended|Narrow|Wide)$/i,
-                            "").trim()
-                if (!seenMonoFamilies.has(rootName2) && rootName2 !== "") {
-                    seenMonoFamilies.add(rootName2)
-                    monoFamilies.push(rootName2)
-                }
+            if (lowerName.includes("mono") || lowerName.includes("code") ||
+                lowerName.includes("console") || lowerName.includes("terminal") ||
+                lowerName.includes("courier") || lowerName.includes("jetbrains") ||
+                lowerName.includes("fira") || lowerName.includes("hack") ||
+                lowerName.includes("source code") || lowerName.includes("cascadia")) {
+                monoFonts.push(fontName2)
             }
         }
-        cachedMonoFamilies = monoFonts.concat(monoFamilies.sort())
+        monoFonts.sort()
+        monoFonts.unshift("Default")
+        cachedMonoFamilies = monoFonts
     }
 
     Component.onCompleted: {
@@ -85,6 +57,9 @@ Item {
             enumerateFonts()
             fontsEnumerated = true
         }
+        SettingsData.detectAvailableIconThemes()
+        cachedIconThemes = SettingsData.availableIconThemes
+        cachedMatugenSchemes = Theme.availableMatugenSchemes.map(function (option) { return option.label })
     }
 
     DankFlickable {
@@ -130,7 +105,7 @@ Item {
                         }
 
                         StyledText {
-                            text: "Theme Color"
+                            text: I18n.tr("Theme Color")
                             font.pixelSize: Theme.fontSizeLarge
                             font.weight: Font.Medium
                             color: Theme.surfaceText
@@ -651,9 +626,9 @@ Item {
 
                             DankDropdown {
                                 id: matugenPaletteDropdown
-                                text: "Matugen Palette"
+                                text: I18n.tr("Matugen Palette")
                                 description: "Select the palette algorithm used for wallpaper-based colors"
-                                options: Theme.availableMatugenSchemes.map(function (option) { return option.label })
+                                options: cachedMatugenSchemes
                                 currentValue: Theme.getMatugenScheme(SettingsData.matugenScheme).label
                                 enabled: Theme.matugenAvailable
                                 opacity: enabled ? 1 : 0.4
@@ -756,7 +731,7 @@ Item {
                         }
 
                         StyledText {
-                            text: "Widget Styling"
+                            text: I18n.tr("Widget Styling")
                             font.pixelSize: Theme.fontSizeLarge
                             font.weight: Font.Medium
                             color: Theme.surfaceText
@@ -769,7 +744,7 @@ Item {
                         spacing: Theme.spacingS
 
                         StyledText {
-                            text: "Dank Bar Transparency"
+                            text: I18n.tr("Dank Bar Transparency")
                             font.pixelSize: Theme.fontSizeSmall
                             color: Theme.surfaceText
                             font.weight: Font.Medium
@@ -803,7 +778,7 @@ Item {
 
                             StyledText {
                                 id: transparencyLabel
-                                text: "Dank Bar Widget Transparency"
+                                text: I18n.tr("Dank Bar Widget Transparency")
                                 font.pixelSize: Theme.fontSizeSmall
                                 color: Theme.surfaceText
                                 font.weight: Font.Medium
@@ -867,7 +842,7 @@ Item {
                         spacing: Theme.spacingS
 
                         StyledText {
-                            text: "Popup Transparency"
+                            text: I18n.tr("Popup Transparency")
                             font.pixelSize: Theme.fontSizeSmall
                             color: Theme.surfaceText
                             font.weight: Font.Medium
@@ -904,7 +879,7 @@ Item {
                         spacing: Theme.spacingS
 
                         StyledText {
-                            text: "Corner Radius (0 = square corners)"
+                            text: I18n.tr("Corner Radius (0 = square corners)")
                             font.pixelSize: Theme.fontSizeSmall
                             color: Theme.surfaceText
                             font.weight: Font.Medium
@@ -924,6 +899,238 @@ Item {
                                                       SettingsData.setCornerRadius(
                                                           newValue)
                                                   }
+                        }
+                    }
+                }
+            }
+
+            StyledRect {
+                width: parent.width
+                height: fontSection.implicitHeight + Theme.spacingL * 2
+                radius: Theme.cornerRadius
+                color: Theme.surfaceContainerHigh
+                border.color: Qt.rgba(Theme.outline.r, Theme.outline.g,
+                                      Theme.outline.b, 0.2)
+                border.width: 0
+
+                Column {
+                    id: fontSection
+
+                    anchors.fill: parent
+                    anchors.margins: Theme.spacingL
+                    spacing: Theme.spacingM
+
+                    Row {
+                        width: parent.width
+                        spacing: Theme.spacingM
+
+                        DankIcon {
+                            name: "font_download"
+                            size: Theme.iconSize
+                            color: Theme.primary
+                            anchors.verticalCenter: parent.verticalCenter
+                        }
+
+                        StyledText {
+                            text: I18n.tr("Font Settings")
+                            font.pixelSize: Theme.fontSizeLarge
+                            font.weight: Font.Medium
+                            color: Theme.surfaceText
+                            anchors.verticalCenter: parent.verticalCenter
+                        }
+                    }
+
+                    DankDropdown {
+                        text: I18n.tr("Font Family")
+                        description: I18n.tr("Select system font family")
+                        currentValue: {
+                            if (SettingsData.fontFamily === SettingsData.defaultFontFamily)
+                                return "Default"
+                            else
+                                return SettingsData.fontFamily || "Default"
+                        }
+                        enableFuzzySearch: true
+                        popupWidthOffset: 100
+                        maxPopupHeight: 400
+                        options: cachedFontFamilies
+                        onValueChanged: value => {
+                                            if (value.startsWith("Default"))
+                                            SettingsData.setFontFamily(SettingsData.defaultFontFamily)
+                                            else
+                                            SettingsData.setFontFamily(value)
+                                        }
+                    }
+
+                    DankDropdown {
+                        text: I18n.tr("Font Weight")
+                        description: I18n.tr("Select font weight")
+                        currentValue: {
+                            switch (SettingsData.fontWeight) {
+                            case Font.Thin:
+                                return "Thin"
+                            case Font.ExtraLight:
+                                return "Extra Light"
+                            case Font.Light:
+                                return "Light"
+                            case Font.Normal:
+                                return "Regular"
+                            case Font.Medium:
+                                return "Medium"
+                            case Font.DemiBold:
+                                return "Demi Bold"
+                            case Font.Bold:
+                                return "Bold"
+                            case Font.ExtraBold:
+                                return "Extra Bold"
+                            case Font.Black:
+                                return "Black"
+                            default:
+                                return "Regular"
+                            }
+                        }
+                        options: ["Thin", "Extra Light", "Light", "Regular", "Medium", "Demi Bold", "Bold", "Extra Bold", "Black"]
+                        onValueChanged: value => {
+                                            var weight
+                                            switch (value) {
+                                                case "Thin":
+                                                weight = Font.Thin
+                                                break
+                                                case "Extra Light":
+                                                weight = Font.ExtraLight
+                                                break
+                                                case "Light":
+                                                weight = Font.Light
+                                                break
+                                                case "Regular":
+                                                weight = Font.Normal
+                                                break
+                                                case "Medium":
+                                                weight = Font.Medium
+                                                break
+                                                case "Demi Bold":
+                                                weight = Font.DemiBold
+                                                break
+                                                case "Bold":
+                                                weight = Font.Bold
+                                                break
+                                                case "Extra Bold":
+                                                weight = Font.ExtraBold
+                                                break
+                                                case "Black":
+                                                weight = Font.Black
+                                                break
+                                                default:
+                                                weight = Font.Normal
+                                                break
+                                            }
+                                            SettingsData.setFontWeight(weight)
+                                        }
+                    }
+
+                    DankDropdown {
+                        text: I18n.tr("Monospace Font")
+                        description: I18n.tr("Select monospace font for process list and technical displays")
+                        currentValue: {
+                            if (SettingsData.monoFontFamily === SettingsData.defaultMonoFontFamily)
+                                return "Default"
+
+                            return SettingsData.monoFontFamily || "Default"
+                        }
+                        enableFuzzySearch: true
+                        popupWidthOffset: 100
+                        maxPopupHeight: 400
+                        options: cachedMonoFamilies
+                        onValueChanged: value => {
+                                            if (value === "Default")
+                                            SettingsData.setMonoFontFamily(SettingsData.defaultMonoFontFamily)
+                                            else
+                                            SettingsData.setMonoFontFamily(value)
+                                        }
+                    }
+
+                    Rectangle {
+                        width: parent.width
+                        height: 60
+                        radius: Theme.cornerRadius
+                        color: "transparent"
+
+                        Column {
+                            anchors.left: parent.left
+                            anchors.right: fontScaleControls.left
+                            anchors.verticalCenter: parent.verticalCenter
+                            spacing: Theme.spacingXS
+
+                            StyledText {
+                                text: I18n.tr("Font Scale")
+                                font.pixelSize: Theme.fontSizeMedium
+                                font.weight: Font.Medium
+                                color: Theme.surfaceText
+                            }
+
+                            StyledText {
+                                text: I18n.tr("Scale all font sizes")
+                                font.pixelSize: Theme.fontSizeSmall
+                                color: Theme.surfaceVariantText
+                                width: parent.width
+                            }
+                        }
+
+                        Row {
+                            id: fontScaleControls
+
+                            width: 180
+                            height: 36
+                            anchors.right: parent.right
+                            anchors.rightMargin: 0
+                            anchors.verticalCenter: parent.verticalCenter
+                            spacing: Theme.spacingS
+
+                            DankActionButton {
+                                buttonSize: 32
+                                iconName: "remove"
+                                iconSize: Theme.iconSizeSmall
+                                enabled: SettingsData.fontScale > 1.0
+                                backgroundColor: Theme.surfaceContainerHigh
+                                iconColor: Theme.surfaceText
+                                onClicked: {
+                                    var newScale = Math.max(1.0, SettingsData.fontScale - 0.05)
+                                    SettingsData.setFontScale(newScale)
+                                }
+                            }
+
+                            StyledRect {
+                                width: 60
+                                height: 32
+                                radius: Theme.cornerRadius
+                                color: Theme.surfaceContainerHigh
+                                border.color: Qt.rgba(Theme.outline.r,
+                                                      Theme.outline.g,
+                                                      Theme.outline.b, 0.2)
+                                border.width: 0
+
+                                StyledText {
+                                    anchors.centerIn: parent
+                                    text: (SettingsData.fontScale * 100).toFixed(
+                                              0) + "%"
+                                    font.pixelSize: Theme.fontSizeSmall
+                                    font.weight: Font.Medium
+                                    color: Theme.surfaceText
+                                }
+                            }
+
+                            DankActionButton {
+                                buttonSize: 32
+                                iconName: "add"
+                                iconSize: Theme.iconSizeSmall
+                                enabled: SettingsData.fontScale < 2.0
+                                backgroundColor: Theme.surfaceContainerHigh
+                                iconColor: Theme.surfaceText
+                                onClicked: {
+                                    var newScale = Math.min(2.0,
+                                                            SettingsData.fontScale + 0.05)
+                                    SettingsData.setFontScale(newScale)
+                                }
+                            }
                         }
                     }
                 }
@@ -955,7 +1162,7 @@ Item {
                     StyledText {
                         id: warningText
                         font.pixelSize: Theme.fontSizeSmall
-                        text: "The below settings will modify your GTK and Qt settings. If you wish to preserve your current configurations, please back them up (qt5ct.conf|qt6ct.conf and ~/.config/gtk-3.0|gtk-4.0)."
+                        text: I18n.tr("The below settings will modify your GTK and Qt settings. If you wish to preserve your current configurations, please back them up (qt5ct.conf|qt6ct.conf and ~/.config/gtk-3.0|gtk-4.0).")
                         wrapMode: Text.WordWrap
                         width: parent.width - Theme.iconSizeSmall - Theme.spacingM
                         anchors.verticalCenter: parent.verticalCenter
@@ -992,17 +1199,15 @@ Item {
                         }
 
                         DankDropdown {
+                            width: parent.width - Theme.iconSize - Theme.spacingXS
                             anchors.verticalCenter: parent.verticalCenter
-                            text: "Icon Theme"
+                            text: I18n.tr("Icon Theme")
                             description: "DankShell & System Icons\n(requires restart)"
                             currentValue: SettingsData.iconTheme
                             enableFuzzySearch: true
                             popupWidthOffset: 100
                             maxPopupHeight: 236
-                            options: {
-                                SettingsData.detectAvailableIconThemes()
-                                return SettingsData.availableIconThemes
-                            }
+                            options: cachedIconThemes
                             onValueChanged: value => {
                                                 SettingsData.setIconTheme(value)
                                                 if (Quickshell.env("QT_QPA_PLATFORMTHEME") != "gtk3" &&
@@ -1046,7 +1251,7 @@ Item {
                         }
 
                         StyledText {
-                            text: "System App Theming"
+                            text: I18n.tr("System App Theming")
                             font.pixelSize: Theme.fontSizeLarge
                             font.weight: Font.Medium
                             color: Theme.surfaceText
@@ -1078,7 +1283,7 @@ Item {
                                 }
 
                                 StyledText {
-                                    text: "Apply GTK Colors"
+                                    text: I18n.tr("Apply GTK Colors")
                                     font.pixelSize: Theme.fontSizeMedium
                                     color: Theme.primary
                                     font.weight: Font.Medium
@@ -1114,7 +1319,7 @@ Item {
                                 }
 
                                 StyledText {
-                                    text: "Apply Qt Colors"
+                                    text: I18n.tr("Apply Qt Colors")
                                     font.pixelSize: Theme.fontSizeMedium
                                     color: Theme.primary
                                     font.weight: Font.Medium

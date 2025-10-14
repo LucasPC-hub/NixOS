@@ -21,6 +21,7 @@ in
   evince
   obsidian
   modrinth-app
+  galaxy-buds-client
   # TUI
   btop
   fish
@@ -33,6 +34,7 @@ in
   remmina
   jetbrains-toolbox
   rustup
+
   gcc
   gh
   nixfmt-rfc-style
@@ -43,6 +45,8 @@ in
   mockoon
   insomnia
   # Utilities
+  piper
+  solaar
   jq
   socat
   tree
@@ -60,6 +64,8 @@ in
   lazydocker
   kdePackages.dolphin
   yazi
+  hidapi
+
   # Quickshell stuff
   qt6Packages.qt5compat
   libsForQt5.qt5.qtgraphicaleffects

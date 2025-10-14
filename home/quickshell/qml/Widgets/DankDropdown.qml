@@ -20,11 +20,12 @@ Item {
     property int popupWidth: 0
     property bool alignPopupRight: false
     property int dropdownWidth: 200
+    property bool compactMode: text === "" && description === ""
 
     signal valueChanged(string value)
 
-    width: parent.width
-    implicitHeight: Math.max(60, labelColumn.implicitHeight + Theme.spacingM)
+    width: compactMode ? dropdownWidth : parent.width
+    implicitHeight: compactMode ? 40 : Math.max(60, labelColumn.implicitHeight + Theme.spacingM)
 
     Component.onDestruction: {
         const popup = dropdownMenu
@@ -41,6 +42,7 @@ Item {
         anchors.verticalCenter: parent.verticalCenter
         anchors.rightMargin: Theme.spacingL
         spacing: Theme.spacingXS
+        visible: !root.compactMode
 
         StyledText {
             text: root.text
@@ -62,7 +64,7 @@ Item {
     Rectangle {
         id: dropdown
 
-        width: root.popupWidth === -1 ? undefined : (root.popupWidth > 0 ? root.popupWidth : root.dropdownWidth)
+        width: root.compactMode ? parent.width : (root.popupWidth === -1 ? undefined : (root.popupWidth > 0 ? root.popupWidth : root.dropdownWidth))
         height: 40
         anchors.right: parent.right
         anchors.verticalCenter: parent.verticalCenter
@@ -143,6 +145,7 @@ Item {
                 anchors.verticalCenter: parent.verticalCenter
                 width: contentRow.width - (contentRow.children[0].visible ? contentRow.children[0].width + contentRow.spacing : 0)
                 elide: Text.ElideRight
+                wrapMode: Text.NoWrap
             }
         }
 
@@ -257,7 +260,7 @@ Item {
 
                         anchors.fill: parent
                         anchors.margins: 1
-                        placeholderText: "Search..."
+                        placeholderText: I18n.tr("Search...")
                         text: dropdownMenu.searchQuery
                         topPadding: Theme.spacingS
                         bottomPadding: Theme.spacingS
