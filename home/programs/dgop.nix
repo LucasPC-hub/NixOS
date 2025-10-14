@@ -11,7 +11,7 @@ buildGoModule rec {
     hash = "sha256-7CeGZM/Z/5Qt3AYByCRohGYGR1MRuXYzTTbkV/JxyAs=";
   };
 
-  vendorHash = "sha256-+3o/Kg5ROSgp8IZfvU71JvbEgaiLasx5IAkjq27faLQ="; # You'll need to update this
+  vendorHash = "sha256-2iZwpbTEpxlDEdCbYSdDbW/G+9znxr0cqQky3Uaqnv4="; # You'll need to update this
 
   # Build configuration
     subPackages = [ "cmd/cli" ];
